@@ -51,6 +51,36 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
   const [cards, setCards] = useState<SrsCard[]>([]);
   const [userMessages, setUserMessages] = useState<string[]>([]);
   const [showAllUnused, setShowAllUnused] = useState(false);
+  const [selectedWord, setSelectedWord] = useState<UnusedWord | null>(null);
+  const [exampleLoading, setExampleLoading] = useState(false);
+  const [examples, setExamples] = useState<string>("");
+
+  const generateExamples = async (word: UnusedWord) => {
+    if (selectedWord?.target_text === word.target_text && examples) {
+      setSelectedWord(null);
+      setExamples("");
+      return;
+    }
+    setSelectedWord(word);
+    setExamples("");
+    setExampleLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-examples", {
+        body: { target_text: word.target_text, native_text: word.native_text },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      setExamples(data?.examples || "예문을 생성하지 못했습니다.");
+    } catch (err) {
+      console.error("Example generation failed:", err);
+      toast.error("예문 생성에 실패했습니다");
+    } finally {
+      setExampleLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
