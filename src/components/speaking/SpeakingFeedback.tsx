@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Star, BookOpen, MessageCircle, Zap, Lightbulb } from "lucide-react";
+import { ArrowLeft, Star, BookOpen, MessageCircle, Zap, Lightbulb, Phone, Clock } from "lucide-react";
 
 type FeedbackData = {
   overallScore: number;
@@ -10,9 +10,20 @@ type FeedbackData = {
   tips: string[];
 };
 
+type CallInfo = {
+  callerName: string;
+  gender: "male" | "female";
+  occupation: string;
+  personality: string;
+  scenarioLabel: string;
+  scenarioEmoji: string;
+  durationSeconds: number;
+};
+
 type Props = {
   feedback: FeedbackData;
   onClose: () => void;
+  callInfo?: CallInfo;
 };
 
 const ScoreRing = ({ score, size = 64 }: { score: number; size?: number }) => {
