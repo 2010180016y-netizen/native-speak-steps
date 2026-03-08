@@ -10,11 +10,17 @@ import * as THREE from "three";
 
 type PetAction = "idle" | "walking" | "sleeping" | "playing" | "eating";
 
-type Pet3DSceneProps = {
-  petName: string;
-  petLevel: number;
+export type ScenePet = {
+  id: string;
+  name: string;
+  level: number;
   species: string;
   petTypeName?: string;
+  isActive: boolean;
+};
+
+type Pet3DSceneProps = {
+  pets: ScenePet[];
   equippedAccessories: { emoji: string; position: string; name?: string; category?: string }[];
   emotion: { emoji: string; text: string } | null;
   petAction: PetAction;
@@ -49,19 +55,33 @@ function LoadingFallback() {
   );
 }
 
+// Generate a stable "home" position for inactive pets so they stay in fixed spots
+function getHomePosForIndex(index: number): [number, number, number] {
+  const spots: [number, number, number][] = [
+    [-3, 0, -2],
+    [3, 0, -2.5],
+    [-2.5, 0, 1],
+    [2.5, 0, 0.5],
+    [0, 0, -3],
+    [-1, 0, 2],
+    [1.5, 0, 2],
+  ];
+  return spots[index % spots.length];
+}
+
 export default function Pet3DScene({
-  petName,
-  petLevel,
-  species,
-  petTypeName,
+  pets,
   equippedAccessories,
   emotion,
   petAction,
   feeding,
   onTap,
 }: Pet3DSceneProps) {
+  const activePet = pets.find((p) => p.isActive) || pets[0];
+  const inactivePets = pets.filter((p) => p.id !== activePet?.id);
+
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
-  const petScale = Math.min(0.01 + (petLevel - 1) * 0.0005, 0.018);
+  const petScale = activePet ? Math.min(0.01 + (activePet.level - 1) * 0.0005, 0.018) : 0.01;
 
   // Wander logic
   useEffect(() => {
@@ -134,20 +154,41 @@ export default function Pet3DScene({
         {/* ─── Shadows ─── */}
         <ContactShadows position={[0, 0.01, 0]} opacity={0.6} scale={12} blur={2.5} far={5} />
 
-        {/* ─── Pet ─── */}
-        <Suspense fallback={<LoadingFallback />}>
-          <PetModel
-            action={petAction}
-            position={[0, 0, 0]}
-            targetPosition={targetPos}
-            scale={petScale}
-            species={species}
-            petTypeName={petTypeName}
-            feeding={feeding}
-          />
-        </Suspense>
+        {/* ─── Active Pet ─── */}
+        {activePet && (
+          <Suspense fallback={<LoadingFallback />}>
+            <PetModel
+              action={petAction}
+              position={[0, 0, 0]}
+              targetPosition={targetPos}
+              scale={petScale}
+              species={activePet.species}
+              petTypeName={activePet.petTypeName}
+              feeding={feeding}
+            />
+          </Suspense>
+        )}
 
-        {/* ─── Accessories ─── */}
+        {/* ─── Inactive Pets (idle in fixed spots) ─── */}
+        {inactivePets.map((pet, i) => {
+          const homePos = getHomePosForIndex(i);
+          const s = Math.min(0.01 + (pet.level - 1) * 0.0005, 0.018);
+          return (
+            <Suspense key={pet.id} fallback={<LoadingFallback />}>
+              <PetModel
+                action="idle"
+                position={homePos}
+                targetPosition={homePos}
+                scale={s}
+                species={pet.species}
+                petTypeName={pet.petTypeName}
+                feeding={false}
+              />
+            </Suspense>
+          );
+        })}
+
+        {/* ─── Accessories (active pet only) ─── */}
         {equippedAccessories.map((acc, i) => (
           <Pet3DAccessory
             key={i}

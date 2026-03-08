@@ -5,8 +5,10 @@ import { useAuth } from "@/hooks/useAuth";
 import type { UserPet, PetItem, UserPoints } from "@/hooks/usePet";
 import Pet3DScene from "./Pet3DScene";
 
+
 type Props = {
   activePet: UserPet | null;
+  pets: UserPet[];
   items: PetItem[];
   points: UserPoints | null;
   feedPet: (itemId: string) => Promise<boolean>;
@@ -66,7 +68,7 @@ const MOOD_EMOJI: Record<string, string> = {
   happy: "😊", proud: "🥰", lonely: "🥺", sleepy: "😴", excited: "🤩", neutral: "📝",
 };
 
-const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
+const PetMain = ({ activePet, pets, items, points, feedPet, loading }: Props) => {
   const { user } = useAuth();
   const [feeding, setFeeding] = useState<FeedingState>({ active: false, emoji: "", itemName: "" });
   const [petAction, setPetAction] = useState<PetAction>("idle");
@@ -293,10 +295,14 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
       <div className="relative mb-4">
         <Pet3DScene
-          petName={activePet.name}
-          petLevel={activePet.level}
-          species={activePet.pet_type?.species || "dog"}
-          petTypeName={activePet.pet_type?.name}
+          pets={pets.map((p) => ({
+            id: p.id,
+            name: p.name,
+            level: p.level,
+            species: p.pet_type?.species || "dog",
+            petTypeName: p.pet_type?.name,
+            isActive: p.id === activePet.id,
+          }))}
           equippedAccessories={equippedAccessories}
           emotion={emotion}
           petAction={petAction}
