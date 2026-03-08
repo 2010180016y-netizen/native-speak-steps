@@ -1,12 +1,12 @@
 import { useLocation, Link } from "react-router-dom";
-import { Home, Upload, MessageCircle, PawPrint, User } from "lucide-react";
+import { Home, Upload, MessageCircle, Mic, PawPrint, User } from "lucide-react";
 
 const NAV_ITEMS = [
   { path: "/dashboard", icon: Home, label: "홈" },
   { path: "/import", icon: Upload, label: "분석" },
-  { path: "/chat", icon: MessageCircle, label: "연습" },
+  { path: "/chat", icon: MessageCircle, label: "채팅" },
+  { path: "/speaking", icon: Mic, label: "스피킹" },
   { path: "/pet", icon: PawPrint, label: "펫" },
-  { path: "/profile", icon: User, label: "프로필" },
 ];
 
 const BottomNav = () => {
