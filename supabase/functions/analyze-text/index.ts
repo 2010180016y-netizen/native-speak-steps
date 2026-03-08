@@ -11,22 +11,40 @@ serve(async (req) => {
   }
 
   try {
-    const { text, nativeLanguage, targetLanguage } = await req.json();
+    const { 
+      text, 
+      nativeLanguage, 
+      targetLanguage, 
+      totalWordCount, 
+      totalUniqueWords,
+      speakerNames = []
+    } = await req.json();
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Create speaker exclusion instruction if speakers are provided
+    const speakerInstruction = speakerNames.length > 0 
+      ? `\n\nIMPORTANT: Exclude these speaker names/IDs from word frequency analysis (they are chat usernames, not content): ${speakerNames.join(", ")}`
+      : "";
+
     const systemPrompt = `You are a linguistic analysis expert. Analyze the given text and return structured data.
 The text is in ${nativeLanguage}. The user is learning ${targetLanguage}.
+${speakerInstruction}
 
-Analyze the text and return JSON with these fields:
-- wordFrequency: array of {word, count, percentage} sorted by count desc, top 20
+Analyze the ENTIRE text thoroughly and return JSON with these fields:
+- wordFrequency: array of {word, count, percentage} sorted by count desc, top 30 (exclude speaker names, timestamps, masked placeholders like [전화번호])
 - sentenceStructures: array of {pattern, description, count, example} sorted by count desc (e.g. "SVO", "Question", "Conditional", "Imperative", etc.)
 - totalSentences: number
 - avgSentenceLength: number (words per sentence)
 - vocabularyRichness: number (0-100, ratio of unique words to total)
 - complexityScore: number (1-10, overall text complexity)
-- topBigrams: array of {phrase, count} top 10 two-word combinations
-- summary: brief analysis summary in Korean (2-3 sentences)
+- topBigrams: array of {phrase, count} top 15 two-word combinations (exclude combinations with speaker names)
+- topTrigrams: array of {phrase, count} top 10 three-word combinations
+- summary: detailed analysis summary in Korean (3-4 sentences)
+- keyExpressions: array of {expression, translation, context} top 10 useful expressions for language learning
+- emotionalTone: object {positive: number, negative: number, neutral: number} as percentages
+${totalWordCount ? `\nNote: The full text has ${totalWordCount} total words and ${totalUniqueWords} unique words. Use these for overall statistics even if analyzing a sample.` : ""}
 
 Return ONLY valid JSON, no markdown.`;
 
@@ -37,10 +55,10 @@ Return ONLY valid JSON, no markdown.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: text.slice(0, 5000) },
+          { role: "user", content: text },
         ],
         stream: false,
       }),
@@ -69,6 +87,12 @@ Return ONLY valid JSON, no markdown.`;
     content = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     
     const analysis = JSON.parse(content);
+    
+    // Add total counts if provided
+    if (totalWordCount) {
+      analysis.totalWordCount = totalWordCount;
+      analysis.totalUniqueWords = totalUniqueWords;
+    }
 
     return new Response(JSON.stringify(analysis), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
