@@ -498,16 +498,17 @@ const SpeakingPage = () => {
             <ArrowLeft size={20} className="text-muted-foreground" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
-              <span className="text-sm">{persona?.gender === "male" ? "👨" : "👩"}</span>
+            <div className="w-10 h-10 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
+              <span className="text-lg">{persona?.gender === "male" ? "👨" : "👩"}</span>
             </div>
             <div>
-              <h2 className="font-extrabold text-foreground text-sm">
+              <h2 className="font-extrabold text-foreground text-sm">{callerName}</h2>
+              <p className="text-[11px] text-muted-foreground font-semibold">
                 {persona?.occupation} · {scenario?.emoji} {scenario?.label}
-              </h2>
+              </p>
               <div className="flex items-center gap-1.5">
                 <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-[11px] font-bold text-primary">{formatDuration(callDuration)}</span>
+                <span className="text-[10px] font-bold text-primary">{formatDuration(callDuration)}</span>
               </div>
             </div>
           </div>
