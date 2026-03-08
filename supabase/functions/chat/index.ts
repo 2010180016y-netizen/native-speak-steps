@@ -95,9 +95,24 @@ ALWAYS respond with valid JSON. No markdown wrapping around the JSON.`;
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    const rawContent = data.choices?.[0]?.message?.content || "";
 
-    return new Response(JSON.stringify({ content, response_time_ms: responseTimeMs }), {
+    // Try to parse JSON response with corrections
+    let content = rawContent;
+    let corrections: Array<{wrong: string; correct: string; explanation: string}> = [];
+    try {
+      // Strip markdown code fences if present
+      const cleaned = rawContent.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed.response) {
+        content = parsed.response;
+        corrections = parsed.corrections || [];
+      }
+    } catch {
+      // AI didn't return valid JSON, use raw content
+    }
+
+    return new Response(JSON.stringify({ content, corrections, response_time_ms: responseTimeMs }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
