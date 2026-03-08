@@ -265,6 +265,7 @@ const ChatPage = () => {
 
       const assistantContent = data?.content || "죄송합니다, 다시 시도해주세요.";
       const responseTimeMs = data?.response_time_ms || 0;
+      const corrections: Correction[] = data?.corrections || [];
 
       const { data: feedbackData } = await supabase.from("ai_feedback").insert({
         user_id: user.id, feature: "chat", response_time_ms: responseTimeMs,
@@ -273,7 +274,7 @@ const ChatPage = () => {
 
       const assistantMsg: Message = {
         role: "assistant", content: assistantContent, responseTimeMs,
-        feedbackId: feedbackData?.id, rating: null,
+        feedbackId: feedbackData?.id, rating: null, corrections,
       };
       const finalMessages = [...newMessages, assistantMsg];
       setMessages(finalMessages);
