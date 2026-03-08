@@ -86,9 +86,17 @@ const SpeakingPage = () => {
   const [occupation, setOccupation] = useState<string | null>(null);
   const [personality, setPersonality] = useState<string | null>(null);
 
+  // Mission state
+  const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
+  const [lastFailedText, setLastFailedText] = useState<string | null>(null);
+
   const targetLang = LANG_MAP[profile?.target_language || "en"] || "en-US";
   const { isListening, transcript, interimTranscript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(targetLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(targetLang);
+
+  // Current missions & hints
+  const missions: SpeakingMission[] = scenario ? SPEAKING_MISSIONS[scenario.id] || SPEAKING_MISSIONS.free : [];
+  const levelHints = SPEAKING_HINTS[profile?.target_language || "en"]?.[profile?.current_level || "beginner"] || [];
 
   useEffect(() => {
     if (!user) return;
