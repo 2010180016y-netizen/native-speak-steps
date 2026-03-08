@@ -3,8 +3,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileText, Loader2, BookOpen, Check } from "lucide-react";
+import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import DialogueRolePlay, { type DialogueLine } from "@/components/dialogue/DialogueRolePlay";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese",
@@ -26,6 +27,12 @@ const ImportPage = () => {
   const [result, setResult] = useState<{ wordCount: number; uniqueWords: number } | null>(null);
   const [generatedCards, setGeneratedCards] = useState<GeneratedCard[]>([]);
 
+  // Dialogue state
+  const [splittingDialogue, setSplittingDialogue] = useState(false);
+  const [dialogueSpeakers, setDialogueSpeakers] = useState<string[]>([]);
+  const [dialogueLines, setDialogueLines] = useState<DialogueLine[]>([]);
+  const [showRolePlay, setShowRolePlay] = useState(false);
+
   const analyzeText = (content: string) => {
     const words = content.trim().split(/\s+/).filter(Boolean);
     const unique = new Set(words);
@@ -37,6 +44,8 @@ const ImportPage = () => {
     setAnalyzing(true);
     setGeneratedCards([]);
     setCardsSaved(false);
+    setDialogueSpeakers([]);
+    setDialogueLines([]);
 
     try {
       const analysis = analyzeText(text);
@@ -81,6 +90,38 @@ const ImportPage = () => {
     }
   };
 
+  const handleSplitDialogue = async () => {
+    if (!text.trim() || !profile) return;
+    setSplittingDialogue(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("split-dialogue", {
+        body: {
+          text: text.slice(0, 5000),
+          nativeLanguage: profile.native_language,
+          targetLanguage: profile.target_language,
+        },
+      });
+
+      if (error) throw error;
+
+      if (!data.is_dialogue || data.lines.length < 2) {
+        toast.error("대화문이 감지되지 않았어요. 대화 형식의 텍스트를 입력해주세요.");
+        return;
+      }
+
+      setDialogueSpeakers(data.speakers);
+      setDialogueLines(data.lines);
+      setShowRolePlay(true);
+      toast.success(`${data.speakers.length}명의 화자, ${data.lines.length}개 대사를 분리했어요! 🎭`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "대화 분리에 실패했어요");
+    } finally {
+      setSplittingDialogue(false);
+    }
+  };
+
   const handleSaveCards = async () => {
     if (!user || generatedCards.length === 0) return;
 
@@ -110,6 +151,21 @@ const ImportPage = () => {
     reader.readAsText(file);
   };
 
+  // Role play view
+  if (showRolePlay && dialogueLines.length > 0) {
+    return (
+      <AppLayout>
+        <DialogueRolePlay
+          speakers={dialogueSpeakers}
+          lines={dialogueLines}
+          targetLang={profile?.target_language || "en"}
+          onClose={() => setShowRolePlay(false)}
+          onLinesUpdate={(updated) => setDialogueLines(updated)}
+        />
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
@@ -123,7 +179,7 @@ const ImportPage = () => {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="카카오톡 대화, 일기, 메모 등 평소에 쓰는 글을 붙여넣어 보세요..."
+          placeholder={"카카오톡 대화, 드라마 대본, 일기 등을 붙여넣어 보세요...\n\n예시:\nA: Hello, can I get a coffee?\nB: Sure! What size would you like?\nA: A large latte, please."}
           className="w-full h-48 px-4 py-3 rounded-2xl border-2 border-border bg-card text-foreground font-semibold resize-none focus:border-primary focus:outline-none transition-colors"
         />
 
@@ -135,17 +191,32 @@ const ImportPage = () => {
           </label>
         </div>
 
-        <button
-          onClick={handleAnalyze}
-          disabled={!text.trim() || analyzing || generatingCards}
-          className="duo-btn-primary w-full mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          {analyzing || generatingCards ? (
-            <><Loader2 size={20} className="animate-spin" /> {generatingCards ? "카드 생성 중..." : "분석 중..."}</>
-          ) : (
-            <><Upload size={20} /> 분석 + 카드 생성</>
-          )}
-        </button>
+        {/* Action buttons */}
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <button
+            onClick={handleAnalyze}
+            disabled={!text.trim() || analyzing || generatingCards}
+            className="duo-btn-primary flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+          >
+            {analyzing || generatingCards ? (
+              <><Loader2 size={18} className="animate-spin" /> {generatingCards ? "카드 생성..." : "분석..."}</>
+            ) : (
+              <><Upload size={18} /> 분석 + 카드</>
+            )}
+          </button>
+
+          <button
+            onClick={handleSplitDialogue}
+            disabled={!text.trim() || splittingDialogue}
+            className="duo-btn-secondary flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+          >
+            {splittingDialogue ? (
+              <><Loader2 size={18} className="animate-spin" /> 분리 중...</>
+            ) : (
+              <><MessageSquare size={18} /> 역할 분리 연습</>
+            )}
+          </button>
+        </div>
       </motion.div>
 
       {/* Analysis Result */}
