@@ -357,11 +357,24 @@ const ImportPage = () => {
       )}
 
       {detailedAnalysis && result && (
-        <AnalysisDashboard
-          analysis={detailedAnalysis}
-          wordCount={result.wordCount}
-          uniqueWords={result.uniqueWords}
-        />
+        <>
+          <AnalysisDashboard
+            analysis={detailedAnalysis}
+            wordCount={result.wordCount}
+            uniqueWords={result.uniqueWords}
+          />
+          
+          {/* Learning Flow with Tabs */}
+          {(detailedAnalysis.wordFrequency?.length > 0 || detailedAnalysis.sentenceStructures?.length > 0) && (
+            <ImportLearningFlow
+              wordFrequency={detailedAnalysis.wordFrequency || []}
+              sentenceStructures={detailedAnalysis.sentenceStructures || []}
+              onComplete={(type, count) => {
+                toast.success(`${type === "word" ? "단어" : "문장구조"} ${count}개 학습 완료!`);
+              }}
+            />
+          )}
+        </>
       )}
 
       {/* Basic result (shown only if no detailed analysis yet) */}
