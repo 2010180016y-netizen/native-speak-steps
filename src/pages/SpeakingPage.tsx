@@ -70,7 +70,6 @@ const SpeakingPage = () => {
   const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [speakingSessionId] = useState(() => `speaking_${crypto.randomUUID()}`);
-  const [callDuration, setCallDuration] = useState(0);
   const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
