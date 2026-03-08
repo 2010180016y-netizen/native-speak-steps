@@ -92,7 +92,7 @@ function InactivePetWanderer({ homePos, scale, species, petTypeName, onClick }: 
   }, [homePos]);
 
   return (
-    <group onClick={(e) => { e.stopPropagation(); onClick?.(); }} style={{ cursor: "pointer" }}>
+    <group onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
       <ChibiPetModel
         action={action}
         position={homePos}
