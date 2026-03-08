@@ -53,7 +53,7 @@ Rules:
 - Respond ONLY in ${targetLanguage}
 - ${levelGuide[level] || levelGuide.beginner}
 - Keep responses short and conversational (1-3 sentences max) — this is a phone conversation
-- Start with a natural phone greeting like "Hello? Is this...?" or similar
+- Start with a natural phone greeting — introduce yourself by name (e.g. "Hi, this is ${callerName || 'me'}!") and set the context for why you're calling
 - If the user makes mistakes, briefly correct them naturally then continue the conversation
 - Stay in character for the scenario and persona
 - Be warm, encouraging, and natural
