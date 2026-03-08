@@ -173,6 +173,14 @@ const StatsPage = () => {
         >
           <Clock size={14} /> 시간
         </button>
+        <button
+          onClick={() => setActiveTab("performance")}
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "performance" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <Target size={14} /> 성과
+        </button>
       </div>
 
       {activeTab === "activity" ? (
