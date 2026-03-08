@@ -27,7 +27,7 @@ type DailyData = {
 const StatsPage = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [activeTab, setActiveTab] = useState<"learning" | "activity" | "time" | "performance" | "feedback">("learning");
+  const [activeTab, setActiveTab] = useState<"learning" | "activity" | "time" | "performance" | "feedback" | "chat">("learning");
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
 
