@@ -364,7 +364,7 @@ function ChibiEyes({ expression, eyeColor, side }: { expression: PetExpression; 
   );
 }
 
-
+export default function ChibiPetModel({
   action,
   position,
   targetPosition,
@@ -372,6 +372,7 @@ function ChibiEyes({ expression, eyeColor, side }: { expression: PetExpression; 
   species,
   petTypeName,
   feeding,
+  expression = "normal",
 }: ChibiPetModelProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const headRef = useRef<THREE.Group>(null!);
