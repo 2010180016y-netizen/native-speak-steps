@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookCheck, AlertCircle, CheckCircle2, RefreshCw, TrendingUp, Sparkles, Loader2, X } from "lucide-react";
+import { BookCheck, AlertCircle, CheckCircle2, RefreshCw, TrendingUp, Sparkles, Loader2, X, Plus, Check } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "sonner";
 
@@ -54,6 +54,50 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
   const [selectedWord, setSelectedWord] = useState<UnusedWord | null>(null);
   const [exampleLoading, setExampleLoading] = useState(false);
   const [examples, setExamples] = useState<string>("");
+  const [addingCards, setAddingCards] = useState(false);
+  const [addedCards, setAddedCards] = useState(false);
+
+  const parseExamples = (text: string): { english: string; korean: string }[] => {
+    const results: { english: string; korean: string }[] = [];
+    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    let currentEn = "";
+    for (const line of lines) {
+      if (/^\d+\./.test(line)) {
+        currentEn = line.replace(/^\d+\.\s*/, "").trim();
+      } else if (line.startsWith("→") && currentEn) {
+        results.push({ english: currentEn, korean: line.replace(/^→\s*/, "").trim() });
+        currentEn = "";
+      }
+    }
+    return results;
+  };
+
+  const addExamplesAsCards = async () => {
+    if (!selectedWord || !examples || addingCards) return;
+    setAddingCards(true);
+    try {
+      const parsed = parseExamples(examples);
+      if (parsed.length === 0) {
+        toast.error("추가할 예문을 찾지 못했습니다");
+        return;
+      }
+      const rows = parsed.map((ex) => ({
+        user_id: userId,
+        target_text: ex.english,
+        native_text: ex.korean,
+        context: `예문 (${selectedWord.target_text})`,
+      }));
+      const { error } = await supabase.from("srs_cards").insert(rows);
+      if (error) throw error;
+      toast.success(`${parsed.length}개 예문이 SRS 카드로 추가되었어요! 🎉`);
+      setAddedCards(true);
+    } catch (err) {
+      console.error("Failed to add cards:", err);
+      toast.error("카드 추가에 실패했습니다");
+    } finally {
+      setAddingCards(false);
+    }
+  };
 
   const generateExamples = async (word: UnusedWord) => {
     if (selectedWord?.target_text === word.target_text && examples) {
@@ -64,6 +108,7 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
     setSelectedWord(word);
     setExamples("");
     setExampleLoading(true);
+    setAddedCards(false);
     try {
       const { data, error } = await supabase.functions.invoke("generate-examples", {
         body: { target_text: word.target_text, native_text: word.native_text },
@@ -382,13 +427,31 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
                           <div className="space-y-1">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-[10px] font-bold text-primary">✨ AI 예문</span>
-                              <button onClick={() => { setSelectedWord(null); setExamples(""); }} className="p-0.5">
+                              <button onClick={() => { setSelectedWord(null); setExamples(""); setAddedCards(false); }} className="p-0.5">
                                 <X size={12} className="text-muted-foreground" />
                               </button>
                             </div>
                             <p className="text-xs text-foreground font-medium whitespace-pre-line leading-relaxed">
                               {examples}
                             </p>
+                            {/* Add to SRS button */}
+                            <button
+                              onClick={addExamplesAsCards}
+                              disabled={addingCards || addedCards}
+                              className={`w-full mt-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                addedCards
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+                              } disabled:opacity-70`}
+                            >
+                              {addedCards ? (
+                                <><Check size={14} /> SRS 카드에 추가됨</>
+                              ) : addingCards ? (
+                                <><Loader2 size={14} className="animate-spin" /> 추가 중...</>
+                              ) : (
+                                <><Plus size={14} /> SRS 카드로 추가</>
+                              )}
+                            </button>
                           </div>
                         )}
                       </div>
