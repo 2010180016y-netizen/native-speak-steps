@@ -16,6 +16,7 @@ type Props = {
   sentenceStructures: StructureItem[];
   onComplete?: (type: "word" | "structure", completedCount: number) => void;
   onUnknownWordsReady?: (unknownWords: string[]) => void;
+  onAllLearningComplete?: () => void;
   generatingCards?: boolean;
 };
 
