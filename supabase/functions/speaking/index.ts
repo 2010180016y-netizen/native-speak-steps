@@ -35,7 +35,13 @@ serve(async (req) => {
       advanced: "Use sophisticated language with idioms, slang, and complex structures naturally.",
     };
 
-    // Build persona description
+    const LANG_NAMES: Record<string, string> = {
+      ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese",
+      es: "Spanish", fr: "French", de: "German", pt: "Portuguese",
+    };
+    const targetLangName = LANG_NAMES[targetLanguage] || targetLanguage;
+    const nativeLangName = LANG_NAMES[nativeLanguage] || nativeLanguage;
+
     let personaDesc = "";
     if (persona) {
       const genderLabel = persona.gender === "male" ? "male" : "female";
@@ -43,23 +49,37 @@ serve(async (req) => {
       personaDesc = `You are a ${genderLabel} ${persona.occupation}. ${nameStr} Your personality is: ${persona.personality}. Stay true to this character throughout the call.`;
     }
 
-    const systemPrompt = `You are making a PHONE CALL to a language learner. The user speaks ${nativeLanguage} and is practicing ${targetLanguage} at the ${level} level.
+    // Check if this is the initial call (first message is the system trigger)
+    const isInitialCall = messages.length === 1 && messages[0].role === "user" && messages[0].content.includes("just answered");
+
+    const systemPrompt = `You are making a PHONE CALL to a language learner. The user speaks ${nativeLangName} and is practicing ${targetLangName} at the ${level} level.
 
 ${personaDesc ? personaDesc + "\n" : ""}Scenario: ${scenarioPrompts[scenario] || scenarioPrompts.free}
 
 This is a phone call scenario. You are the one who CALLED the user. The conversation should feel like a real phone call.
 
 Rules:
-- Respond ONLY in ${targetLanguage}
+- Respond ONLY in ${targetLangName}
 - ${levelGuide[level] || levelGuide.beginner}
 - Keep responses short and conversational (1-3 sentences max) — this is a phone conversation
 - Start with a natural phone greeting — introduce yourself by name (e.g. "Hi, this is ${callerName || 'me'}!") and set the context for why you're calling
-- If the user makes mistakes, briefly correct them naturally then continue the conversation
 - Stay in character for the scenario and persona
 - Be warm, encouraging, and natural
 - Do NOT use markdown formatting — speak naturally as in a real phone call
-- Add a brief ${nativeLanguage} translation in parentheses for key phrases at beginner/elementary levels
-- Include natural phone conversation elements: pauses, "uh-huh", confirmations, etc.`;
+- Add a brief ${nativeLangName} translation in parentheses for key phrases at beginner/elementary levels
+- Include natural phone conversation elements: pauses, "uh-huh", confirmations, etc.
+
+IMPORTANT - GRAMMAR CORRECTION:
+${isInitialCall ? `For the initial greeting, just respond normally with: {"response":"<your greeting>","corrections":[]}` : `If the user's LAST message contains grammar, spelling, or unnatural expression errors, you MUST respond in this exact JSON format:
+{"response":"<your normal conversational reply>","corrections":[{"wrong":"<exact text the user said>","correct":"<corrected version>","explanation":"<brief explanation in ${nativeLangName}>"}]}
+
+If the user's last message has NO errors, respond in this format:
+{"response":"<your normal conversational reply>","corrections":[]}`}
+
+ALWAYS respond with valid JSON. No markdown wrapping around the JSON.`;
+
+    // Sliding window: send last 15 messages
+    const windowedMessages = messages.slice(-15);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -71,7 +91,7 @@ Rules:
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages,
+          ...windowedMessages,
         ],
         stream: false,
       }),
@@ -94,9 +114,23 @@ Rules:
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    const rawContent = data.choices?.[0]?.message?.content || "";
 
-    return new Response(JSON.stringify({ content }), {
+    // Parse JSON response with corrections
+    let content = rawContent;
+    let corrections: Array<{wrong: string; correct: string; explanation: string}> = [];
+    try {
+      const cleaned = rawContent.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed.response) {
+        content = parsed.response;
+        corrections = parsed.corrections || [];
+      }
+    } catch {
+      // AI didn't return valid JSON, use raw content
+    }
+
+    return new Response(JSON.stringify({ content, corrections }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

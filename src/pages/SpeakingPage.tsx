@@ -10,7 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Correction = { wrong: string; correct: string; explanation: string };
+type Message = { role: "user" | "assistant"; content: string; corrections?: Correction[] };
 
 type Phase = "setup" | "incoming" | "call" | "feedback";
 
@@ -68,6 +69,7 @@ const SpeakingPage = () => {
   const [feedback, setFeedback] = useState<any>(null);
   const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [speakingSessionId] = useState(() => `speaking_${crypto.randomUUID()}`);
   const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +123,34 @@ const SpeakingPage = () => {
     return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   };
 
+  const saveMessageToDB = useCallback(async (role: string, content: string) => {
+    if (!user) return;
+    try {
+      await supabase.from("chat_messages").insert({
+        user_id: user.id, role, content, session_id: speakingSessionId,
+      });
+    } catch { /* silent */ }
+  }, [user, speakingSessionId]);
+
+  const saveCorrectionCards = useCallback(async (corrections: Correction[]) => {
+    if (!user || corrections.length === 0) return;
+    const cardsToInsert = corrections.map((c) => ({
+      user_id: user.id,
+      native_text: `${c.wrong} → ${c.correct}`,
+      target_text: c.correct,
+      context: `📞 스피킹 교정: ${c.explanation || ""}\n원문: ${c.wrong}`,
+      difficulty: 1,
+      ease_factor: 2.5,
+      interval_days: 1,
+      review_count: 0,
+      next_review_at: new Date().toISOString(),
+    }));
+    const { error } = await supabase.from("srs_cards").insert(cardsToInsert);
+    if (!error) {
+      toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
+    }
+  }, [user]);
+
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isAiLoading) return;
     const userMsg: Message = { role: "user", content: text };
@@ -128,10 +158,13 @@ const SpeakingPage = () => {
     setMessages(newMessages);
     setIsAiLoading(true);
 
+    // Save user message to DB
+    saveMessageToDB("user", text);
+
     try {
       const { data, error } = await supabase.functions.invoke("speaking", {
         body: {
-          messages: newMessages,
+          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           targetLanguage: profile?.target_language || "en",
           nativeLanguage: profile?.native_language || "ko",
           level: profile?.current_level || "beginner",
@@ -141,8 +174,18 @@ const SpeakingPage = () => {
         },
       });
       if (error) throw error;
-      const aiMsg: Message = { role: "assistant", content: data.content };
+      const corrections: Correction[] = data.corrections || [];
+      const aiMsg: Message = { role: "assistant", content: data.content, corrections };
       setMessages((prev) => [...prev, aiMsg]);
+
+      // Save assistant message to DB
+      saveMessageToDB("assistant", data.content);
+
+      // Auto-save corrections as SRS cards
+      if (corrections.length > 0) {
+        saveCorrectionCards(corrections);
+      }
+
       if (autoSpeak && data.content) {
         setTimeout(() => speak(data.content), 300);
       }
@@ -152,7 +195,7 @@ const SpeakingPage = () => {
     } finally {
       setIsAiLoading(false);
     }
-  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading]);
+  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName]);
 
   const startCall = useCallback(async () => {
     setPhase("call");
@@ -173,8 +216,9 @@ const SpeakingPage = () => {
         },
       });
       if (error) throw error;
-      const aiMsg: Message = { role: "assistant", content: data.content };
+      const aiMsg: Message = { role: "assistant", content: data.content, corrections: [] };
       setMessages([aiMsg]);
+      saveMessageToDB("assistant", data.content);
       if (autoSpeak && data.content) {
         setTimeout(() => speak(data.content), 300);
       }
@@ -226,7 +270,7 @@ const SpeakingPage = () => {
 
           const { data: pointsData } = await supabase.from("user_points").select("*").eq("user_id", user.id).maybeSingle();
           if (pointsData) {
-            await supabase.from("user_points").update({ balance: (pointsData as any).balance + pointsEarned }).eq("id", (pointsData as any).id);
+            await supabase.from("user_points").update({ balance: pointsData.balance + pointsEarned }).eq("id", pointsData.id);
           } else {
             await supabase.from("user_points").insert({ user_id: user.id, balance: pointsEarned });
           }
@@ -235,16 +279,50 @@ const SpeakingPage = () => {
           const { data: petData } = await supabase.from("user_pets").select("*").eq("user_id", user.id).eq("is_active", true).maybeSingle();
           if (petData) {
             const LEVEL_THRESHOLDS = Array.from({ length: 30 }, (_, i) => Math.round(100 * Math.pow(1.2, i)));
-            let newExp = (petData as any).experience + petXpEarned;
-            let newLevel = (petData as any).level;
-            let newExpToNext = (petData as any).exp_to_next_level;
+            let newExp = petData.experience + petXpEarned;
+            let newLevel = petData.level;
+            let newExpToNext = petData.exp_to_next_level;
             while (newExp >= newExpToNext && newLevel < 30) {
               newExp -= newExpToNext;
               newLevel++;
               newExpToNext = LEVEL_THRESHOLDS[newLevel - 1] || 99999;
             }
-            await supabase.from("user_pets").update({ experience: newExp, level: newLevel, exp_to_next_level: newExpToNext }).eq("id", (petData as any).id);
+            await supabase.from("user_pets").update({ experience: newExp, level: newLevel, exp_to_next_level: newExpToNext }).eq("id", petData.id);
           }
+
+          // Save feedback to lesson_completions
+          await supabase.from("lesson_completions").insert({
+            user_id: user.id,
+            lesson_type: "speaking",
+            score,
+            duration_seconds: callDuration,
+            metadata: {
+              session_id: speakingSessionId,
+              scenario: scenario?.id,
+              scenario_label: scenario?.label,
+              persona_name: callerName,
+              persona_occupation: persona?.occupation,
+              feedback: data.feedback,
+            },
+          });
+
+          // Save grammar errors from feedback as SRS cards
+          const grammarErrors = data.feedback.grammar?.errors || [];
+          if (grammarErrors.length > 0) {
+            const feedbackCards = grammarErrors.map((err: any) => ({
+              user_id: user.id,
+              native_text: `${err.original} → ${err.corrected}`,
+              target_text: err.corrected,
+              context: `📞 스피킹 피드백 교정: ${err.explanation || ""}`,
+              difficulty: 1,
+              ease_factor: 2.5,
+              interval_days: 1,
+              review_count: 0,
+              next_review_at: new Date().toISOString(),
+            }));
+            await supabase.from("srs_cards").insert(feedbackCards);
+          }
+
           toast.success(`🎉 ${pointsEarned}P 획득! 펫 경험치 +${petXpEarned}`);
         }
       } else {
@@ -257,7 +335,7 @@ const SpeakingPage = () => {
       setIsFeedbackLoading(false);
       setPhase("feedback");
     }
-  }, [messages, profile, stopSpeaking, user]);
+  }, [messages, profile, stopSpeaking, user, callDuration, speakingSessionId, scenario, persona, callerName]);
 
   const handleMicClick = () => {
     if (isSpeaking) stopSpeaking();
@@ -554,7 +632,7 @@ const SpeakingPage = () => {
       <div className="space-y-3 mb-28 min-h-[40vh]">
         <AnimatePresence>
           {messages.map((msg, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
               <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-br-md" : "bg-card border-2 border-border text-foreground rounded-bl-md"}`}>
                 <p className="text-sm font-semibold whitespace-pre-wrap">{msg.content}</p>
                 {msg.role === "assistant" && (
@@ -563,6 +641,34 @@ const SpeakingPage = () => {
                   </button>
                 )}
               </div>
+
+              {/* Correction highlights */}
+              {msg.role === "assistant" && msg.corrections && msg.corrections.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="max-w-[85%] mt-1.5 space-y-1.5"
+                >
+                  {msg.corrections.map((c, ci) => (
+                    <div
+                      key={ci}
+                      className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-[11px]"
+                    >
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-amber-600 font-bold mt-px">✏️</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="line-through text-destructive/70 font-semibold">{c.wrong}</span>
+                          <span className="mx-1.5 text-muted-foreground">→</span>
+                          <span className="text-primary font-bold">{c.correct}</span>
+                          {c.explanation && (
+                            <p className="text-muted-foreground font-medium mt-0.5">{c.explanation}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>
