@@ -55,19 +55,33 @@ function LoadingFallback() {
   );
 }
 
+// Generate a stable "home" position for inactive pets so they stay in fixed spots
+function getHomePosForIndex(index: number): [number, number, number] {
+  const spots: [number, number, number][] = [
+    [-3, 0, -2],
+    [3, 0, -2.5],
+    [-2.5, 0, 1],
+    [2.5, 0, 0.5],
+    [0, 0, -3],
+    [-1, 0, 2],
+    [1.5, 0, 2],
+  ];
+  return spots[index % spots.length];
+}
+
 export default function Pet3DScene({
-  petName,
-  petLevel,
-  species,
-  petTypeName,
+  pets,
   equippedAccessories,
   emotion,
   petAction,
   feeding,
   onTap,
 }: Pet3DSceneProps) {
+  const activePet = pets.find((p) => p.isActive) || pets[0];
+  const inactivePets = pets.filter((p) => p.id !== activePet?.id);
+
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
-  const petScale = Math.min(0.01 + (petLevel - 1) * 0.0005, 0.018);
+  const petScale = activePet ? Math.min(0.01 + (activePet.level - 1) * 0.0005, 0.018) : 0.01;
 
   // Wander logic
   useEffect(() => {
