@@ -83,6 +83,26 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
         },
       });
 
+      if (error) throw error;
+      setFeedback(data);
+
+      // Save feedback to DB
+      await supabase.from("chat_feedback_results" as any).insert({
+        user_id: user.id,
+        session_id: crypto.randomUUID(),
+        overall_score: data.overallScore || 0,
+        total_user_messages: data.totalUserMessages || 0,
+        total_user_words: data.totalUserWords || 0,
+        avg_words_per_message: data.avgWordsPerMessage || 0,
+        vocabulary_richness: data.vocabularyRichness || 0,
+        good_expressions_count: data.goodExpressions?.length || 0,
+        improvement_areas_count: data.improvementAreas?.length || 0,
+        persona_gender: persona.gender,
+        persona_occupation: persona.occupation,
+        scenario_label: scenario.label,
+        feedback_data: data,
+      });
+
       // Auto-generate SRS cards from good expressions & improvement areas
       const cardsToCreate: { native_text: string; target_text: string; context: string }[] = [];
 
@@ -107,13 +127,11 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
       }
 
       if (cardsToCreate.length > 0) {
-        // Check for duplicates
         const { data: existing } = await supabase
           .from("srs_cards")
           .select("target_text")
           .eq("user_id", user.id);
         const existingSet = new Set((existing || []).map((c: any) => c.target_text.toLowerCase()));
-
         const newCards = cardsToCreate.filter((c) => !existingSet.has(c.target_text.toLowerCase()));
 
         if (newCards.length > 0) {
@@ -128,25 +146,6 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
           toast.success(`📚 ${newCards.length}개의 학습 카드가 자동 생성되었습니다!`);
         }
       }
-      if (error) throw error;
-      setFeedback(data);
-
-      // Save feedback to DB
-      await supabase.from("chat_feedback_results" as any).insert({
-        user_id: user.id,
-        session_id: crypto.randomUUID(),
-        overall_score: data.overallScore || 0,
-        total_user_messages: data.totalUserMessages || 0,
-        total_user_words: data.totalUserWords || 0,
-        avg_words_per_message: data.avgWordsPerMessage || 0,
-        vocabulary_richness: data.vocabularyRichness || 0,
-        good_expressions_count: data.goodExpressions?.length || 0,
-        improvement_areas_count: data.improvementAreas?.length || 0,
-        persona_gender: persona.gender,
-        persona_occupation: persona.occupation,
-        scenario_label: scenario.label,
-        feedback_data: data,
-      });
     } catch (err) {
       console.error("Feedback error:", err);
       toast.error("피드백 분석에 실패했습니다");
