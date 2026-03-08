@@ -117,6 +117,9 @@ const DashboardPage = () => {
         </motion.div>
       </div>
 
+      {/* Weekly Report */}
+      <WeeklyReportWidget />
+
       {/* Personalized Recommendations */}
       <PersonalizedRecommendations />
 
