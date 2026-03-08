@@ -16,6 +16,7 @@ type Props = {
   targetLang: string;
   onClose: () => void;
   onLinesUpdate?: (lines: DialogueLine[]) => void;
+  onComplete?: (completedCount: number, totalCount: number) => void;
 };
 
 const LANG_MAP: Record<string, string> = {
@@ -30,7 +31,7 @@ const SPEAKER_COLORS = [
   "bg-emerald-500/15 border-emerald-500/30 text-emerald-600",
 ];
 
-const DialogueRolePlay = ({ speakers, lines, targetLang, onClose, onLinesUpdate }: Props) => {
+const DialogueRolePlay = ({ speakers, lines, targetLang, onClose, onLinesUpdate, onComplete }: Props) => {
   const [myRole, setMyRole] = useState<string | null>(null);
   const [currentLine, setCurrentLine] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -66,6 +67,8 @@ const DialogueRolePlay = ({ speakers, lines, targetLang, onClose, onLinesUpdate 
         }, 500);
       } else {
         toast.success("대화 연습 완료! 🎉");
+        const newCompleted = new Set(completedLines).add(currentLine);
+        onComplete?.(newCompleted.size, lines.length);
       }
     }
   }, [transcript, isListening]);

@@ -151,6 +151,70 @@ const ImportPage = () => {
     reader.readAsText(file);
   };
 
+  const handleRolePlayComplete = async (completedCount: number, totalCount: number) => {
+    if (!user) return;
+    const ratio = completedCount / totalCount;
+    const pointsEarned = Math.max(5, Math.round(completedCount * 2 * ratio));
+    const petXpEarned = Math.max(3, Math.round(completedCount * 1.5 * ratio));
+
+    try {
+      // Update user points
+      const { data: pointsData } = await supabase
+        .from("user_points")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (pointsData) {
+        await supabase
+          .from("user_points")
+          .update({ balance: (pointsData as any).balance + pointsEarned })
+          .eq("id", (pointsData as any).id);
+      } else {
+        await supabase
+          .from("user_points")
+          .insert({ user_id: user.id, balance: pointsEarned });
+      }
+
+      await supabase.from("point_transactions").insert({
+        user_id: user.id,
+        amount: pointsEarned,
+        type: "roleplay",
+        description: `역할 분리 연습 완료 (${completedCount}/${totalCount})`,
+      });
+
+      // Add pet XP
+      const { data: petData } = await supabase
+        .from("user_pets")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (petData) {
+        const LEVEL_THRESHOLDS = Array.from({ length: 30 }, (_, i) => Math.round(100 * Math.pow(1.2, i)));
+        let newExp = (petData as any).experience + petXpEarned;
+        let newLevel = (petData as any).level;
+        let newExpToNext = (petData as any).exp_to_next_level;
+
+        while (newExp >= newExpToNext && newLevel < 30) {
+          newExp -= newExpToNext;
+          newLevel++;
+          newExpToNext = LEVEL_THRESHOLDS[newLevel - 1] || 99999;
+        }
+
+        await supabase
+          .from("user_pets")
+          .update({ experience: newExp, level: newLevel, exp_to_next_level: newExpToNext })
+          .eq("id", (petData as any).id);
+      }
+
+      toast.success(`🎉 ${pointsEarned}P 획득! 펫 경험치 +${petXpEarned}`);
+    } catch (e) {
+      console.error("Reward error:", e);
+    }
+  };
+
   // Role play view
   if (showRolePlay && dialogueLines.length > 0) {
     return (
@@ -161,6 +225,7 @@ const ImportPage = () => {
           targetLang={profile?.target_language || "en"}
           onClose={() => setShowRolePlay(false)}
           onLinesUpdate={(updated) => setDialogueLines(updated)}
+          onComplete={handleRolePlayComplete}
         />
       </AppLayout>
     );
