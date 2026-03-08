@@ -5,8 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import type { UserPet, PetItem, UserPoints } from "@/hooks/usePet";
 import Pet3DScene from "./Pet3DScene";
 
-import type { UserPet, PetItem, UserPoints } from "@/hooks/usePet";
-import Pet3DScene from "./Pet3DScene";
 
 type Props = {
   activePet: UserPet | null;
