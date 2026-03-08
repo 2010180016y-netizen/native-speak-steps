@@ -278,6 +278,7 @@ const SpeakingPage = () => {
     setFeedback(null);
     setPersona(null);
     setScenario(null);
+    setCallerName("");
     stopSpeaking();
   };
 
