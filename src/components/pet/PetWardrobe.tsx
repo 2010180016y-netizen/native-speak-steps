@@ -164,6 +164,7 @@ const PetWardrobe = ({ activePet, loading }: Props) => {
               targetPosition={[0, 0, 0]}
               scale={0.012}
               species={activePet.pet_type?.species || "dog"}
+              petTypeName={activePet.pet_type?.name}
               feeding={false}
             />
           </Suspense>

@@ -11,11 +11,26 @@ type PetModelProps = {
   targetPosition: [number, number, number];
   scale?: number;
   species: string;
+  petTypeName?: string;
   feeding: boolean;
 };
 
-// Map species to GLB model files
-const SPECIES_MODEL: Record<string, string> = {
+// Map pet type name (Korean) to breed key
+function getBreedKey(species: string, petTypeName?: string): string {
+  if (petTypeName) {
+    const name = petTypeName.toLowerCase();
+    if (name.includes("코르기") || name.includes("corgi")) return "corgi";
+    if (name.includes("시바") || name.includes("shiba")) return "shiba";
+    if (name.includes("골든") || name.includes("golden")) return "golden_retriever";
+    if (name.includes("먼치킨") || name.includes("munchkin")) return "munchkin";
+    if (name.includes("러시안") || name.includes("russian")) return "russian_blue";
+    if (name.includes("스코티시") || name.includes("scottish")) return "scottish_fold";
+  }
+  return species; // fallback to "dog" or "cat"
+}
+
+// Map breed keys to GLB model files
+const BREED_MODEL: Record<string, string> = {
   dog: "/models/husky.glb",
   corgi: "/models/fox.glb",
   shiba: "/models/shiba.glb",
@@ -26,20 +41,20 @@ const SPECIES_MODEL: Record<string, string> = {
   scottish_fold: "/models/cat.glb",
 };
 
-// Species-specific color tints to differentiate breeds using same model
-const SPECIES_TINT: Record<string, string | null> = {
-  dog: null, // Husky stays as-is
-  corgi: "#f0a030",
-  shiba: null, // Shiba has its own model
-  golden_retriever: "#c8922a",
-  cat: "#888888",
-  munchkin: "#c0a070",
-  russian_blue: "#7090a0",
-  scottish_fold: "#b0a090",
+// Breed-specific color tints
+const BREED_TINT: Record<string, { color: string; strength: number } | null> = {
+  dog: null,
+  corgi: { color: "#f0a030", strength: 0.5 },
+  shiba: null,
+  golden_retriever: { color: "#c8922a", strength: 0.7 },
+  cat: { color: "#888888", strength: 0.35 },
+  munchkin: { color: "#c0a070", strength: 0.45 },
+  russian_blue: { color: "#7090a0", strength: 0.5 },
+  scottish_fold: { color: "#b0a090", strength: 0.4 },
 };
 
-// Scale adjustments per model
-const SPECIES_SCALE_MOD: Record<string, number> = {
+// Scale adjustments per breed
+const BREED_SCALE: Record<string, number> = {
   dog: 1,
   corgi: 0.75,
   shiba: 1,
@@ -77,10 +92,12 @@ export default function PetModel({
   targetPosition,
   scale = 1,
   species,
+  petTypeName,
   feeding,
 }: PetModelProps) {
   const groupRef = useRef<THREE.Group>(null!);
-  const modelPath = SPECIES_MODEL[species] || SPECIES_MODEL.dog;
+  const breed = getBreedKey(species, petTypeName);
+  const modelPath = BREED_MODEL[breed] || BREED_MODEL.dog;
   const { scene, animations } = useGLTF(modelPath);
   const clonedScene = useMemo(() => scene.clone(true), [scene]);
   const { actions, mixer } = useAnimations(animations, groupRef);
@@ -93,24 +110,23 @@ export default function PetModel({
     );
   }, [species, modelPath, animations]);
 
-  // Apply species-based color tint
+  // Apply breed-based color tint
   useEffect(() => {
-    const tint = SPECIES_TINT[species];
+    const tint = BREED_TINT[breed];
     if (!tint) return;
 
-    const color = new THREE.Color(tint);
+    const color = new THREE.Color(tint.color);
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
           const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
-          const strength = species === "golden_retriever" ? 0.7 : 0.35;
-          mat.color.lerp(color, strength);
+          mat.color.lerp(color, tint.strength);
           mesh.material = mat;
         }
       }
     });
-  }, [clonedScene, species]);
+  }, [clonedScene, breed]);
 
   // Switch animations based on action
   useEffect(() => {
@@ -166,7 +182,7 @@ export default function PetModel({
     }
 
     // Apply species-specific scale
-    const scaleMod = SPECIES_SCALE_MOD[species] || 1;
+    const scaleMod = BREED_SCALE[breed] || 1;
     group.scale.setScalar(scale * scaleMod);
   });
 
@@ -178,6 +194,6 @@ export default function PetModel({
 }
 
 // Preload all models
-Object.values(SPECIES_MODEL).forEach((path) => {
+Object.values(BREED_MODEL).forEach((path) => {
   useGLTF.preload(path);
 });

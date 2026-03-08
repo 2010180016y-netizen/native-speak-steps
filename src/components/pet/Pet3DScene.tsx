@@ -12,6 +12,7 @@ type Pet3DSceneProps = {
   petName: string;
   petLevel: number;
   species: string;
+  petTypeName?: string;
   equippedAccessories: { emoji: string; position: string; name?: string; category?: string }[];
   emotion: { emoji: string; text: string } | null;
   petAction: PetAction;
@@ -142,6 +143,7 @@ export default function Pet3DScene({
   petName,
   petLevel,
   species,
+  petTypeName,
   equippedAccessories,
   emotion,
   petAction,
@@ -204,6 +206,7 @@ export default function Pet3DScene({
             targetPosition={targetPos}
             scale={petScale}
             species={species}
+            petTypeName={petTypeName}
             feeding={feeding}
           />
         </Suspense>
