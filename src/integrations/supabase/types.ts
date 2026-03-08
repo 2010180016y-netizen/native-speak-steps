@@ -314,6 +314,8 @@ export type Database = {
           id: string
           native_language: string
           onboarding_completed: boolean
+          reminder_enabled: boolean
+          reminder_time: string
           streak_days: number
           target_language: string
           total_xp: number
@@ -328,6 +330,8 @@ export type Database = {
           id?: string
           native_language?: string
           onboarding_completed?: boolean
+          reminder_enabled?: boolean
+          reminder_time?: string
           streak_days?: number
           target_language?: string
           total_xp?: number
@@ -342,6 +346,8 @@ export type Database = {
           id?: string
           native_language?: string
           onboarding_completed?: boolean
+          reminder_enabled?: boolean
+          reminder_time?: string
           streak_days?: number
           target_language?: string
           total_xp?: number

@@ -3,6 +3,7 @@ import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import { LogOut, Flame, Zap, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ReminderSettings from "@/components/profile/ReminderSettings";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "한국어", en: "English", ja: "日本語", zh: "中文",
@@ -69,6 +70,8 @@ const ProfilePage = () => {
             <div className="text-[10px] text-muted-foreground font-bold">레벨</div>
           </div>
         </div>
+
+        <ReminderSettings />
 
         <button
           onClick={handleLogout}
