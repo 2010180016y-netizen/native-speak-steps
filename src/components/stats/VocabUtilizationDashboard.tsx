@@ -54,6 +54,50 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
   const [selectedWord, setSelectedWord] = useState<UnusedWord | null>(null);
   const [exampleLoading, setExampleLoading] = useState(false);
   const [examples, setExamples] = useState<string>("");
+  const [addingCards, setAddingCards] = useState(false);
+  const [addedCards, setAddedCards] = useState(false);
+
+  const parseExamples = (text: string): { english: string; korean: string }[] => {
+    const results: { english: string; korean: string }[] = [];
+    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    let currentEn = "";
+    for (const line of lines) {
+      if (/^\d+\./.test(line)) {
+        currentEn = line.replace(/^\d+\.\s*/, "").trim();
+      } else if (line.startsWith("→") && currentEn) {
+        results.push({ english: currentEn, korean: line.replace(/^→\s*/, "").trim() });
+        currentEn = "";
+      }
+    }
+    return results;
+  };
+
+  const addExamplesAsCards = async () => {
+    if (!selectedWord || !examples || addingCards) return;
+    setAddingCards(true);
+    try {
+      const parsed = parseExamples(examples);
+      if (parsed.length === 0) {
+        toast.error("추가할 예문을 찾지 못했습니다");
+        return;
+      }
+      const rows = parsed.map((ex) => ({
+        user_id: userId,
+        target_text: ex.english,
+        native_text: ex.korean,
+        context: `예문 (${selectedWord.target_text})`,
+      }));
+      const { error } = await supabase.from("srs_cards").insert(rows);
+      if (error) throw error;
+      toast.success(`${parsed.length}개 예문이 SRS 카드로 추가되었어요! 🎉`);
+      setAddedCards(true);
+    } catch (err) {
+      console.error("Failed to add cards:", err);
+      toast.error("카드 추가에 실패했습니다");
+    } finally {
+      setAddingCards(false);
+    }
+  };
 
   const generateExamples = async (word: UnusedWord) => {
     if (selectedWord?.target_text === word.target_text && examples) {
