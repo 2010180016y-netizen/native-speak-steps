@@ -16,6 +16,7 @@ type Props = {
   targetLang: string;
   onClose: () => void;
   onLinesUpdate?: (lines: DialogueLine[]) => void;
+  onComplete?: (completedCount: number, totalCount: number) => void;
 };
 
 const LANG_MAP: Record<string, string> = {
