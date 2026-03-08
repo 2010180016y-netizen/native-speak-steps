@@ -188,6 +188,14 @@ const StatsPage = () => {
           <BookCheck size={14} /> 활용
         </button>
         <button
+          onClick={() => setActiveTab("growthmap")}
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "growthmap" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <Map size={14} /> 성장맵
+        </button>
+        <button
           onClick={() => setActiveTab("activity")}
           className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "activity" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
