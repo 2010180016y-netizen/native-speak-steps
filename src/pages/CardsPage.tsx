@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
-import { RotateCcw, Check, X } from "lucide-react";
+import { RotateCcw, Check, X, Filter } from "lucide-react";
 import { toast } from "sonner";
 
 type Card = {
@@ -17,15 +17,31 @@ type Card = {
   review_count: number;
 };
 
+type SourceFilter = "all" | "chat" | "analysis";
+
 const SWIPE_THRESHOLD = 100;
+
+const getCardSource = (context: string | null): "chat" | "analysis" => {
+  if (!context) return "analysis";
+  if (context.includes("좋은 표현") || context.includes("개선 표현")) return "chat";
+  return "analysis";
+};
+
+const getSourceLabel = (source: "chat" | "analysis") =>
+  source === "chat" ? "💬 회화" : "📖 분석";
+
+const getSourceColor = (source: "chat" | "analysis") =>
+  source === "chat" ? "bg-duo-blue/15 text-duo-blue border-duo-blue/30" : "bg-primary/15 text-primary border-primary/30";
 
 const CardsPage = () => {
   const { user } = useAuth();
+  const [allCards, setAllCards] = useState<Card[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
@@ -41,12 +57,25 @@ const CardsPage = () => {
         .eq("user_id", user.id)
         .lte("next_review_at", new Date().toISOString())
         .order("next_review_at")
-        .limit(20);
-      setCards(data || []);
+        .limit(50);
+      setAllCards(data || []);
       setLoading(false);
     };
     fetchCards();
   }, [user]);
+
+  useEffect(() => {
+    const filtered = sourceFilter === "all"
+      ? allCards
+      : allCards.filter((c) => getCardSource(c.context) === sourceFilter);
+    setCards(filtered);
+    setCurrentIndex(0);
+    setFlipped(false);
+  }, [allCards, sourceFilter]);
+
+  // Count by source
+  const chatCount = allCards.filter((c) => getCardSource(c.context) === "chat").length;
+  const analysisCount = allCards.filter((c) => getCardSource(c.context) === "analysis").length;
 
   const currentCard = cards[currentIndex];
 
@@ -114,21 +143,58 @@ const CardsPage = () => {
     );
   }
 
+  const cardSource = currentCard ? getCardSource(currentCard.context) : null;
+
   return (
     <AppLayout>
-      <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mb-6">
+      <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mb-4">
         <h1 className="text-2xl font-extrabold text-foreground">복습 카드 📚</h1>
         <p className="text-sm text-muted-foreground font-semibold">
           {cards.length > 0 ? `${cards.length - currentIndex}개 남음` : "복습할 카드가 없어요"}
         </p>
       </motion.div>
 
+      {/* Source Filter */}
+      {allCards.length > 0 && (
+        <div className="flex items-center gap-2 mb-4">
+          <Filter size={14} className="text-muted-foreground" />
+          <button
+            onClick={() => setSourceFilter("all")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              sourceFilter === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            전체 ({allCards.length})
+          </button>
+          {chatCount > 0 && (
+            <button
+              onClick={() => setSourceFilter("chat")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                sourceFilter === "chat" ? "bg-duo-blue text-white" : "bg-muted text-muted-foreground"
+              }`}
+            >
+              💬 회화 ({chatCount})
+            </button>
+          )}
+          {analysisCount > 0 && (
+            <button
+              onClick={() => setSourceFilter("analysis")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                sourceFilter === "analysis" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}
+            >
+              📖 분석 ({analysisCount})
+            </button>
+          )}
+        </div>
+      )}
+
       {cards.length === 0 ? (
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="duo-card text-center py-12">
           <div className="text-5xl mb-4">✅</div>
           <h3 className="font-bold text-foreground text-lg mb-2">모두 완료!</h3>
           <p className="text-sm text-muted-foreground font-semibold">
-            모국어를 분석하면 새 카드가 생성됩니다
+            {sourceFilter !== "all" ? "이 필터에 해당하는 카드가 없습니다" : "모국어를 분석하면 새 카드가 생성됩니다"}
           </p>
         </motion.div>
       ) : currentCard && (
@@ -187,8 +253,14 @@ const CardsPage = () => {
                     className="duo-card absolute inset-0 flex flex-col items-center justify-center backface-hidden"
                     style={{ backfaceVisibility: "hidden" }}
                   >
+                    {/* Source tag */}
+                    {cardSource && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border mb-3 ${getSourceColor(cardSource)}`}>
+                        {getSourceLabel(cardSource)}
+                      </span>
+                    )}
                     <p className="text-xs text-muted-foreground font-bold mb-3 uppercase">모국어</p>
-                    <p className="text-2xl font-extrabold text-foreground">{currentCard.native_text}</p>
+                    <p className="text-2xl font-extrabold text-foreground text-center px-4">{currentCard.native_text}</p>
                     <p className="text-xs text-muted-foreground font-semibold mt-4">탭하여 정답 보기 👆</p>
                   </div>
 
@@ -197,10 +269,15 @@ const CardsPage = () => {
                     className="duo-card absolute inset-0 flex flex-col items-center justify-center"
                     style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                   >
+                    {cardSource && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border mb-3 ${getSourceColor(cardSource)}`}>
+                        {getSourceLabel(cardSource)}
+                      </span>
+                    )}
                     <p className="text-xs text-primary font-bold mb-3 uppercase">번역</p>
-                    <p className="text-2xl font-extrabold text-primary">{currentCard.target_text}</p>
+                    <p className="text-2xl font-extrabold text-primary text-center px-4">{currentCard.target_text}</p>
                     {currentCard.context && (
-                      <p className="text-sm text-muted-foreground font-semibold mt-3">📝 {currentCard.context}</p>
+                      <p className="text-sm text-muted-foreground font-semibold mt-3 text-center px-4">📝 {currentCard.context}</p>
                     )}
                     <p className="text-xs text-muted-foreground mt-4">← 스와이프하여 평가 →</p>
                   </div>
