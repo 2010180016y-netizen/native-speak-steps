@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Volume2, VolumeX, RotateCcw, ArrowLeft, Square, Phone, PhoneOff, User } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, RotateCcw, ArrowLeft, Square, Phone, PhoneOff, User, Target, CheckCircle2, Lightbulb, History } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import SpeakingFeedback from "@/components/speaking/SpeakingFeedback";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
+import { SPEAKING_MISSIONS, SPEAKING_HINTS, type SpeakingMission } from "@/lib/speakingScenarioData";
 
 type Correction = { wrong: string; correct: string; explanation: string };
 type Message = { role: "user" | "assistant"; content: string; corrections?: Correction[] };
