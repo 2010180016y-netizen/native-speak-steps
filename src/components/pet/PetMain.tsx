@@ -308,6 +308,7 @@ const PetMain = ({ activePet, pets, items, points, feedPet, loading }: Props) =>
           emotion={emotion}
           petAction={petAction}
           feeding={feeding.active}
+          expression={deriveExpression(emotion, petAction, feeding.active, hunger, happiness)}
           onTap={handleTap}
         />
 
