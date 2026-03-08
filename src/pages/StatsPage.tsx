@@ -150,19 +150,27 @@ const StatsPage = () => {
         </p>
       </motion.div>
 
-      {/* Tab toggle */}
-      <div className="flex gap-2 mb-4">
+      {/* Tab toggle - scrollable */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1">
         <button
           onClick={() => setActiveTab("learning")}
-          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "learning" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
           <BarChart3 size={14} /> 학습
         </button>
         <button
+          onClick={() => setActiveTab("syncgap")}
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "syncgap" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <Radar size={14} /> 동기화
+        </button>
+        <button
           onClick={() => setActiveTab("activity")}
-          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "activity" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
@@ -170,7 +178,7 @@ const StatsPage = () => {
         </button>
         <button
           onClick={() => setActiveTab("time")}
-          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "time" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
@@ -178,7 +186,7 @@ const StatsPage = () => {
         </button>
         <button
           onClick={() => setActiveTab("performance")}
-          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "performance" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
@@ -186,7 +194,7 @@ const StatsPage = () => {
         </button>
         <button
           onClick={() => setActiveTab("feedback")}
-          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "feedback" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
@@ -194,7 +202,7 @@ const StatsPage = () => {
         </button>
         <button
           onClick={() => setActiveTab("chat")}
-          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
@@ -202,7 +210,9 @@ const StatsPage = () => {
         </button>
       </div>
 
-      {activeTab === "activity" ? (
+      {activeTab === "syncgap" ? (
+        user ? <SyncGapDashboard userId={user.id} /> : null
+      ) : activeTab === "activity" ? (
         user ? <ActivityLogDashboard userId={user.id} /> : null
       ) : activeTab === "time" ? (
         user ? <TimeBasedDashboard userId={user.id} /> : null
