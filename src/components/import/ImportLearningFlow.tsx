@@ -143,6 +143,15 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
         }, 2000);
       } else {
         toast.success("🎉 모든 단어 사전 테스트 완료!");
+        // Auto-switch to structures tab if structures exist
+        if (sentenceStructures.length > 0) {
+          setTimeout(() => {
+            setActiveTab("structures");
+            toast.info("문장구조 학습으로 자동 전환합니다 📝");
+          }, 2500);
+        } else {
+          onAllLearningComplete?.();
+        }
       }
     }
   };
