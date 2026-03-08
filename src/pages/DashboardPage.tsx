@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
-import { Flame, Zap, BookOpen, MessageCircle, Upload } from "lucide-react";
+import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const LANG_NAMES: Record<string, string> = {
