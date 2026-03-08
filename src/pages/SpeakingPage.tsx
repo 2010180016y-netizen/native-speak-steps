@@ -270,7 +270,7 @@ const SpeakingPage = () => {
 
           const { data: pointsData } = await supabase.from("user_points").select("*").eq("user_id", user.id).maybeSingle();
           if (pointsData) {
-            await supabase.from("user_points").update({ balance: (pointsData as any).balance + pointsEarned }).eq("id", (pointsData as any).id);
+            await supabase.from("user_points").update({ balance: pointsData.balance + pointsEarned }).eq("id", pointsData.id);
           } else {
             await supabase.from("user_points").insert({ user_id: user.id, balance: pointsEarned });
           }
@@ -279,16 +279,50 @@ const SpeakingPage = () => {
           const { data: petData } = await supabase.from("user_pets").select("*").eq("user_id", user.id).eq("is_active", true).maybeSingle();
           if (petData) {
             const LEVEL_THRESHOLDS = Array.from({ length: 30 }, (_, i) => Math.round(100 * Math.pow(1.2, i)));
-            let newExp = (petData as any).experience + petXpEarned;
-            let newLevel = (petData as any).level;
-            let newExpToNext = (petData as any).exp_to_next_level;
+            let newExp = petData.experience + petXpEarned;
+            let newLevel = petData.level;
+            let newExpToNext = petData.exp_to_next_level;
             while (newExp >= newExpToNext && newLevel < 30) {
               newExp -= newExpToNext;
               newLevel++;
               newExpToNext = LEVEL_THRESHOLDS[newLevel - 1] || 99999;
             }
-            await supabase.from("user_pets").update({ experience: newExp, level: newLevel, exp_to_next_level: newExpToNext }).eq("id", (petData as any).id);
+            await supabase.from("user_pets").update({ experience: newExp, level: newLevel, exp_to_next_level: newExpToNext }).eq("id", petData.id);
           }
+
+          // Save feedback to lesson_completions
+          await supabase.from("lesson_completions").insert({
+            user_id: user.id,
+            lesson_type: "speaking",
+            score,
+            duration_seconds: callDuration,
+            metadata: {
+              session_id: speakingSessionId,
+              scenario: scenario?.id,
+              scenario_label: scenario?.label,
+              persona_name: callerName,
+              persona_occupation: persona?.occupation,
+              feedback: data.feedback,
+            },
+          });
+
+          // Save grammar errors from feedback as SRS cards
+          const grammarErrors = data.feedback.grammar?.errors || [];
+          if (grammarErrors.length > 0) {
+            const feedbackCards = grammarErrors.map((err: any) => ({
+              user_id: user.id,
+              native_text: `${err.original} → ${err.corrected}`,
+              target_text: err.corrected,
+              context: `📞 스피킹 피드백 교정: ${err.explanation || ""}`,
+              difficulty: 1,
+              ease_factor: 2.5,
+              interval_days: 1,
+              review_count: 0,
+              next_review_at: new Date().toISOString(),
+            }));
+            await supabase.from("srs_cards").insert(feedbackCards);
+          }
+
           toast.success(`🎉 ${pointsEarned}P 획득! 펫 경험치 +${petXpEarned}`);
         }
       } else {
@@ -301,7 +335,7 @@ const SpeakingPage = () => {
       setIsFeedbackLoading(false);
       setPhase("feedback");
     }
-  }, [messages, profile, stopSpeaking, user]);
+  }, [messages, profile, stopSpeaking, user, callDuration, speakingSessionId, scenario, persona, callerName]);
 
   const handleMicClick = () => {
     if (isSpeaking) stopSpeaking();
