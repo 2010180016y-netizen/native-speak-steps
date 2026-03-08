@@ -235,6 +235,8 @@ const StatsPage = () => {
         user ? <SrsHealthDashboard userId={user.id} /> : null
       ) : activeTab === "vocabutil" ? (
         user ? <VocabUtilizationDashboard userId={user.id} /> : null
+      ) : activeTab === "growthmap" ? (
+        user ? <VocabGrowthMap userId={user.id} /> : null
       ) : activeTab === "activity" ? (
         user ? <ActivityLogDashboard userId={user.id} /> : null
       ) : activeTab === "time" ? (
