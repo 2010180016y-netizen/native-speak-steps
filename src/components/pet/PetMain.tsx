@@ -92,6 +92,9 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
   const [diaryHistory, setDiaryHistory] = useState<{ content: string; mood: string; diary_date: string }[]>([]);
   const [showDiaryHistory, setShowDiaryHistory] = useState(false);
 
+  // Equipped accessories
+  const [equippedAccessories, setEquippedAccessories] = useState<{ emoji: string; position: string }[]>([]);
+
   // Pet size based on level
   const petLevel = activePet?.level || 1;
   const petSize = Math.min(120 + (petLevel - 1) * 2.5, 180); // 120px to 180px
@@ -184,6 +187,26 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
       fetchDiary();
       fetchDiaryHistory();
     }
+  }, [activePet?.id, user]);
+
+  // Fetch equipped accessories
+  useEffect(() => {
+    if (!activePet || !user) return;
+    const fetchEquipped = async () => {
+      const { data: userAcc } = await supabase
+        .from("user_pet_accessories")
+        .select("accessory_id")
+        .eq("pet_id", activePet.id)
+        .eq("is_equipped", true);
+      if (!userAcc || userAcc.length === 0) { setEquippedAccessories([]); return; }
+      const ids = userAcc.map((ua: any) => ua.accessory_id);
+      const { data: accs } = await supabase
+        .from("pet_accessories")
+        .select("emoji, position")
+        .in("id", ids);
+      setEquippedAccessories((accs as { emoji: string; position: string }[]) || []);
+    };
+    fetchEquipped();
   }, [activePet?.id, user]);
 
   const handleTap = useCallback(() => {
@@ -406,6 +429,23 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
                 {activePet.pet_type?.species === "cat" ? "🐱" : "🐶"}
               </div>
             )}
+
+            {/* Equipped accessories overlay */}
+            {equippedAccessories.map((acc, i) => (
+              <div
+                key={i}
+                className="absolute pointer-events-none select-none"
+                style={{
+                  fontSize: petSize * 0.25,
+                  ...(acc.position === "top" ? { top: -4, left: "50%", transform: "translateX(-50%)" } : {}),
+                  ...(acc.position === "face" ? { top: "28%", left: "50%", transform: "translateX(-50%)" } : {}),
+                  ...(acc.position === "neck" ? { bottom: 4, left: "50%", transform: "translateX(-50%)" } : {}),
+                  ...(acc.position === "back" ? { top: -2, right: -6 } : {}),
+                }}
+              >
+                {acc.emoji}
+              </div>
+            ))}
 
             {/* Eating animation */}
             <AnimatePresence>
