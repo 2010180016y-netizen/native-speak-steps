@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Activity, Clock, Target, MessagesSquare, Radar, Heart, BookCheck, Map, ChevronDown } from "lucide-react";
+import { BarChart3, TrendingUp, Activity, Clock, Target, MessagesSquare, Radar, Heart, BookCheck, Map, ChevronDown, Phone } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -18,6 +18,7 @@ import SyncGapDashboard from "@/components/stats/SyncGapDashboard";
 import SrsHealthDashboard from "@/components/stats/SrsHealthDashboard";
 import VocabUtilizationDashboard from "@/components/stats/VocabUtilizationDashboard";
 import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
+import SpeakingScoreDashboard from "@/components/stats/SpeakingScoreDashboard";
 
 type DailyData = {
   date: string;
@@ -28,7 +29,7 @@ type DailyData = {
   syncRate: number;
 };
 
-type TabId = "learning" | "syncgap" | "srshealth" | "vocabutil" | "growthmap" | "activity" | "time" | "performance" | "chat";
+type TabId = "learning" | "syncgap" | "srshealth" | "vocabutil" | "growthmap" | "activity" | "time" | "performance" | "chat" | "speaking";
 
 type CategoryId = "overview" | "vocabulary" | "activity";
 
@@ -39,6 +40,7 @@ const TAB_GROUPS: { id: CategoryId; label: string; icon: React.ReactNode; tabs: 
       { id: "learning", label: "학습", icon: <BarChart3 size={13} /> },
       { id: "performance", label: "성과", icon: <Target size={13} /> },
       { id: "chat", label: "회화", icon: <MessagesSquare size={13} /> },
+      { id: "speaking", label: "스피킹", icon: <Phone size={13} /> },
     ],
   },
   {
@@ -243,6 +245,8 @@ const StatsPage = () => {
         user ? <PerformanceDashboard userId={user.id} /> : null
       ) : activeTab === "chat" ? (
         user ? <ChatScoreDashboard userId={user.id} /> : null
+      ) : activeTab === "speaking" ? (
+        user ? <SpeakingScoreDashboard userId={user.id} /> : null
       ) : (
         <>
           {/* View toggle */}
