@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { LogOut, Flame, Zap, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ReminderSettings from "@/components/profile/ReminderSettings";
+import GoalSettings from "@/components/profile/GoalSettings";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "한국어", en: "English", ja: "日本語", zh: "中文",
