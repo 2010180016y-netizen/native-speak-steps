@@ -20,6 +20,7 @@ const LANG_NAMES: Record<string, string> = {
 const DashboardPage = () => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
+  useReminder();
   const [stats, setStats] = useState({ nativeWords: 0, targetWords: 0, cardsToReview: 0, streak: 0 });
 
   useEffect(() => {

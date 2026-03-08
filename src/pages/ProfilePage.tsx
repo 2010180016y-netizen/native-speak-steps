@@ -71,6 +71,8 @@ const ProfilePage = () => {
           </div>
         </div>
 
+        <ReminderSettings />
+
         <button
           onClick={handleLogout}
           className="w-full duo-card flex items-center justify-center gap-2 p-3 cursor-pointer hover:border-destructive transition-colors"
