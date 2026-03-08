@@ -104,7 +104,8 @@ export default function PetModel({
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
           const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
-          mat.color.lerp(color, 0.35);
+          const strength = species === "golden_retriever" ? 0.7 : 0.35;
+          mat.color.lerp(color, strength);
           mesh.material = mat;
         }
       }
