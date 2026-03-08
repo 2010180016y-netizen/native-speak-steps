@@ -161,14 +161,17 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
           species: activePet.pet_type?.species || "dog",
         },
       });
-      if (!error && data?.diary) {
+      console.log("pet-diary response:", { data, error });
+      if (error) {
+        console.error("pet-diary error:", error);
+      } else if (data?.diary) {
         setDiary(data.diary);
       }
     } catch (e) {
       console.error("Diary fetch error:", e);
     }
     setDiaryLoading(false);
-  }, [activePet, user]);
+  }, [activePet?.id, activePet?.name, activePet?.pet_type?.species, user]);
 
   // Fetch diary history
   const fetchDiaryHistory = useCallback(async () => {
