@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import type { UserPet, PetItem, UserPoints } from "@/hooks/usePet";
 
 type Props = {
@@ -67,7 +69,12 @@ const ROOM_ITEMS = [
   { emoji: "💡", x: "80%", y: "25%", size: "text-lg" },
 ];
 
+const MOOD_EMOJI: Record<string, string> = {
+  happy: "😊", proud: "🥰", lonely: "🥺", sleepy: "😴", excited: "🤩", neutral: "📝",
+};
+
 const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
+  const { user } = useAuth();
   const [feeding, setFeeding] = useState<FeedingState>({ active: false, emoji: "", itemName: "" });
   const [petAction, setPetAction] = useState<PetAction>("idle");
   const [emotion, setEmotion] = useState<Emotion>(null);
@@ -78,6 +85,12 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
   const [tapCount, setTapCount] = useState(0);
   const walkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const emotionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Diary state
+  const [diary, setDiary] = useState<{ content: string; mood: string; diary_date: string } | null>(null);
+  const [diaryLoading, setDiaryLoading] = useState(false);
+  const [diaryHistory, setDiaryHistory] = useState<{ content: string; mood: string; diary_date: string }[]>([]);
+  const [showDiaryHistory, setShowDiaryHistory] = useState(false);
 
   // Pet size based on level
   const petLevel = activePet?.level || 1;
@@ -132,6 +145,46 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
     }, 30000); // decay every 30s
     return () => clearInterval(decay);
   }, []);
+
+  // Fetch diary
+  const fetchDiary = useCallback(async () => {
+    if (!activePet || !user) return;
+    setDiaryLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pet-diary", {
+        body: {
+          petId: activePet.id,
+          petName: activePet.name,
+          species: activePet.pet_type?.species || "dog",
+        },
+      });
+      if (!error && data?.diary) {
+        setDiary(data.diary);
+      }
+    } catch (e) {
+      console.error("Diary fetch error:", e);
+    }
+    setDiaryLoading(false);
+  }, [activePet, user]);
+
+  // Fetch diary history
+  const fetchDiaryHistory = useCallback(async () => {
+    if (!activePet || !user) return;
+    const { data } = await supabase
+      .from("pet_diaries")
+      .select("content, mood, diary_date")
+      .eq("pet_id", activePet.id)
+      .order("diary_date", { ascending: false })
+      .limit(7);
+    if (data) setDiaryHistory(data);
+  }, [activePet, user]);
+
+  useEffect(() => {
+    if (activePet && user) {
+      fetchDiary();
+      fetchDiaryHistory();
+    }
+  }, [activePet?.id, user]);
 
   const handleTap = useCallback(() => {
     if (!activePet || feeding.active) return;
@@ -483,6 +536,69 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
             </motion.button>
           ))}
         </div>
+      </div>
+
+      {/* Pet Diary */}
+      <div className="duo-card mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-foreground">📔 {activePet.name}의 일기</h3>
+          {diaryHistory.length > 1 && (
+            <button
+              onClick={() => setShowDiaryHistory(!showDiaryHistory)}
+              className="text-[10px] font-bold text-primary"
+            >
+              {showDiaryHistory ? "접기" : "지난 일기 보기"}
+            </button>
+          )}
+        </div>
+
+        {/* Today's diary */}
+        {diaryLoading ? (
+          <div className="flex items-center gap-2 py-3">
+            <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="text-lg">📝</motion.span>
+            <span className="text-xs text-muted-foreground font-semibold">일기 쓰는 중...</span>
+          </div>
+        ) : diary ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-muted/50 rounded-xl p-3 border border-border"
+          >
+            <div className="flex items-start gap-2">
+              <span className="text-lg mt-0.5">{MOOD_EMOJI[diary.mood] || "📝"}</span>
+              <div>
+                <p className="text-sm font-semibold text-foreground leading-relaxed">{diary.content}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 font-bold">오늘</p>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <p className="text-xs text-muted-foreground font-semibold py-2">오늘은 아직 일기를 안 썼어요</p>
+        )}
+
+        {/* Diary history */}
+        <AnimatePresence>
+          {showDiaryHistory && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mt-3 space-y-2"
+            >
+              {diaryHistory.filter(d => d.diary_date !== diary?.diary_date).map((d, i) => (
+                <div key={i} className="bg-muted/30 rounded-lg p-2.5 border border-border/50">
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm">{MOOD_EMOJI[d.mood] || "📝"}</span>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground/80">{d.content}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 font-bold">{d.diary_date}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

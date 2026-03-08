@@ -260,6 +260,44 @@ export type Database = {
         }
         Relationships: []
       }
+      pet_diaries: {
+        Row: {
+          content: string
+          created_at: string
+          diary_date: string
+          id: string
+          mood: string
+          pet_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          diary_date?: string
+          id?: string
+          mood?: string
+          pet_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          diary_date?: string
+          id?: string
+          mood?: string
+          pet_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_diaries_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "user_pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_feeding_log: {
         Row: {
           created_at: string
