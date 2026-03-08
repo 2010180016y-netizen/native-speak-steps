@@ -15,6 +15,8 @@ type Props = {
   wordFrequency: WordItem[];
   sentenceStructures: StructureItem[];
   onComplete?: (type: "word" | "structure", completedCount: number) => void;
+  onUnknownWordsReady?: (unknownWords: string[]) => void;
+  generatingCards?: boolean;
 };
 
 type LearnedItem = {
