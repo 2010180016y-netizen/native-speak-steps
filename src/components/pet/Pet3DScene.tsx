@@ -81,7 +81,7 @@ export default function Pet3DScene({
   const inactivePets = pets.filter((p) => p.id !== activePet?.id);
 
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
-  const petScale = activePet ? Math.min(0.01 + (activePet.level - 1) * 0.0005, 0.018) : 0.01;
+  const petScale = activePet ? Math.min(0.7 + (activePet.level - 1) * 0.02, 1.2) : 0.7;
 
   // Wander logic
   useEffect(() => {
