@@ -336,6 +336,7 @@ const PetMain = ({ activePet, pets, items, points, feedPet, switchPet, loading }
           feeding={feeding.active}
           expression={deriveExpression(emotion, petAction, feeding.active, hunger, happiness)}
           onTap={handleTap}
+          onSwitchPet={switchPet}
         />
 
         {/* Speech bubble overlay (on top of 3D canvas) */}
