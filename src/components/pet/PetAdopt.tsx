@@ -13,6 +13,19 @@ type Props = {
 
 const SPECIES_EMOJI: Record<string, string> = { dog: "🐶", cat: "🐱" };
 
+const PetTypeImage = ({ type }: { type: PetType }) => {
+  if (type.base_image_url) {
+    return (
+      <img
+        src={type.base_image_url}
+        alt={type.name}
+        className="w-10 h-10 rounded-xl object-cover"
+      />
+    );
+  }
+  return <span className="text-4xl">{SPECIES_EMOJI[type.species]}</span>;
+};
+
 const PetAdopt = ({ petTypes, points, pets, adoptPet, onAdopted }: Props) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [petName, setPetName] = useState("");
