@@ -260,6 +260,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pet_accessories: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          emoji: string
+          id: string
+          name: string
+          position: string
+          unlock_level: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string
+          id?: string
+          name: string
+          position?: string
+          unlock_level?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string
+          id?: string
+          name?: string
+          position?: string
+          unlock_level?: number
+        }
+        Relationships: []
+      }
       pet_diaries: {
         Row: {
           content: string
@@ -522,6 +555,48 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_pet_accessories: {
+        Row: {
+          accessory_id: string
+          id: string
+          is_equipped: boolean
+          pet_id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          accessory_id: string
+          id?: string
+          is_equipped?: boolean
+          pet_id: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          accessory_id?: string
+          id?: string
+          is_equipped?: boolean
+          pet_id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_pet_accessories_accessory_id_fkey"
+            columns: ["accessory_id"]
+            isOneToOne: false
+            referencedRelation: "pet_accessories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_pet_accessories_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "user_pets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_pets: {
         Row: {
