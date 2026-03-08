@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_feedback: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          error_type: string | null
+          feature: string
+          id: string
+          metadata: Json | null
+          rating: number | null
+          response_time_ms: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          feature?: string
+          id?: string
+          metadata?: Json | null
+          rating?: number | null
+          response_time_ms?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          feature?: string
+          id?: string
+          metadata?: Json | null
+          rating?: number | null
+          response_time_ms?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
