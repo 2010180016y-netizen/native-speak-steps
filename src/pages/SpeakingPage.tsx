@@ -416,6 +416,8 @@ const SpeakingPage = () => {
     setPersona(null);
     setScenario(null);
     setCallerName("");
+    setCompletedMissions(new Set());
+    setLastFailedText(null);
     stopSpeaking();
   };
 
