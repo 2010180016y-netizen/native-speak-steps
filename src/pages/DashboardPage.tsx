@@ -130,9 +130,18 @@ const DashboardPage = () => {
       {/* Pet Widget */}
       <DashboardPetWidget />
 
-      {/* Stats link */}
-      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.28 }}>
-        <Link to="/stats" className="duo-card flex items-center gap-4 p-4 mb-4 cursor-pointer hover:scale-[1.01] transition-transform">
+      {/* Stats & Leaderboard links */}
+      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.28 }} className="space-y-3 mb-4">
+        <Link to="/leaderboard" className="duo-card flex items-center gap-4 p-4 cursor-pointer hover:scale-[1.01] transition-transform">
+          <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+            <Trophy className="text-primary" size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="font-bold text-foreground">리더보드</div>
+            <div className="text-xs text-muted-foreground font-semibold">다른 학습자들과 순위를 비교해 보세요</div>
+          </div>
+        </Link>
+        <Link to="/stats" className="duo-card flex items-center gap-4 p-4 cursor-pointer hover:scale-[1.01] transition-transform">
           <div className="w-12 h-12 rounded-2xl bg-duo-purple/20 flex items-center justify-center">
             <BarChart3 className="text-duo-purple" size={24} />
           </div>
