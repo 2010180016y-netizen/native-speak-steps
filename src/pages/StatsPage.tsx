@@ -29,7 +29,7 @@ type DailyData = {
   syncRate: number;
 };
 
-type TabId = "learning" | "syncgap" | "srshealth" | "vocabutil" | "growthmap" | "activity" | "time" | "performance" | "chat";
+type TabId = "learning" | "syncgap" | "srshealth" | "vocabutil" | "growthmap" | "activity" | "time" | "performance" | "chat" | "speaking";
 
 type CategoryId = "overview" | "vocabulary" | "activity";
 
