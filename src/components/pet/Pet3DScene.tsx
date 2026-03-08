@@ -1,6 +1,6 @@
-import { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Environment, ContactShadows, OrbitControls } from "@react-three/drei";
+import { ContactShadows, OrbitControls } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import PetModel from "./PetModel";
 import Pet3DAccessory from "./Pet3DAccessory";
@@ -19,7 +19,6 @@ type Pet3DSceneProps = {
   onTap: () => void;
 };
 
-// Room furniture as 3D boxes
 function Room() {
   return (
     <group>
@@ -47,7 +46,7 @@ function Room() {
         <meshStandardMaterial color="#ede0d4" roughness={0.9} />
       </mesh>
 
-      {/* Pet bed - cushion */}
+      {/* Pet bed */}
       <group position={[-2.5, 0, -2]}>
         <mesh position={[0, 0.15, 0]} castShadow>
           <cylinderGeometry args={[0.8, 0.9, 0.3, 16]} />
@@ -65,7 +64,6 @@ function Room() {
           <cylinderGeometry args={[0.3, 0.25, 0.2, 16]} />
           <meshStandardMaterial color="#c0c0c0" metalness={0.8} roughness={0.2} />
         </mesh>
-        {/* Food inside */}
         <mesh position={[0, 0.2, 0]}>
           <cylinderGeometry args={[0.22, 0.22, 0.05, 16]} />
           <meshStandardMaterial color="#8B4513" roughness={0.9} />
@@ -106,13 +104,12 @@ function Room() {
         </mesh>
       </group>
 
-      {/* Window on back wall */}
+      {/* Window */}
       <group position={[0, 3, -4.95]}>
         <mesh>
           <planeGeometry args={[2, 1.5]} />
           <meshStandardMaterial color="#87ceeb" emissive="#87ceeb" emissiveIntensity={0.5} />
         </mesh>
-        {/* Window frame */}
         <mesh position={[0, 0, 0.01]}>
           <planeGeometry args={[2.1, 0.05]} />
           <meshStandardMaterial color="#8B4513" />
@@ -132,11 +129,9 @@ function Room() {
   );
 }
 
-// Loading fallback inside Canvas
 function LoadingFallback() {
-  const meshRef = useRef<THREE.Mesh>(null!);
   return (
-    <mesh ref={meshRef} position={[0, 0.5, 0]}>
+    <mesh position={[0, 0.5, 0]}>
       <sphereGeometry args={[0.3, 16, 16]} />
       <meshStandardMaterial color="#ff8844" emissive="#ff6600" emissiveIntensity={0.3} />
     </mesh>
@@ -154,32 +149,26 @@ export default function Pet3DScene({
   onTap,
 }: Pet3DSceneProps) {
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
-  const [currentPos, setCurrentPos] = useState<[number, number, number]>([0, 0, 0]);
-  const petScale = Math.min(0.01 + (petLevel - 1) * 0.0005, 0.018);
+  const petScale = Math.min(0.8 + (petLevel - 1) * 0.04, 1.8);
 
   // Wander logic
   useEffect(() => {
     if (feeding) return;
     const wander = () => {
       if (petAction === "walking") {
-        const nx = -3 + Math.random() * 6;
-        const nz = -3 + Math.random() * 6;
-        setTargetPos([nx, 0, nz]);
+        setTargetPos([-3 + Math.random() * 6, 0, -3 + Math.random() * 6]);
       } else if (petAction === "sleeping") {
-        setTargetPos([-2.5, 0, -2]); // Go to bed
+        setTargetPos([-2.5, 0, -2]);
       } else if (petAction === "eating") {
-        setTargetPos([2.5, 0, -3]); // Go to food bowl
+        setTargetPos([2.5, 0, -3]);
       }
     };
     const id = setInterval(wander, 3000 + Math.random() * 2000);
     return () => clearInterval(id);
   }, [petAction, feeding]);
 
-  // Move to center when feeding
   useEffect(() => {
-    if (feeding) {
-      setTargetPos([0, 0, 0]);
-    }
+    if (feeding) setTargetPos([0, 0, 0]);
   }, [feeding]);
 
   return (
@@ -194,7 +183,6 @@ export default function Pet3DScene({
         gl={{ antialias: true, alpha: false }}
         style={{ background: "linear-gradient(180deg, #87CEEB 0%, #E0F0FF 100%)" }}
       >
-        {/* Lighting */}
         <ambientLight intensity={0.5} />
         <directionalLight
           position={[3, 8, 5]}
@@ -205,23 +193,14 @@ export default function Pet3DScene({
         />
         <pointLight position={[-2, 3, -2]} intensity={0.3} color="#ffeedd" />
 
-        {/* Room */}
         <Room />
 
-        {/* Contact shadows for the pet */}
-        <ContactShadows
-          position={[0, 0, 0]}
-          opacity={0.5}
-          scale={10}
-          blur={2}
-          far={5}
-        />
+        <ContactShadows position={[0, 0, 0]} opacity={0.5} scale={10} blur={2} far={5} />
 
-        {/* Pet model */}
         <Suspense fallback={<LoadingFallback />}>
           <PetModel
             action={petAction}
-            position={currentPos}
+            position={[0, 0, 0]}
             targetPosition={targetPos}
             scale={petScale}
             species={species}
@@ -229,7 +208,6 @@ export default function Pet3DScene({
           />
         </Suspense>
 
-        {/* 3D Accessories */}
         {equippedAccessories.map((acc, i) => (
           <Pet3DAccessory
             key={i}
@@ -241,7 +219,6 @@ export default function Pet3DScene({
           />
         ))}
 
-        {/* Orbit controls - limited */}
         <OrbitControls
           enablePan={false}
           enableZoom={false}
@@ -252,7 +229,7 @@ export default function Pet3DScene({
         />
       </Canvas>
 
-      {/* Speech bubble overlay */}
+      {/* Speech bubble */}
       <AnimatePresence>
         {emotion && (
           <motion.div
@@ -295,26 +272,13 @@ export default function Pet3DScene({
       {/* Action indicator */}
       <div className="absolute top-2 left-3 z-10">
         {petAction === "sleeping" && !feeding && (
-          <motion.span
-            className="text-lg"
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            💤
-          </motion.span>
+          <motion.span className="text-lg" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }}>💤</motion.span>
         )}
         {petAction === "walking" && !emotion && (
-          <motion.span
-            className="text-lg"
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
-            🐾
-          </motion.span>
+          <motion.span className="text-lg" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.5, repeat: Infinity }}>🐾</motion.span>
         )}
       </div>
 
-      {/* Hint */}
       <div className="absolute bottom-2 right-3 text-[10px] font-semibold text-white/60 pointer-events-none z-10">
         👆 터치해서 쓰다듬기
       </div>
