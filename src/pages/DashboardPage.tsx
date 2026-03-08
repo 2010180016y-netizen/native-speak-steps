@@ -319,6 +319,13 @@ const DashboardPage = () => {
           />
         </motion.div>
 
+        {/* Vocab Growth Map */}
+        {user && (
+          <motion.div variants={item}>
+            <VocabGrowthMap userId={user.id} />
+          </motion.div>
+        )}
+
         {/* Personalized Recommendations */}
         <motion.div variants={item}>
           <PersonalizedRecommendations />
