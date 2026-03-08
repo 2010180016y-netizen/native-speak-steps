@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.split-dialogue]
 verify_jwt = false
+
+[functions.analyze-text]
+verify_jwt = false

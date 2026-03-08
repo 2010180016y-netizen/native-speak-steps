@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import DialogueRolePlay, { type DialogueLine } from "@/components/dialogue/DialogueRolePlay";
+import AnalysisDashboard, { type TextAnalysis } from "@/components/analysis/AnalysisDashboard";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese",
@@ -26,6 +27,8 @@ const ImportPage = () => {
   const [cardsSaved, setCardsSaved] = useState(false);
   const [result, setResult] = useState<{ wordCount: number; uniqueWords: number } | null>(null);
   const [generatedCards, setGeneratedCards] = useState<GeneratedCard[]>([]);
+  const [detailedAnalysis, setDetailedAnalysis] = useState<TextAnalysis | null>(null);
+  const [analyzingDetail, setAnalyzingDetail] = useState(false);
 
   // Dialogue state
   const [splittingDialogue, setSplittingDialogue] = useState(false);
@@ -46,6 +49,7 @@ const ImportPage = () => {
     setCardsSaved(false);
     setDialogueSpeakers([]);
     setDialogueLines([]);
+    setDetailedAnalysis(null);
 
     try {
       const analysis = analyzeText(text);
@@ -62,6 +66,27 @@ const ImportPage = () => {
       if (error) throw error;
 
       toast.success(`${analysis.wordCount}개 단어 분석 완료! 🎉`);
+
+      // Start detailed AI analysis in parallel with card generation
+      setAnalyzingDetail(true);
+      const detailPromise = supabase.functions.invoke("analyze-text", {
+        body: {
+          text: text.slice(0, 5000),
+          nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
+          targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
+        },
+      }).then(({ data, error: err }) => {
+        if (!err && data) {
+          setDetailedAnalysis(data as TextAnalysis);
+          // Update the import with analysis result
+          supabase.from("language_imports")
+            .update({ analysis_result: data })
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1);
+        }
+        setAnalyzingDetail(false);
+      }).catch(() => setAnalyzingDetail(false));
 
       // Generate SRS cards via AI
       setGeneratingCards(true);
@@ -81,6 +106,8 @@ const ImportPage = () => {
         setGeneratedCards(cards);
         toast.success(`${cards.length}개 학습 카드가 생성되었어요! 📚`);
       }
+
+      await detailPromise;
     } catch (err) {
       console.error(err);
       toast.error("분석에 실패했습니다");
@@ -158,7 +185,6 @@ const ImportPage = () => {
     const petXpEarned = Math.max(3, Math.round(completedCount * 1.5 * ratio));
 
     try {
-      // Update user points
       const { data: pointsData } = await supabase
         .from("user_points")
         .select("*")
@@ -183,7 +209,6 @@ const ImportPage = () => {
         description: `역할 분리 연습 완료 (${completedCount}/${totalCount})`,
       });
 
-      // Add pet XP
       const { data: petData } = await supabase
         .from("user_pets")
         .select("*")
@@ -284,8 +309,24 @@ const ImportPage = () => {
         </div>
       </motion.div>
 
-      {/* Analysis Result */}
-      {result && (
+      {/* Detailed Analysis Dashboard */}
+      {analyzingDetail && !detailedAnalysis && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="duo-card mt-6 flex items-center justify-center gap-3 py-8">
+          <Loader2 size={24} className="animate-spin text-primary" />
+          <span className="font-bold text-muted-foreground">AI가 텍스트를 심층 분석 중...</span>
+        </motion.div>
+      )}
+
+      {detailedAnalysis && result && (
+        <AnalysisDashboard
+          analysis={detailedAnalysis}
+          wordCount={result.wordCount}
+          uniqueWords={result.uniqueWords}
+        />
+      )}
+
+      {/* Basic result (shown only if no detailed analysis yet) */}
+      {result && !detailedAnalysis && !analyzingDetail && (
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="duo-card mt-6">
           <h3 className="font-bold text-foreground mb-4">📊 분석 결과</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -297,12 +338,6 @@ const ImportPage = () => {
               <div className="text-3xl font-extrabold text-duo-blue">{result.uniqueWords.toLocaleString()}</div>
               <div className="text-xs text-muted-foreground font-semibold mt-1">고유 단어 수</div>
             </div>
-          </div>
-          <div className="mt-4 p-3 rounded-xl bg-primary/10">
-            <p className="text-sm font-semibold text-foreground">
-              💡 약 <strong>{result.uniqueWords}</strong>개의 고유 단어를 사용해요.
-              같은 수준으로 외국어를 배우면 일상 대화가 가능합니다!
-            </p>
           </div>
         </motion.div>
       )}
