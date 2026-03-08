@@ -137,6 +137,7 @@ const SpeakingPage = () => {
           level: profile?.current_level || "beginner",
           scenario: scenario?.id || "free",
           persona: persona ? { gender: persona.gender, occupation: persona.occupation, personality: persona.personality } : undefined,
+          callerName: callerName || undefined,
         },
       });
       if (error) throw error;
