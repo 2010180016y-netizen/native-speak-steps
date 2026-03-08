@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, ContactShadows } from "@react-three/drei";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { UserPet } from "@/hooks/usePet";
+import PetModel from "./PetModel";
+import Pet3DAccessory from "./Pet3DAccessory";
 
 type Accessory = {
   id: string;
