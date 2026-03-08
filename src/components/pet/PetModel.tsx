@@ -182,7 +182,7 @@ export default function PetModel({
     }
 
     // Apply species-specific scale
-    const scaleMod = SPECIES_SCALE_MOD[species] || 1;
+    const scaleMod = BREED_SCALE[breed] || 1;
     group.scale.setScalar(scale * scaleMod);
   });
 
