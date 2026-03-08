@@ -603,6 +603,5 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
     </motion.div>
   );
 };
-};
 
 export default PetMain;
