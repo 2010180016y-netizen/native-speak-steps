@@ -13,6 +13,7 @@ import ActivityLogDashboard from "@/components/stats/ActivityLogDashboard";
 import TimeBasedDashboard from "@/components/stats/TimeBasedDashboard";
 import PerformanceDashboard from "@/components/stats/PerformanceDashboard";
 import FeedbackDashboard from "@/components/stats/FeedbackDashboard";
+import ChatScoreDashboard from "@/components/stats/ChatScoreDashboard";
 
 type DailyData = {
   date: string;
