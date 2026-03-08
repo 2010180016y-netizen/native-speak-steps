@@ -85,6 +85,23 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
 
       if (error) throw error;
       setFeedback(data);
+
+      // Save feedback to DB
+      await supabase.from("chat_feedback_results" as any).insert({
+        user_id: user.id,
+        session_id: crypto.randomUUID(),
+        overall_score: data.overallScore || 0,
+        total_user_messages: data.totalUserMessages || 0,
+        total_user_words: data.totalUserWords || 0,
+        avg_words_per_message: data.avgWordsPerMessage || 0,
+        vocabulary_richness: data.vocabularyRichness || 0,
+        good_expressions_count: data.goodExpressions?.length || 0,
+        improvement_areas_count: data.improvementAreas?.length || 0,
+        persona_gender: persona.gender,
+        persona_occupation: persona.occupation,
+        scenario_label: scenario.label,
+        feedback_data: data,
+      });
     } catch (err) {
       console.error("Feedback error:", err);
       toast.error("피드백 분석에 실패했습니다");
