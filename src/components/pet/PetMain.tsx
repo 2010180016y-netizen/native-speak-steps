@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import type { UserPet, PetItem, UserPoints } from "@/hooks/usePet";
 
 type Props = {
