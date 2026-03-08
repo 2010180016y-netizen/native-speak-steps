@@ -14,7 +14,192 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      language_imports: {
+        Row: {
+          analysis_result: Json | null
+          content: string
+          created_at: string
+          id: string
+          source_type: string
+          unique_words: number
+          user_id: string
+          word_count: number
+        }
+        Insert: {
+          analysis_result?: Json | null
+          content: string
+          created_at?: string
+          id?: string
+          source_type?: string
+          unique_words?: number
+          user_id: string
+          word_count?: number
+        }
+        Update: {
+          analysis_result?: Json | null
+          content?: string
+          created_at?: string
+          id?: string
+          source_type?: string
+          unique_words?: number
+          user_id?: string
+          word_count?: number
+        }
+        Relationships: []
+      }
+      learning_stats: {
+        Row: {
+          cards_reviewed: number
+          chat_messages_sent: number
+          created_at: string
+          date: string
+          id: string
+          native_words_analyzed: number
+          target_words_learned: number
+          user_id: string
+          xp_earned: number
+        }
+        Insert: {
+          cards_reviewed?: number
+          chat_messages_sent?: number
+          created_at?: string
+          date?: string
+          id?: string
+          native_words_analyzed?: number
+          target_words_learned?: number
+          user_id: string
+          xp_earned?: number
+        }
+        Update: {
+          cards_reviewed?: number
+          chat_messages_sent?: number
+          created_at?: string
+          date?: string
+          id?: string
+          native_words_analyzed?: number
+          target_words_learned?: number
+          user_id?: string
+          xp_earned?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          current_level: string
+          display_name: string | null
+          id: string
+          native_language: string
+          onboarding_completed: boolean
+          streak_days: number
+          target_language: string
+          total_xp: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          current_level?: string
+          display_name?: string | null
+          id?: string
+          native_language?: string
+          onboarding_completed?: boolean
+          streak_days?: number
+          target_language?: string
+          total_xp?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          current_level?: string
+          display_name?: string | null
+          id?: string
+          native_language?: string
+          onboarding_completed?: boolean
+          streak_days?: number
+          target_language?: string
+          total_xp?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      srs_cards: {
+        Row: {
+          context: string | null
+          created_at: string
+          difficulty: number
+          ease_factor: number
+          id: string
+          interval_days: number
+          native_text: string
+          next_review_at: string
+          review_count: number
+          target_text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          difficulty?: number
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          native_text: string
+          next_review_at?: string
+          review_count?: number
+          target_text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          difficulty?: number
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          native_text?: string
+          next_review_at?: string
+          review_count?: number
+          target_text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
