@@ -266,7 +266,7 @@ export default function Pet3DScene({
         ))}
 
         {/* ─── Camera ─── */}
-        <CameraFollower targetPos={targetPos} />
+        <CameraFollower targetPos={targetPos} focusOverride={cameraFocus} />
 
       </Canvas>
 
