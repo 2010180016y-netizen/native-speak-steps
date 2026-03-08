@@ -156,35 +156,23 @@ export default function Pet3DScene({
 
         {/* ─── Active Pet ─── */}
         {activePet && (
-          <Suspense fallback={<LoadingFallback />}>
-            <PetModel
-              action={petAction}
-              position={[0, 0, 0]}
-              targetPosition={targetPos}
-              scale={petScale}
-              species={activePet.species}
-              petTypeName={activePet.petTypeName}
-              feeding={feeding}
-            />
-          </Suspense>
+          <ChibiPetModel
+            action={petAction}
+            position={[0, 0, 0]}
+            targetPosition={targetPos}
+            scale={petScale}
+            species={activePet.species}
+            petTypeName={activePet.petTypeName}
+            feeding={feeding}
+          />
         )}
 
-        {/* ─── Inactive Pets (idle in fixed spots) ─── */}
+        {/* ─── Inactive Pets (wander in their own zones) ─── */}
         {inactivePets.map((pet, i) => {
           const homePos = getHomePosForIndex(i);
-          const s = Math.min(0.01 + (pet.level - 1) * 0.0005, 0.018);
+          const s = Math.min(0.7 + (pet.level - 1) * 0.02, 1.2);
           return (
-            <Suspense key={pet.id} fallback={<LoadingFallback />}>
-              <PetModel
-                action="idle"
-                position={homePos}
-                targetPosition={homePos}
-                scale={s}
-                species={pet.species}
-                petTypeName={pet.petTypeName}
-                feeding={false}
-              />
-            </Suspense>
+            <InactivePetWanderer key={pet.id} homePos={homePos} scale={s} species={pet.species} petTypeName={pet.petTypeName} />
           );
         })}
 
