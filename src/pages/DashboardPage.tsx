@@ -108,9 +108,23 @@ const DashboardPage = () => {
           <h1 className="text-2xl font-extrabold text-foreground">
             안녕, {profile.display_name || "학습자"}! 👋
           </h1>
-          <p className="text-sm text-muted-foreground font-semibold">
-            {LANG_NAMES[profile.native_language]} → {LANG_NAMES[profile.target_language]}
-          </p>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground font-semibold">
+            <button 
+              onClick={() => { setLangPickerType("native"); setShowLangPicker(true); }}
+              className="flex items-center gap-0.5 hover:text-foreground transition-colors px-1.5 py-0.5 rounded-lg hover:bg-muted"
+            >
+              {LANGUAGES.find(l => l.code === profile.native_language)?.flag} {LANG_NAMES[profile.native_language]}
+              <ChevronDown size={12} />
+            </button>
+            <span>→</span>
+            <button
+              onClick={() => { setLangPickerType("target"); setShowLangPicker(true); }}
+              className="flex items-center gap-0.5 hover:text-foreground transition-colors px-1.5 py-0.5 rounded-lg hover:bg-muted"
+            >
+              {LANGUAGES.find(l => l.code === profile.target_language)?.flag} {LANG_NAMES[profile.target_language]}
+              <ChevronDown size={12} />
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2 bg-secondary/20 rounded-full px-3 py-1.5">
           <Flame className="text-duo-orange" size={18} />
