@@ -1,8 +1,9 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 type PetAction = "idle" | "walking" | "sleeping" | "playing" | "eating";
+export type PetExpression = "normal" | "heart" | "star" | "sad" | "angry" | "happy" | "sleepy" | "surprised" | "sparkle";
 
 type ChibiPetModelProps = {
   action: PetAction;
@@ -12,6 +13,7 @@ type ChibiPetModelProps = {
   species: string;
   petTypeName?: string;
   feeding: boolean;
+  expression?: PetExpression;
 };
 
 // Breed visual configs
