@@ -11,6 +11,7 @@ import { format, subDays, startOfWeek, eachDayOfInterval } from "date-fns";
 import { ko } from "date-fns/locale";
 import ActivityLogDashboard from "@/components/stats/ActivityLogDashboard";
 import TimeBasedDashboard from "@/components/stats/TimeBasedDashboard";
+import PerformanceDashboard from "@/components/stats/PerformanceDashboard";
 
 type DailyData = {
   date: string;
