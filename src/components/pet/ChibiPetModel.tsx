@@ -382,19 +382,40 @@ export default function ChibiPetModel({
   const legBLRef = useRef<THREE.Mesh>(null!);
   const legBRRef = useRef<THREE.Mesh>(null!);
   const tailRef = useRef<THREE.Group>(null!);
-  const eyeLRef = useRef<THREE.Group>(null!);
-  const eyeRRef = useRef<THREE.Group>(null!);
+
+  // Derive effective expression: explicit prop takes priority, else action-based
+  const effectiveExpression = useMemo((): PetExpression => {
+    if (expression !== "normal") return expression;
+    if (feeding) return "heart";
+    switch (action) {
+      case "sleeping": return "sleepy";
+      case "playing": return "star";
+      case "eating": return "happy";
+      default: return "normal";
+    }
+  }, [expression, action, feeding]);
+
+  // Random blink state for normal expression
+  const [blinking, setBlinking] = useState(false);
+  useEffect(() => {
+    if (effectiveExpression !== "normal") return;
+    const blink = () => {
+      setBlinking(true);
+      setTimeout(() => setBlinking(false), 150);
+    };
+    const id = setInterval(blink, 2500 + Math.random() * 3000);
+    return () => clearInterval(id);
+  }, [effectiveExpression]);
+
+  const displayExpression: PetExpression = (effectiveExpression === "normal" && blinking) ? "sleepy" : effectiveExpression;
 
   const breed = getBreedKey(species, petTypeName);
   const config = BREED_CONFIGS[breed] || BREED_CONFIGS.dog;
 
   const bodyMat = useMemo(() => new THREE.MeshToonMaterial({ color: config.bodyColor }), [config.bodyColor]);
   const bellyMat = useMemo(() => new THREE.MeshToonMaterial({ color: config.bellyColor }), [config.bellyColor]);
-  const eyeWhiteMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#ffffff" }), []);
-  const eyeMat = useMemo(() => new THREE.MeshToonMaterial({ color: config.eyeColor }), [config.eyeColor]);
-  const eyeHighlightMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#ffffff", emissive: "#ffffff", emissiveIntensity: 0.5 }), []);
   const noseMat = useMemo(() => new THREE.MeshToonMaterial({ color: config.noseColor }), [config.noseColor]);
-  const blushMat = useMemo(() => new THREE.MeshToonMaterial({ color: config.blushColor, transparent: true, opacity: 0.5 }), [config.blushColor]);
+  const blushMat = useMemo(() => new THREE.MeshToonMaterial({ color: config.blushColor, transparent: true, opacity: ["heart", "happy", "star", "sparkle"].includes(displayExpression) ? 0.8 : 0.4 }), [config.blushColor, displayExpression]);
   const mouthMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#4a3020" }), []);
 
   useFrame((_, delta) => {
