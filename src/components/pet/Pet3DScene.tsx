@@ -146,7 +146,18 @@ export default function Pet3DScene({
   const inactivePets = pets.filter((p) => p.id !== activePet?.id);
 
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
+  const [cameraFocus, setCameraFocus] = useState<[number, number, number] | null>(null);
   const petScale = activePet ? Math.min(0.7 + (activePet.level - 1) * 0.02, 1.2) : 0.7;
+
+  // Handle switching: zoom camera to pet, then switch
+  const handleSwitchPet = useCallback((petId: string, homePos: [number, number, number]) => {
+    setCameraFocus(homePos);
+    setTimeout(() => {
+      onSwitchPet?.(petId);
+      // After switch, reset focus (new active pet will be at [0,0,0])
+      setTimeout(() => setCameraFocus(null), 300);
+    }, 600);
+  }, [onSwitchPet]);
 
   // Wander logic
   useEffect(() => {
