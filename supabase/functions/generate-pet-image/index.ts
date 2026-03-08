@@ -64,7 +64,7 @@ serve(async (req) => {
     const speciesName = species === "cat" ? "cat" : "dog";
     const breedHint = petName ? ` named ${petName}` : "";
 
-    const prompt = `Generate a cute kawaii-style illustration of ${stageDesc} ${speciesName}${breedHint}. The ${speciesName} should look happy and lovable. Studio Ghibli inspired, soft pastel colors, white clean background, centered composition, digital art style. Level ${milestoneLevel} pet evolution stage.`;
+    const prompt = `A realistic high-quality photograph of ${stageDesc.replace("puppy/kitten", speciesName === "cat" ? "kitten" : "puppy")}${breedHint}. The ${speciesName} is looking at the camera with a happy expression, sitting in a cozy home environment. Professional pet photography style, soft natural lighting, shallow depth of field, warm tones. Clean simple background. The ${speciesName} should look realistic and lifelike, not cartoon or illustration. Growth stage level ${milestoneLevel} of 30.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

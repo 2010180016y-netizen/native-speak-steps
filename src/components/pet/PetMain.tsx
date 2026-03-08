@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { UserPet, PetItem, UserPoints } from "@/hooks/usePet";
 
 type Props = {
@@ -9,21 +10,25 @@ type Props = {
   loading: boolean;
 };
 
-const SPECIES_EMOJI: Record<string, string[]> = {
-  dog: ["🐶", "🐕", "🦮", "🐕‍🦺", "🐩"],
-  cat: ["🐱", "🐈", "🐈‍⬛", "😺", "😸"],
-};
-
-const getLevelEmoji = (species: string, level: number) => {
-  const emojis = SPECIES_EMOJI[species] || SPECIES_EMOJI.dog;
-  if (level < 5) return emojis[0];
-  if (level < 10) return emojis[1];
-  if (level < 15) return emojis[2];
-  if (level < 20) return emojis[3];
-  return emojis[4];
+type FeedingState = {
+  active: boolean;
+  emoji: string;
+  itemName: string;
 };
 
 const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
+  const [feeding, setFeeding] = useState<FeedingState>({ active: false, emoji: "", itemName: "" });
+
+  const handleFeed = useCallback(async (item: PetItem) => {
+    setFeeding({ active: true, emoji: item.emoji, itemName: item.name });
+    const success = await feedPet(item.id);
+    // Keep animation for a moment after feed completes
+    if (success) {
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    setFeeding({ active: false, emoji: "", itemName: "" });
+  }, [feedPet]);
+
   if (loading) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex justify-center py-16">
@@ -42,29 +47,129 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
     );
   }
 
-  const species = activePet.pet_type?.species || "dog";
   const expPercent = Math.min((activePet.experience / activePet.exp_to_next_level) * 100, 100);
   const quickSnacks = items.filter((i) => i.category === "snack").slice(0, 3);
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
       {/* Pet display */}
-      <div className="duo-card text-center mb-4">
+      <div className="duo-card text-center mb-4 relative overflow-hidden">
+        {/* Feeding animation overlay */}
+        <AnimatePresence>
+          {feeding.active && (
+            <>
+              {/* Food item flying to pet */}
+              <motion.div
+                className="absolute z-10 text-4xl"
+                initial={{ bottom: 20, left: "50%", x: "-50%", opacity: 1, scale: 1.2 }}
+                animate={{
+                  bottom: [20, 100, 140],
+                  scale: [1.2, 1.5, 0.3],
+                  opacity: [1, 1, 0],
+                }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, ease: "easeIn" }}
+              >
+                {feeding.emoji}
+              </motion.div>
+
+              {/* Happy particles */}
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute z-10 text-lg pointer-events-none"
+                  initial={{
+                    top: "40%",
+                    left: "50%",
+                    opacity: 0,
+                    scale: 0,
+                  }}
+                  animate={{
+                    top: `${20 + Math.random() * 20}%`,
+                    left: `${20 + Math.random() * 60}%`,
+                    opacity: [0, 1, 0],
+                    scale: [0, 1.2, 0],
+                    rotate: [0, Math.random() * 360],
+                  }}
+                  transition={{
+                    duration: 1.2,
+                    delay: 0.5 + i * 0.1,
+                    ease: "easeOut",
+                  }}
+                >
+                  {["✨", "💕", "⭐", "🎉", "💖", "😋"][i]}
+                </motion.div>
+              ))}
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Pet image with eating animation */}
         <motion.div
-          className="text-8xl mb-3"
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="mb-3 relative inline-block"
+          animate={
+            feeding.active
+              ? {
+                  scale: [1, 1.1, 0.95, 1.05, 1],
+                  rotate: [0, -5, 5, -3, 0],
+                  y: [0, -5, 0, -3, 0],
+                }
+              : { y: [0, -8, 0] }
+          }
+          transition={
+            feeding.active
+              ? { duration: 1, ease: "easeInOut", repeat: 1 }
+              : { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
+          }
         >
           {activePet.image_url ? (
-            <img src={activePet.image_url} alt={activePet.name} className="w-32 h-32 mx-auto rounded-3xl object-cover" />
+            <img
+              src={activePet.image_url}
+              alt={activePet.name}
+              className="w-40 h-40 mx-auto rounded-3xl object-cover shadow-lg border-2 border-border"
+            />
           ) : (
-            getLevelEmoji(species, activePet.level)
+            <div className="w-40 h-40 mx-auto rounded-3xl bg-muted flex items-center justify-center text-6xl">
+              {activePet.pet_type?.species === "cat" ? "🐱" : "🐶"}
+            </div>
           )}
+
+          {/* Eating mouth animation */}
+          <AnimatePresence>
+            {feeding.active && (
+              <motion.div
+                className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-2xl"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{
+                  opacity: [0, 1, 1, 0],
+                  scale: [0, 1.3, 1, 0],
+                }}
+                transition={{ duration: 1.5, delay: 0.3 }}
+              >
+                😋
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
+
         <h2 className="text-xl font-extrabold text-foreground">{activePet.name}</h2>
         <p className="text-sm text-muted-foreground font-semibold mb-1">
           {activePet.pet_type?.name} · Lv.{activePet.level}
         </p>
+
+        {/* Status message during feeding */}
+        <AnimatePresence>
+          {feeding.active && (
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="text-xs font-bold text-secondary mt-1"
+            >
+              냠냠~ {feeding.itemName} 맛있다! 😊
+            </motion.p>
+          )}
+        </AnimatePresence>
 
         {/* EXP bar */}
         <div className="mt-3">
@@ -91,8 +196,8 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
             <motion.button
               key={item.id}
               whileTap={{ scale: 0.9 }}
-              onClick={() => feedPet(item.id)}
-              disabled={!points || points.balance < item.price}
+              onClick={() => handleFeed(item)}
+              disabled={feeding.active || !points || points.balance < item.price}
               className="duo-card p-3 text-center cursor-pointer disabled:opacity-40 hover:border-primary transition-colors"
             >
               <div className="text-2xl mb-1">{item.emoji}</div>
