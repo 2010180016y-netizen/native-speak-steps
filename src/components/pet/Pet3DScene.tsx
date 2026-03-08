@@ -1,6 +1,6 @@
 import { Suspense, useState, useEffect, useRef } from "react";
-import { Canvas } from "@react-three/fiber";
-import { ContactShadows, OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { ContactShadows } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import PetModel from "./PetModel";
 import Pet3DAccessory from "./Pet3DAccessory";
@@ -130,6 +130,34 @@ function Room() {
   );
 }
 
+// Camera that smoothly follows the pet
+function CameraFollower({ targetPos }: { targetPos: [number, number, number] }) {
+  const { camera } = useThree();
+  const offset = useRef(new THREE.Vector3(0, 4, 6));
+
+  useFrame((_, delta) => {
+    // Smoothly move camera to follow pet with offset
+    const targetX = targetPos[0] * 0.5; // dampen so camera doesn't swing too much
+    const targetZ = targetPos[2] * 0.3;
+    
+    const desiredPos = new THREE.Vector3(
+      targetX + offset.current.x,
+      offset.current.y,
+      targetZ + offset.current.z
+    );
+
+    camera.position.lerp(desiredPos, delta * 1.2);
+
+    // Look at a point slightly ahead of the pet
+    const lookTarget = new THREE.Vector3(targetX, 0.5, targetZ - 1);
+    const currentLook = new THREE.Vector3();
+    camera.getWorldDirection(currentLook);
+    camera.lookAt(lookTarget);
+  });
+
+  return null;
+}
+
 function LoadingFallback() {
   return (
     <mesh position={[0, 0.5, 0]}>
@@ -231,14 +259,7 @@ export default function Pet3DScene({
           />
         ))}
 
-        <OrbitControls
-          enablePan={false}
-          enableZoom={false}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 2.5}
-          minAzimuthAngle={-Math.PI / 6}
-          maxAzimuthAngle={Math.PI / 6}
-        />
+        <CameraFollower targetPos={targetPos} />
       </Canvas>
 
       {/* Speech bubble */}
