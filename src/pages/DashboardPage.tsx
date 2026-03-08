@@ -301,6 +301,11 @@ const DashboardPage = () => {
           <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest">학습 인사이트</p>
         </motion.div>
 
+        {/* Speaking Score Widget */}
+        <motion.div variants={item}>
+          <DashboardSpeakingWidget />
+        </motion.div>
+
         {/* Vocab Growth Map */}
         {user && (
           <motion.div variants={item}>
