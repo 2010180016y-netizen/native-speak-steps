@@ -10,7 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Correction = { wrong: string; correct: string; explanation: string };
+type Message = { role: "user" | "assistant"; content: string; corrections?: Correction[] };
 
 type Phase = "setup" | "incoming" | "call" | "feedback";
 
