@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Star, BookOpen, MessageCircle, Zap, Lightbulb } from "lucide-react";
+import { ArrowLeft, Star, BookOpen, MessageCircle, Zap, Lightbulb, Phone, Clock } from "lucide-react";
 
 type FeedbackData = {
   overallScore: number;
@@ -10,9 +10,20 @@ type FeedbackData = {
   tips: string[];
 };
 
+type CallInfo = {
+  callerName: string;
+  gender: "male" | "female";
+  occupation: string;
+  personality: string;
+  scenarioLabel: string;
+  scenarioEmoji: string;
+  durationSeconds: number;
+};
+
 type Props = {
   feedback: FeedbackData;
   onClose: () => void;
+  callInfo?: CallInfo;
 };
 
 const ScoreRing = ({ score, size = 64 }: { score: number; size?: number }) => {
@@ -62,7 +73,13 @@ const ScoreBar = ({ label, score, icon }: { label: string; score: number; icon: 
   );
 };
 
-const SpeakingFeedback = ({ feedback, onClose }: Props) => {
+const formatDuration = (s: number) => {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}분 ${sec}초`;
+};
+
+const SpeakingFeedback = ({ feedback, onClose, callInfo }: Props) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -74,8 +91,33 @@ const SpeakingFeedback = ({ feedback, onClose }: Props) => {
         <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-muted transition-colors">
           <ArrowLeft size={20} className="text-muted-foreground" />
         </button>
-        <h2 className="font-extrabold text-foreground text-lg">대화 피드백 📝</h2>
+        <h2 className="font-extrabold text-foreground text-lg">통화 피드백 📝</h2>
       </div>
+
+      {/* Call Info Card */}
+      {callInfo && (
+        <div className="duo-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
+              <span className="text-2xl">{callInfo.gender === "male" ? "👨" : "👩"}</span>
+            </div>
+            <div className="flex-1">
+              <p className="font-extrabold text-foreground text-base">{callInfo.callerName}</p>
+              <p className="text-xs text-muted-foreground font-semibold">{callInfo.occupation} · {callInfo.personality}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
+            <div className="flex items-center gap-1.5 text-xs">
+              <Phone size={12} className="text-primary" />
+              <span className="font-bold text-foreground">{callInfo.scenarioEmoji} {callInfo.scenarioLabel}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <Clock size={12} className="text-primary" />
+              <span className="font-bold text-foreground">{formatDuration(callInfo.durationSeconds)}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overall score */}
       <div className="duo-card flex items-center gap-4 p-4">
