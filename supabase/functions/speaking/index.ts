@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, targetLanguage, nativeLanguage, level, scenario, persona } = await req.json();
+    const { messages, targetLanguage, nativeLanguage, level, scenario, persona, callerName } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -39,7 +39,8 @@ serve(async (req) => {
     let personaDesc = "";
     if (persona) {
       const genderLabel = persona.gender === "male" ? "male" : "female";
-      personaDesc = `You are a ${genderLabel} ${persona.occupation}. Your personality is: ${persona.personality}. Stay true to this character throughout the call.`;
+      const nameStr = callerName ? `Your name is ${callerName}.` : "";
+      personaDesc = `You are a ${genderLabel} ${persona.occupation}. ${nameStr} Your personality is: ${persona.personality}. Stay true to this character throughout the call.`;
     }
 
     const systemPrompt = `You are making a PHONE CALL to a language learner. The user speaks ${nativeLanguage} and is practicing ${targetLanguage} at the ${level} level.
@@ -52,7 +53,7 @@ Rules:
 - Respond ONLY in ${targetLanguage}
 - ${levelGuide[level] || levelGuide.beginner}
 - Keep responses short and conversational (1-3 sentences max) — this is a phone conversation
-- Start with a natural phone greeting like "Hello? Is this...?" or similar
+- Start with a natural phone greeting — introduce yourself by name (e.g. "Hi, this is ${callerName || 'me'}!") and set the context for why you're calling
 - If the user makes mistakes, briefly correct them naturally then continue the conversation
 - Stay in character for the scenario and persona
 - Be warm, encouraging, and natural
