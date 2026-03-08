@@ -31,10 +31,37 @@ const LANG_NAMES: Record<string, string> = {
 };
 
 const DashboardPage = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, updateProfile } = useAuth();
   const navigate = useNavigate();
   useReminder();
   const [stats, setStats] = useState({ nativeWords: 0, targetWords: 0, cardsToReview: 0, streak: 0 });
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [langPickerType, setLangPickerType] = useState<"native" | "target">("native");
+
+  const handleLanguageChange = async (code: string) => {
+    if (!profile) return;
+    const updates = langPickerType === "native"
+      ? { native_language: code }
+      : { target_language: code };
+    
+    // Don't allow same language for both
+    if (langPickerType === "native" && code === profile.target_language) {
+      toast.error("모국어와 학습 언어는 다르게 설정해야 합니다");
+      return;
+    }
+    if (langPickerType === "target" && code === profile.native_language) {
+      toast.error("모국어와 학습 언어는 다르게 설정해야 합니다");
+      return;
+    }
+
+    try {
+      await updateProfile(updates);
+      toast.success("언어 설정이 변경되었습니다 ✅");
+      setShowLangPicker(false);
+    } catch {
+      toast.error("변경에 실패했습니다");
+    }
+  };
 
   useEffect(() => {
     if (profile && !profile.onboarding_completed) {
