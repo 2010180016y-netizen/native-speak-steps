@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment } from "@react-three/drei";
 
 import { motion, AnimatePresence } from "framer-motion";
-import ChibiPetModel from "./ChibiPetModel";
+import ChibiPetModel, { type PetExpression } from "./ChibiPetModel";
 import Pet3DAccessory from "./Pet3DAccessory";
 import Room from "./Pet3DRoom";
 import * as THREE from "three";
