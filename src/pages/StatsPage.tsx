@@ -245,6 +245,8 @@ const StatsPage = () => {
         user ? <PerformanceDashboard userId={user.id} /> : null
       ) : activeTab === "chat" ? (
         user ? <ChatScoreDashboard userId={user.id} /> : null
+      ) : activeTab === "speaking" ? (
+        user ? <SpeakingScoreDashboard userId={user.id} /> : null
       ) : (
         <>
           {/* View toggle */}
