@@ -452,6 +452,7 @@ const SpeakingPage = () => {
             className="text-sm font-bold text-primary mb-6"
           >
             📞 전화가 오고 있어요...
+          </motion.p>
 
           <div className="flex items-center gap-6">
             {/* Decline */}
