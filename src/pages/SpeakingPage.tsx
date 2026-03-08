@@ -187,6 +187,8 @@ const SpeakingPage = () => {
     if (!gender || !occupation || !personality) return;
     const p: Persona = { gender: gender!, occupation: occupation!, personality: personality! };
     setPersona(p);
+    const name = getRandomName(profile?.target_language || "en", gender);
+    setCallerName(name);
     setPhase("incoming");
     // Auto-timeout: if user doesn't answer in 15s, go back
     setTimeout(() => {
