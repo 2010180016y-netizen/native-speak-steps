@@ -189,6 +189,26 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
     }
   }, [activePet?.id, user]);
 
+  // Fetch equipped accessories
+  useEffect(() => {
+    if (!activePet || !user) return;
+    const fetchEquipped = async () => {
+      const { data: userAcc } = await supabase
+        .from("user_pet_accessories")
+        .select("accessory_id")
+        .eq("pet_id", activePet.id)
+        .eq("is_equipped", true);
+      if (!userAcc || userAcc.length === 0) { setEquippedAccessories([]); return; }
+      const ids = userAcc.map((ua: any) => ua.accessory_id);
+      const { data: accs } = await supabase
+        .from("pet_accessories")
+        .select("emoji, position")
+        .in("id", ids);
+      setEquippedAccessories((accs as { emoji: string; position: string }[]) || []);
+    };
+    fetchEquipped();
+  }, [activePet?.id, user]);
+
   const handleTap = useCallback(() => {
     if (!activePet || feeding.active) return;
     setTapCount((c) => c + 1);
