@@ -41,7 +41,7 @@ const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
+  const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
   const [persona, setPersona] = useState<Persona | null>(null);
   const [scenario, setScenario] = useState<ChatScenario | null>(null);
   const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
