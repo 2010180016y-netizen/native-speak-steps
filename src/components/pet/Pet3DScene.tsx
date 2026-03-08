@@ -25,6 +25,7 @@ type Pet3DSceneProps = {
   emotion: { emoji: string; text: string } | null;
   petAction: PetAction;
   feeding: boolean;
+  expression?: PetExpression;
   onTap: () => void;
 };
 
