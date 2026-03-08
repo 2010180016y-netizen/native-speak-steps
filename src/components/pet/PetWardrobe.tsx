@@ -162,7 +162,7 @@ const PetWardrobe = ({ activePet, loading }: Props) => {
               action="idle"
               position={[0, 0, 0]}
               targetPosition={[0, 0, 0]}
-              scale={0.012}
+              scale={1}
               species={activePet.pet_type?.species || "dog"}
               feeding={false}
             />
@@ -174,7 +174,7 @@ const PetWardrobe = ({ activePet, loading }: Props) => {
               category={a.category}
               name={a.name}
               petPosition={[0, 0, 0]}
-              petScale={0.012}
+              petScale={1}
             />
           ))}
           <OrbitControls enablePan={false} enableZoom={false} />
