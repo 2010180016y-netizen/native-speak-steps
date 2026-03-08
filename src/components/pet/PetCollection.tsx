@@ -32,11 +32,13 @@ const PetCollection = ({ pets, activePet, switchPet }: Props) => {
             activePet?.id === pet.id ? "border-primary" : ""
           }`}
         >
-          <div className="text-4xl">
+          <div>
             {pet.image_url ? (
               <img src={pet.image_url} alt={pet.name} className="w-12 h-12 rounded-xl object-cover" />
+            ) : pet.pet_type?.base_image_url ? (
+              <img src={pet.pet_type.base_image_url} alt={pet.name} className="w-12 h-12 rounded-xl object-cover" />
             ) : (
-              SPECIES_EMOJI[pet.pet_type?.species || "dog"]
+              <span className="text-4xl">{SPECIES_EMOJI[pet.pet_type?.species || "dog"]}</span>
             )}
           </div>
           <div className="flex-1">

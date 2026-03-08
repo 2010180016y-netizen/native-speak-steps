@@ -13,6 +13,19 @@ type Props = {
 
 const SPECIES_EMOJI: Record<string, string> = { dog: "🐶", cat: "🐱" };
 
+const PetTypeImage = ({ type }: { type: PetType }) => {
+  if (type.base_image_url) {
+    return (
+      <img
+        src={type.base_image_url}
+        alt={type.name}
+        className="w-10 h-10 rounded-xl object-cover"
+      />
+    );
+  }
+  return <span className="text-4xl">{SPECIES_EMOJI[type.species]}</span>;
+};
+
 const PetAdopt = ({ petTypes, points, pets, adoptPet, onAdopted }: Props) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [petName, setPetName] = useState("");
@@ -36,9 +49,14 @@ const PetAdopt = ({ petTypes, points, pets, adoptPet, onAdopted }: Props) => {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
       {selectedType ? (
         <div className="duo-card text-center">
-          <div className="text-6xl mb-3">
-            {SPECIES_EMOJI[petTypes.find((t) => t.id === selectedType)?.species || "dog"]}
-          </div>
+          {(() => {
+            const pt = petTypes.find((t) => t.id === selectedType);
+            return pt?.base_image_url ? (
+              <img src={pt.base_image_url} alt={pt.name} className="w-24 h-24 mx-auto rounded-2xl object-cover mb-3" />
+            ) : (
+              <div className="text-6xl mb-3">{SPECIES_EMOJI[pt?.species || "dog"]}</div>
+            );
+          })()}
           <h3 className="font-bold text-foreground mb-1">
             {petTypes.find((t) => t.id === selectedType)?.name}
           </h3>
@@ -81,7 +99,7 @@ const PetAdopt = ({ petTypes, points, pets, adoptPet, onAdopted }: Props) => {
                 className={`duo-card flex items-center gap-3 p-4 ${owned ? "opacity-60" : "cursor-pointer hover:border-primary"} transition-colors`}
                 onClick={() => !owned && setSelectedType(type.id)}
               >
-                <div className="text-4xl">{SPECIES_EMOJI[type.species]}</div>
+                <PetTypeImage type={type} />
                 <div className="flex-1">
                   <div className="font-bold text-foreground">{type.name}</div>
                   <div className="text-xs text-muted-foreground">{type.description}</div>

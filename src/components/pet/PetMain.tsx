@@ -122,9 +122,9 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
               : { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
           }
         >
-          {activePet.image_url ? (
+          {(activePet.image_url || activePet.pet_type?.base_image_url) ? (
             <img
-              src={activePet.image_url}
+              src={activePet.image_url || activePet.pet_type?.base_image_url || ""}
               alt={activePet.name}
               className="w-40 h-40 mx-auto rounded-3xl object-cover shadow-lg border-2 border-border"
             />
