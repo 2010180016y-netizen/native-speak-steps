@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+const IMAGE_MILESTONES = [1, 5, 10, 15, 20, 25, 30];
+
 export type PetType = {
   id: string;
   name: string;
