@@ -69,6 +69,7 @@ export function maskSensitiveData(text: string): string {
 
 /**
  * Extract speaker names from chat text
+ * Also detects frequently repeated short words that are likely usernames
  */
 export function extractSpeakers(text: string): string[] {
   const speakers = new Set<string>();
@@ -86,6 +87,35 @@ export function extractSpeakers(text: string): string[] {
   for (const match of colonMatches) {
     if (match[1]) {
       speakers.add(match[1].trim());
+    }
+  }
+
+  // Line/WhatsApp format: Name (Time) or [Time] Name:
+  const lineMatches = text.matchAll(/^\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*([가-힣A-Za-z0-9_ ]{1,20})\s*:/gm);
+  for (const match of lineMatches) {
+    if (match[1]) speakers.add(match[1].trim());
+  }
+  
+  // Heuristic: detect frequently repeated short words at line starts (likely names)
+  // Count words that appear at the beginning of lines
+  const lineStartWords = new Map<string, number>();
+  const lines = text.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    // Get first word (1-20 chars, Korean or alphanumeric)
+    const firstWordMatch = trimmed.match(/^([가-힣A-Za-z]{1,20})/);
+    if (firstWordMatch) {
+      const word = firstWordMatch[1];
+      lineStartWords.set(word, (lineStartWords.get(word) || 0) + 1);
+    }
+  }
+  
+  // Words appearing at line starts more than 3% of total lines are likely speaker names
+  const threshold = Math.max(3, lines.length * 0.03);
+  for (const [word, count] of lineStartWords) {
+    if (count >= threshold && word.length >= 2 && word.length <= 15) {
+      speakers.add(word);
     }
   }
   

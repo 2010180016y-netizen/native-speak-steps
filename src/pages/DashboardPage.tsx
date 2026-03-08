@@ -132,6 +132,56 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
+      {/* Language Picker Modal */}
+      <AnimatePresence>
+        {showLangPicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center"
+            onClick={() => setShowLangPicker(false)}
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-card rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 pb-8 shadow-xl border border-border"
+            >
+              <h3 className="text-lg font-extrabold text-foreground mb-1">
+                {langPickerType === "native" ? "모국어 변경" : "학습 언어 변경"}
+              </h3>
+              <p className="text-xs text-muted-foreground font-semibold mb-4">
+                {langPickerType === "native" ? "가장 자주 사용하는 언어를 선택하세요" : "배우고 싶은 언어를 선택하세요"}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {LANGUAGES
+                  .filter(l => langPickerType === "native" ? l.code !== profile.target_language : l.code !== profile.native_language)
+                  .map(lang => {
+                    const isSelected = langPickerType === "native"
+                      ? lang.code === profile.native_language
+                      : lang.code === profile.target_language;
+                    return (
+                      <button
+                        key={lang.code}
+                        onClick={() => handleLanguageChange(lang.code)}
+                        className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all hover:scale-[1.02] ${
+                          isSelected ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"
+                        }`}
+                      >
+                        <span className="text-xl">{lang.flag}</span>
+                        <span className="font-bold text-sm text-foreground">{lang.label}</span>
+                        {isSelected && <Check size={14} className="text-primary ml-auto" />}
+                      </button>
+                    );
+                  })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Sync Progress */}
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="duo-card mb-4">
         <div className="flex items-center justify-between mb-3">

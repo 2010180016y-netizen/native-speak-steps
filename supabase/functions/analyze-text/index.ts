@@ -32,8 +32,8 @@ serve(async (req) => {
 The text is in ${nativeLanguage}. The user is learning ${targetLanguage}.
 ${speakerInstruction}
 
-Analyze the ENTIRE text thoroughly and return JSON with these fields:
-- wordFrequency: array of {word, count, percentage} sorted by count desc, top 30 (exclude speaker names, timestamps, masked placeholders like [전화번호])
+Analyze the ENTIRE text from start to end thoroughly and return JSON with these fields:
+- wordFrequency: array of {word, count, percentage} sorted by count desc, top 50 (MUST EXCLUDE: speaker names/usernames, timestamps, masked placeholders like [전화번호], single characters, common particles/connectors. In messenger conversations, words that appear very frequently at the start of lines are usually usernames - exclude them.)
 - sentenceStructures: array of {pattern, description, count, example} sorted by count desc (e.g. "SVO", "Question", "Conditional", "Imperative", etc.)
 - totalSentences: number
 - avgSentenceLength: number (words per sentence)

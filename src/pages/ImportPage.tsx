@@ -68,11 +68,8 @@ const ImportPage = () => {
 
       toast.success(`${analysis.wordCount}개 단어 분석 완료! 🎉`);
 
-      // For large texts, split into chunks and analyze
-      const chunks = splitIntoChunks(analysis.maskedText, 10000);
-      const textToAnalyze = chunks.length > 1 
-        ? `[총 ${chunks.length}개 청크 중 대표 분석]\n${chunks[0]}`
-        : analysis.maskedText;
+      // Send full text for analysis (up to 60000 chars to avoid token limits)
+      const textToAnalyze = analysis.maskedText.slice(0, 60000);
 
       // Start detailed AI analysis
       setAnalyzingDetail(true);
