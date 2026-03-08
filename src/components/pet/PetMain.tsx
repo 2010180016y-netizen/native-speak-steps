@@ -187,7 +187,7 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
       fetchDiary();
       fetchDiaryHistory();
     }
-  }, [activePet?.id, user]);
+  }, [activePet?.id, user, fetchDiary, fetchDiaryHistory]);
 
   // Fetch equipped accessories
   useEffect(() => {
