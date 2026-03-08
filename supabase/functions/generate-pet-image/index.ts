@@ -9,13 +9,13 @@ const corsHeaders = {
 const IMAGE_MILESTONES = [1, 5, 10, 15, 20, 25, 30];
 
 const STAGE_DESCRIPTIONS: Record<number, string> = {
-  1: "a tiny adorable baby",
-  5: "a playful young",
-  10: "a growing energetic",
-  15: "a strong healthy teenager",
-  20: "a majestic adult",
-  25: "a wise experienced",
-  30: "a legendary glowing mythical",
+  1: "a tiny adorable baby puppy/kitten, very small and round, with big innocent eyes",
+  5: "a playful young puppy/kitten, slightly bigger, curious and energetic",
+  10: "a growing juvenile, more defined features, athletic and alert",
+  15: "a healthy teenager, strong build, confident posture",
+  20: "a majestic fully grown adult, beautiful coat, proud stance",
+  25: "a wise and distinguished senior, calm and elegant demeanor",
+  30: "a legendary champion, glowing aura, perfect form, mythical presence",
 };
 
 serve(async (req) => {
