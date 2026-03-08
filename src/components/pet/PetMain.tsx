@@ -69,7 +69,12 @@ const ROOM_ITEMS = [
   { emoji: "💡", x: "80%", y: "25%", size: "text-lg" },
 ];
 
+const MOOD_EMOJI: Record<string, string> = {
+  happy: "😊", proud: "🥰", lonely: "🥺", sleepy: "😴", excited: "🤩", neutral: "📝",
+};
+
 const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
+  const { user } = useAuth();
   const [feeding, setFeeding] = useState<FeedingState>({ active: false, emoji: "", itemName: "" });
   const [petAction, setPetAction] = useState<PetAction>("idle");
   const [emotion, setEmotion] = useState<Emotion>(null);
@@ -80,6 +85,12 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
   const [tapCount, setTapCount] = useState(0);
   const walkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const emotionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Diary state
+  const [diary, setDiary] = useState<{ content: string; mood: string; diary_date: string } | null>(null);
+  const [diaryLoading, setDiaryLoading] = useState(false);
+  const [diaryHistory, setDiaryHistory] = useState<{ content: string; mood: string; diary_date: string }[]>([]);
+  const [showDiaryHistory, setShowDiaryHistory] = useState(false);
 
   // Pet size based on level
   const petLevel = activePet?.level || 1;
