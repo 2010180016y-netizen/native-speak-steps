@@ -86,7 +86,7 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
   const [showDiaryHistory, setShowDiaryHistory] = useState(false);
 
   // Equipped accessories
-  const [equippedAccessories, setEquippedAccessories] = useState<{ emoji: string; position: string }[]>([]);
+  const [equippedAccessories, setEquippedAccessories] = useState<{ emoji: string; position: string; name?: string; category?: string }[]>([]);
 
   // Pet size based on level
   const petLevel = activePet?.level || 1;
