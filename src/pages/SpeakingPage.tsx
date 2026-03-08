@@ -683,6 +683,67 @@ const SpeakingPage = () => {
         </div>
       </div>
 
+      {/* Mini Missions Bar */}
+      {missions.length > 0 && !isFeedbackLoading && (
+        <motion.div
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="mb-3 bg-card rounded-2xl border border-border p-3 shadow-sm"
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <Target size={14} className="text-primary" />
+            <span className="text-[11px] font-extrabold text-foreground">통화 미션</span>
+            <span className="text-[10px] font-bold text-primary ml-auto">
+              {completedMissions.size}/{missions.length}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {missions.map((mission) => {
+              const done = completedMissions.has(mission.id);
+              return (
+                <div
+                  key={mission.id}
+                  className={`flex items-center gap-2 text-[11px] rounded-lg px-2.5 py-1.5 transition-colors ${done ? "bg-primary/10" : "bg-muted/50"}`}
+                >
+                  {done ? (
+                    <CheckCircle2 size={13} className="text-primary flex-shrink-0" />
+                  ) : (
+                    <div className="w-[13px] h-[13px] rounded-full border-2 border-muted-foreground/30 flex-shrink-0" />
+                  )}
+                  <span className={`font-bold flex-1 ${done ? "text-primary line-through" : "text-foreground"}`}>
+                    {mission.title}
+                  </span>
+                  <span className={`text-[10px] font-bold ${done ? "text-primary" : "text-muted-foreground"}`}>
+                    +{mission.xpReward}XP
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Level-based Hints */}
+      {levelHints.length > 0 && messages.length <= 2 && !isFeedbackLoading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-3 bg-card rounded-2xl border border-dashed border-primary/30 p-3 shadow-sm"
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <Lightbulb size={14} className="text-primary" />
+            <span className="text-[11px] font-extrabold text-foreground">이렇게 말해보세요</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {levelHints.slice(0, 4).map((hint, i) => (
+              <span key={i} className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                {hint}
+              </span>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* Feedback loading */}
       {isFeedbackLoading && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="duo-card p-6 text-center mb-4">
