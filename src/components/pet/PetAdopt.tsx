@@ -99,7 +99,7 @@ const PetAdopt = ({ petTypes, points, pets, adoptPet, onAdopted }: Props) => {
                 className={`duo-card flex items-center gap-3 p-4 ${owned ? "opacity-60" : "cursor-pointer hover:border-primary"} transition-colors`}
                 onClick={() => !owned && setSelectedType(type.id)}
               >
-                <div className="text-4xl">{SPECIES_EMOJI[type.species]}</div>
+                <PetTypeImage type={type} />
                 <div className="flex-1">
                   <div className="font-bold text-foreground">{type.name}</div>
                   <div className="text-xs text-muted-foreground">{type.description}</div>
