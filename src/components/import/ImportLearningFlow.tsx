@@ -168,9 +168,17 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
       setShowStructureAnswer(false);
     } else {
       // Batch complete
-      const knownCount = Array.from(learnedStructures.values()).filter(v => v).length + (known ? 1 : 0);
+      const allLearned = new Map(learnedStructures).set(currentStructure.pattern, known);
+      const knownCount = Array.from(allLearned.values()).filter(v => v).length;
+      const unknownItems = Array.from(allLearned.entries()).filter(([_, v]) => !v).map(([k]) => k);
+      
       toast.success(`문장구조 학습 완료! ${knownCount}/${currentStructureBatch.length}개 알고 있음`);
       onComplete?.("structure", currentStructureBatch.length);
+      
+      // Also generate cards for unknown structures
+      if (unknownItems.length > 0 && onUnknownWordsReady) {
+        onUnknownWordsReady(unknownItems);
+      }
       
       // Auto advance to next batch
       if (structureBatchIndex < totalStructureBatches - 1) {
@@ -183,6 +191,7 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
         }, 1500);
       } else {
         toast.success("🎉 모든 문장구조 학습 완료!");
+        onAllLearningComplete?.();
       }
     }
   };
