@@ -67,6 +67,8 @@ const DialogueRolePlay = ({ speakers, lines, targetLang, onClose, onLinesUpdate,
         }, 500);
       } else {
         toast.success("대화 연습 완료! 🎉");
+        const newCompleted = new Set(completedLines).add(currentLine);
+        onComplete?.(newCompleted.size, lines.length);
       }
     }
   }, [transcript, isListening]);
