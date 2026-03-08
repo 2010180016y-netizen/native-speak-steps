@@ -162,15 +162,6 @@ export default function Pet3DScene({
         {/* ─── Camera ─── */}
         <CameraFollower targetPos={targetPos} />
 
-        {/* ─── Post Processing ─── */}
-        <EffectComposer>
-          <Bloom
-            luminanceThreshold={0.9}
-            luminanceSmoothing={0.4}
-            intensity={0.3}
-          />
-          <Vignette eskil={false} offset={0.15} darkness={0.4} />
-        </EffectComposer>
       </Canvas>
 
       {/* ─── Speech bubble ─── */}
