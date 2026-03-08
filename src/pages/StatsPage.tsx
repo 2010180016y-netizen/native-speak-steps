@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Activity, Clock, Target, MessageCircle, MessagesSquare, Radar, Heart } from "lucide-react";
+import { BarChart3, TrendingUp, Activity, Clock, Target, MessagesSquare, Radar, Heart } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -12,7 +12,7 @@ import { ko } from "date-fns/locale";
 import ActivityLogDashboard from "@/components/stats/ActivityLogDashboard";
 import TimeBasedDashboard from "@/components/stats/TimeBasedDashboard";
 import PerformanceDashboard from "@/components/stats/PerformanceDashboard";
-import FeedbackDashboard from "@/components/stats/FeedbackDashboard";
+// FeedbackDashboard removed
 import ChatScoreDashboard from "@/components/stats/ChatScoreDashboard";
 import SyncGapDashboard from "@/components/stats/SyncGapDashboard";
 import SrsHealthDashboard from "@/components/stats/SrsHealthDashboard";
@@ -29,7 +29,7 @@ type DailyData = {
 const StatsPage = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [activeTab, setActiveTab] = useState<"learning" | "syncgap" | "srshealth" | "activity" | "time" | "performance" | "feedback" | "chat">("learning");
+  const [activeTab, setActiveTab] = useState<"learning" | "syncgap" | "srshealth" | "activity" | "time" | "performance" | "chat">("learning");
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -202,14 +202,6 @@ const StatsPage = () => {
           <Target size={14} /> 성과
         </button>
         <button
-          onClick={() => setActiveTab("feedback")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "feedback" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <MessageCircle size={14} /> AI
-        </button>
-        <button
           onClick={() => setActiveTab("chat")}
           className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
@@ -229,8 +221,6 @@ const StatsPage = () => {
         user ? <TimeBasedDashboard userId={user.id} /> : null
       ) : activeTab === "performance" ? (
         user ? <PerformanceDashboard userId={user.id} /> : null
-      ) : activeTab === "feedback" ? (
-        user ? <FeedbackDashboard userId={user.id} /> : null
       ) : activeTab === "chat" ? (
         user ? <ChatScoreDashboard userId={user.id} /> : null
       ) : (
