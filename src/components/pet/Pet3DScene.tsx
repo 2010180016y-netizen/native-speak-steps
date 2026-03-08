@@ -1,7 +1,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment } from "@react-three/drei";
-import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
+
 import { motion, AnimatePresence } from "framer-motion";
 import PetModel from "./PetModel";
 import Pet3DAccessory from "./Pet3DAccessory";
