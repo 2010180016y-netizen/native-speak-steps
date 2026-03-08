@@ -13,6 +13,7 @@ import PersonalizedRecommendations from "@/components/dashboard/PersonalizedReco
 import { useReminder } from "@/hooks/useReminder";
 import WeeklyReportWidget from "@/components/dashboard/WeeklyReportWidget";
 import GoalProgressWidget from "@/components/dashboard/GoalProgressWidget";
+import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
 
 const LANGUAGES = [
   { code: "ko", label: "한국어", flag: "🇰🇷" },
