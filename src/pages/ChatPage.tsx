@@ -518,12 +518,31 @@ const ChatPage = () => {
 
           {/* Input bar */}
           <div className="fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-3">
+            {/* Interim transcript indicator */}
+            {isListening && interimTranscript && (
+              <div className="max-w-lg mx-auto mb-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-xs font-semibold text-primary truncate">
+                🎤 {interimTranscript}
+              </div>
+            )}
             <div className="max-w-lg mx-auto flex gap-2">
+              {sttSupported && (
+                <button
+                  onClick={isListening ? stopListening : startListening}
+                  className={`flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
+                    isListening
+                      ? "bg-destructive text-destructive-foreground animate-pulse"
+                      : "bg-card border-2 border-border text-muted-foreground hover:text-foreground hover:border-primary"
+                  }`}
+                  title={isListening ? "음성 입력 중지" : "음성으로 입력"}
+                >
+                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                </button>
+              )}
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-                placeholder="메시지를 입력하세요..."
+                placeholder={isListening ? "듣고 있어요..." : "메시지를 입력하세요..."}
                 className="flex-1 px-4 py-3 rounded-2xl border-2 border-border bg-card text-foreground font-semibold focus:border-primary focus:outline-none transition-colors"
               />
               <button
