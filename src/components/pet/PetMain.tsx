@@ -62,14 +62,6 @@ const PET_REACTIONS = [
   { emoji: "☺️", text: "헤헤~" },
 ];
 
-// Room furniture elements
-const ROOM_ITEMS = [
-  { emoji: "🛋️", x: "8%", y: "65%", size: "text-2xl" },
-  { emoji: "🪴", x: "85%", y: "55%", size: "text-xl" },
-  { emoji: "📚", x: "12%", y: "35%", size: "text-lg" },
-  { emoji: "🖼️", x: "50%", y: "18%", size: "text-xl" },
-  { emoji: "💡", x: "80%", y: "25%", size: "text-lg" },
-];
 
 const MOOD_EMOJI: Record<string, string> = {
   happy: "😊", proud: "🥰", lonely: "🥺", sleepy: "😴", excited: "🤩", neutral: "📝",
