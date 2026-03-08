@@ -57,7 +57,7 @@ const PetPage = () => {
       </div>
 
       <AnimatePresence mode="wait">
-        {tab === "pet" && <PetMain key="pet" {...petData} />}
+        {tab === "pet" && <PetMain key="pet" {...petData} pets={petData.pets} />}
         {tab === "shop" && <PetShop key="shop" {...petData} />}
         {tab === "wardrobe" && <PetWardrobe key="wardrobe" activePet={petData.activePet} loading={petData.loading} />}
         {tab === "adopt" && <PetAdopt key="adopt" {...petData} onAdopted={() => setTab("pet")} />}

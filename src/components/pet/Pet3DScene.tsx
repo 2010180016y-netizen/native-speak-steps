@@ -154,20 +154,41 @@ export default function Pet3DScene({
         {/* ─── Shadows ─── */}
         <ContactShadows position={[0, 0.01, 0]} opacity={0.6} scale={12} blur={2.5} far={5} />
 
-        {/* ─── Pet ─── */}
-        <Suspense fallback={<LoadingFallback />}>
-          <PetModel
-            action={petAction}
-            position={[0, 0, 0]}
-            targetPosition={targetPos}
-            scale={petScale}
-            species={species}
-            petTypeName={petTypeName}
-            feeding={feeding}
-          />
-        </Suspense>
+        {/* ─── Active Pet ─── */}
+        {activePet && (
+          <Suspense fallback={<LoadingFallback />}>
+            <PetModel
+              action={petAction}
+              position={[0, 0, 0]}
+              targetPosition={targetPos}
+              scale={petScale}
+              species={activePet.species}
+              petTypeName={activePet.petTypeName}
+              feeding={feeding}
+            />
+          </Suspense>
+        )}
 
-        {/* ─── Accessories ─── */}
+        {/* ─── Inactive Pets (idle in fixed spots) ─── */}
+        {inactivePets.map((pet, i) => {
+          const homePos = getHomePosForIndex(i);
+          const s = Math.min(0.01 + (pet.level - 1) * 0.0005, 0.018);
+          return (
+            <Suspense key={pet.id} fallback={<LoadingFallback />}>
+              <PetModel
+                action="idle"
+                position={homePos}
+                targetPosition={homePos}
+                scale={s}
+                species={pet.species}
+                petTypeName={pet.petTypeName}
+                feeding={false}
+              />
+            </Suspense>
+          );
+        })}
+
+        {/* ─── Accessories (active pet only) ─── */}
         {equippedAccessories.map((acc, i) => (
           <Pet3DAccessory
             key={i}
