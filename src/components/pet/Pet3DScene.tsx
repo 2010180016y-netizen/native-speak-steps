@@ -130,6 +130,34 @@ function Room() {
   );
 }
 
+// Camera that smoothly follows the pet
+function CameraFollower({ targetPos }: { targetPos: [number, number, number] }) {
+  const { camera } = useThree();
+  const offset = useRef(new THREE.Vector3(0, 4, 6));
+
+  useFrame((_, delta) => {
+    // Smoothly move camera to follow pet with offset
+    const targetX = targetPos[0] * 0.5; // dampen so camera doesn't swing too much
+    const targetZ = targetPos[2] * 0.3;
+    
+    const desiredPos = new THREE.Vector3(
+      targetX + offset.current.x,
+      offset.current.y,
+      targetZ + offset.current.z
+    );
+
+    camera.position.lerp(desiredPos, delta * 1.2);
+
+    // Look at a point slightly ahead of the pet
+    const lookTarget = new THREE.Vector3(targetX, 0.5, targetZ - 1);
+    const currentLook = new THREE.Vector3();
+    camera.getWorldDirection(currentLook);
+    camera.lookAt(lookTarget);
+  });
+
+  return null;
+}
+
 function LoadingFallback() {
   return (
     <mesh position={[0, 0.5, 0]}>
