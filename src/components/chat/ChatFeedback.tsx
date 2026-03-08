@@ -83,6 +83,51 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
         },
       });
 
+      // Auto-generate SRS cards from good expressions & improvement areas
+      const cardsToCreate: { native_text: string; target_text: string; context: string }[] = [];
+
+      if (data.goodExpressions?.length) {
+        for (const g of data.goodExpressions) {
+          cardsToCreate.push({
+            target_text: g.expression,
+            native_text: g.reason,
+            context: `✅ 좋은 표현 (${scenario.label})`,
+          });
+        }
+      }
+
+      if (data.improvementAreas?.length) {
+        for (const a of data.improvementAreas) {
+          cardsToCreate.push({
+            target_text: a.suggestion,
+            native_text: `${a.original} → ${a.suggestion}`,
+            context: `✏️ 개선 표현: ${a.reason}`,
+          });
+        }
+      }
+
+      if (cardsToCreate.length > 0) {
+        // Check for duplicates
+        const { data: existing } = await supabase
+          .from("srs_cards")
+          .select("target_text")
+          .eq("user_id", user.id);
+        const existingSet = new Set((existing || []).map((c: any) => c.target_text.toLowerCase()));
+
+        const newCards = cardsToCreate.filter((c) => !existingSet.has(c.target_text.toLowerCase()));
+
+        if (newCards.length > 0) {
+          await supabase.from("srs_cards").insert(
+            newCards.map((c) => ({
+              user_id: user.id,
+              target_text: c.target_text,
+              native_text: c.native_text,
+              context: c.context,
+            }))
+          );
+          toast.success(`📚 ${newCards.length}개의 학습 카드가 자동 생성되었습니다!`);
+        }
+      }
       if (error) throw error;
       setFeedback(data);
 
