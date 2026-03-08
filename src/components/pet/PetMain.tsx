@@ -154,18 +154,27 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
     if (!activePet || !user) return;
     setDiaryLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("pet-diary", {
-        body: {
-          petId: activePet.id,
-          petName: activePet.name,
-          species: activePet.pet_type?.species || "dog",
-        },
-      });
-      console.log("pet-diary response:", { data, error });
-      if (error) {
-        console.error("pet-diary error:", error);
-      } else if (data?.diary) {
-        setDiary(data.diary);
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pet-diary`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            petId: activePet.id,
+            petName: activePet.name,
+            species: activePet.pet_type?.species || "dog",
+          }),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.diary) setDiary(data.diary);
+      } else {
+        console.error("pet-diary error:", res.status, await res.text());
       }
     } catch (e) {
       console.error("Diary fetch error:", e);
