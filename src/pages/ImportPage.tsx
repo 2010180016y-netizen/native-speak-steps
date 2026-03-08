@@ -307,24 +307,23 @@ const ImportPage = () => {
           </label>
         </div>
 
-        {/* Action buttons */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="mt-4">
           <button
             onClick={handleAnalyze}
-            disabled={!text.trim() || analyzing || generatingCards}
-            className="duo-btn-primary flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+            disabled={!text.trim() || analyzing}
+            className="duo-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
-            {analyzing || generatingCards ? (
-              <><Loader2 size={18} className="animate-spin" /> {generatingCards ? "카드 생성..." : "분석..."}</>
+            {analyzing ? (
+              <><Loader2 size={18} className="animate-spin" /> 분석 중...</>
             ) : (
-              <><Upload size={18} /> 분석 + 카드</>
+              <><Upload size={18} /> 분석 시작</>
             )}
           </button>
-
+          
           <button
             onClick={handleSplitDialogue}
             disabled={!text.trim() || splittingDialogue}
-            className="duo-btn-secondary flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+            className="duo-btn-secondary w-full mt-3 flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
             {splittingDialogue ? (
               <><Loader2 size={18} className="animate-spin" /> 분리 중...</>
