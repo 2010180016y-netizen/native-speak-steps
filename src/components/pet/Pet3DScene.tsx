@@ -1,7 +1,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment } from "@react-three/drei";
-import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
+
 import { motion, AnimatePresence } from "framer-motion";
 import PetModel from "./PetModel";
 import Pet3DAccessory from "./Pet3DAccessory";
@@ -162,15 +162,6 @@ export default function Pet3DScene({
         {/* ─── Camera ─── */}
         <CameraFollower targetPos={targetPos} />
 
-        {/* ─── Post Processing ─── */}
-        <EffectComposer>
-          <Bloom
-            luminanceThreshold={0.9}
-            luminanceSmoothing={0.4}
-            intensity={0.3}
-          />
-          <Vignette eskil={false} offset={0.15} darkness={0.4} />
-        </EffectComposer>
       </Canvas>
 
       {/* ─── Speech bubble ─── */}
@@ -222,6 +213,9 @@ export default function Pet3DScene({
           <motion.span className="text-lg" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.5, repeat: Infinity }}>🐾</motion.span>
         )}
       </div>
+
+      {/* CSS Vignette overlay */}
+      <div className="absolute inset-0 pointer-events-none z-[5] rounded-2xl" style={{ boxShadow: "inset 0 0 60px rgba(0,0,0,0.25)" }} />
 
       <div className="absolute bottom-2 right-3 text-[10px] font-semibold text-white/60 pointer-events-none z-10">
         👆 터치해서 쓰다듬기
