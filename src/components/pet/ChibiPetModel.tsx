@@ -507,43 +507,47 @@ export default function ChibiPetModel({
           <sphereGeometry args={[0.18 * config.headScale, 12, 12]} />
         </mesh>
 
-        {/* Eyes */}
-        <group ref={eyeLRef} position={[-0.11, 0.04, 0.22]}>
-          <mesh material={eyeWhiteMat}>
-            <sphereGeometry args={[0.07, 12, 12]} />
-          </mesh>
-          <mesh material={eyeMat} position={[0, 0, 0.04]}>
-            <sphereGeometry args={[0.05, 10, 10]} />
-          </mesh>
-          {/* Highlight */}
-          <mesh material={eyeHighlightMat} position={[0.02, 0.02, 0.07]}>
-            <sphereGeometry args={[0.02, 6, 6]} />
-          </mesh>
-        </group>
-        <group ref={eyeRRef} position={[0.11, 0.04, 0.22]}>
-          <mesh material={eyeWhiteMat}>
-            <sphereGeometry args={[0.07, 12, 12]} />
-          </mesh>
-          <mesh material={eyeMat} position={[0, 0, 0.04]}>
-            <sphereGeometry args={[0.05, 10, 10]} />
-          </mesh>
-          <mesh material={eyeHighlightMat} position={[0.02, 0.02, 0.07]}>
-            <sphereGeometry args={[0.02, 6, 6]} />
-          </mesh>
-        </group>
+        {/* Eyes (expression-driven) */}
+        <ChibiEyes expression={displayExpression} eyeColor={config.eyeColor} side="left" />
+        <ChibiEyes expression={displayExpression} eyeColor={config.eyeColor} side="right" />
 
         {/* Nose */}
         <mesh material={noseMat} position={[0, -0.06, 0.28]}>
           <sphereGeometry args={[0.035, 8, 8]} />
         </mesh>
 
-        {/* Mouth (small smile line) */}
-        <mesh material={mouthMat} position={[-0.03, -0.1, 0.26]}>
-          <boxGeometry args={[0.06, 0.008, 0.01]} />
-        </mesh>
-        <mesh material={mouthMat} position={[0.03, -0.1, 0.26]}>
-          <boxGeometry args={[0.06, 0.008, 0.01]} />
-        </mesh>
+        {/* Mouth (expression-based) */}
+        {displayExpression === "sad" ? (
+          // Frown
+          <mesh material={mouthMat} position={[0, -0.12, 0.26]} rotation={[0, 0, Math.PI]}>
+            <torusGeometry args={[0.03, 0.006, 8, 12, Math.PI]} />
+          </mesh>
+        ) : displayExpression === "surprised" ? (
+          // O mouth
+          <mesh material={mouthMat} position={[0, -0.11, 0.27]}>
+            <torusGeometry args={[0.025, 0.006, 8, 16, Math.PI * 2]} />
+          </mesh>
+        ) : displayExpression === "happy" || displayExpression === "heart" || displayExpression === "star" ? (
+          // Big smile
+          <mesh material={mouthMat} position={[0, -0.1, 0.26]}>
+            <torusGeometry args={[0.04, 0.006, 8, 12, Math.PI]} />
+          </mesh>
+        ) : displayExpression === "angry" ? (
+          // Grumpy line
+          <mesh material={mouthMat} position={[0, -0.11, 0.27]}>
+            <boxGeometry args={[0.06, 0.012, 0.01]} />
+          </mesh>
+        ) : (
+          // Default small smile
+          <>
+            <mesh material={mouthMat} position={[-0.03, -0.1, 0.26]}>
+              <boxGeometry args={[0.06, 0.008, 0.01]} />
+            </mesh>
+            <mesh material={mouthMat} position={[0.03, -0.1, 0.26]}>
+              <boxGeometry args={[0.06, 0.008, 0.01]} />
+            </mesh>
+          </>
+        )}
 
         {/* Blush */}
         <mesh material={blushMat} position={[-0.18, -0.04, 0.18]}>
