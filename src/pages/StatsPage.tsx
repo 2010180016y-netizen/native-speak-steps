@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Activity, Clock, Target, MessagesSquare, Radar, Heart, BookCheck, Map } from "lucide-react";
+import { BarChart3, TrendingUp, Activity, Clock, Target, MessagesSquare, Radar, Heart, BookCheck, Map, ChevronDown } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -28,10 +28,42 @@ type DailyData = {
   syncRate: number;
 };
 
+type TabId = "learning" | "syncgap" | "srshealth" | "vocabutil" | "growthmap" | "activity" | "time" | "performance" | "chat";
+
+type CategoryId = "overview" | "vocabulary" | "activity";
+
+const TAB_GROUPS: { id: CategoryId; label: string; icon: React.ReactNode; tabs: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
+  {
+    id: "overview", label: "개요", icon: <BarChart3 size={14} />,
+    tabs: [
+      { id: "learning", label: "학습", icon: <BarChart3 size={13} /> },
+      { id: "performance", label: "성과", icon: <Target size={13} /> },
+      { id: "chat", label: "회화", icon: <MessagesSquare size={13} /> },
+    ],
+  },
+  {
+    id: "vocabulary", label: "어휘", icon: <BookCheck size={14} />,
+    tabs: [
+      { id: "srshealth", label: "SRS 건강", icon: <Heart size={13} /> },
+      { id: "syncgap", label: "동기화 갭", icon: <Radar size={13} /> },
+      { id: "vocabutil", label: "활용률", icon: <BookCheck size={13} /> },
+      { id: "growthmap", label: "성장맵", icon: <Map size={13} /> },
+    ],
+  },
+  {
+    id: "activity", label: "활동", icon: <Activity size={14} />,
+    tabs: [
+      { id: "activity", label: "활동 로그", icon: <Activity size={13} /> },
+      { id: "time", label: "시간 분석", icon: <Clock size={13} /> },
+    ],
+  },
+];
+
 const StatsPage = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [activeTab, setActiveTab] = useState<"learning" | "syncgap" | "srshealth" | "vocabutil" | "growthmap" | "activity" | "time" | "performance" | "chat">("learning");
+  const [activeTab, setActiveTab] = useState<TabId>("learning");
+  const [activeCategory, setActiveCategory] = useState<CategoryId>("overview");
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -153,81 +185,47 @@ const StatsPage = () => {
         </p>
       </motion.div>
 
-      {/* Tab toggle - scrollable */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1">
-        <button
-          onClick={() => setActiveTab("learning")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "learning" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <BarChart3 size={14} /> 학습
-        </button>
-        <button
-          onClick={() => setActiveTab("syncgap")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "syncgap" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Radar size={14} /> 동기화
-        </button>
-        <button
-          onClick={() => setActiveTab("srshealth")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "srshealth" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Heart size={14} /> SRS
-        </button>
-        <button
-          onClick={() => setActiveTab("vocabutil")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "vocabutil" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <BookCheck size={14} /> 활용
-        </button>
-        <button
-          onClick={() => setActiveTab("growthmap")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "growthmap" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Map size={14} /> 성장맵
-        </button>
-        <button
-          onClick={() => setActiveTab("activity")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "activity" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Activity size={14} /> 활동
-        </button>
-        <button
-          onClick={() => setActiveTab("time")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "time" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Clock size={14} /> 시간
-        </button>
-        <button
-          onClick={() => setActiveTab("performance")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "performance" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Target size={14} /> 성과
-        </button>
-        <button
-          onClick={() => setActiveTab("chat")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <MessagesSquare size={14} /> 회화
-        </button>
+      {/* Category tabs */}
+      <div className="flex gap-2 mb-3">
+        {TAB_GROUPS.map((group) => (
+          <button
+            key={group.id}
+            onClick={() => {
+              setActiveCategory(group.id);
+              setActiveTab(group.tabs[0].id);
+            }}
+            className={`flex-1 py-2.5 px-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+              activeCategory === group.id
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {group.icon} {group.label}
+          </button>
+        ))}
       </div>
+
+      {/* Sub-tabs */}
+      {(() => {
+        const group = TAB_GROUPS.find((g) => g.id === activeCategory)!;
+        return group.tabs.length > 1 ? (
+          <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
+            {group.tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-shrink-0 py-1.5 px-3 rounded-lg font-semibold text-[11px] transition-all flex items-center gap-1 ${
+                  activeTab === tab.id
+                    ? "bg-primary/15 text-primary border border-primary/30"
+                    : "text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+        ) : null;
+      })()}
 
       {activeTab === "syncgap" ? (
         user ? <SyncGapDashboard userId={user.id} /> : null
