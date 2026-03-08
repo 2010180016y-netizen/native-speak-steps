@@ -3,10 +3,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare } from "lucide-react";
+import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield } from "lucide-react";
 import { toast } from "sonner";
 import DialogueRolePlay, { type DialogueLine } from "@/components/dialogue/DialogueRolePlay";
 import AnalysisDashboard, { type TextAnalysis } from "@/components/analysis/AnalysisDashboard";
+import { analyzeTextContent, maskSensitiveData, splitIntoChunks } from "@/lib/textProcessor";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese",
@@ -25,7 +26,7 @@ const ImportPage = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [generatingCards, setGeneratingCards] = useState(false);
   const [cardsSaved, setCardsSaved] = useState(false);
-  const [result, setResult] = useState<{ wordCount: number; uniqueWords: number } | null>(null);
+  const [result, setResult] = useState<{ wordCount: number; uniqueWords: number; speakers: string[] } | null>(null);
   const [generatedCards, setGeneratedCards] = useState<GeneratedCard[]>([]);
   const [detailedAnalysis, setDetailedAnalysis] = useState<TextAnalysis | null>(null);
   const [analyzingDetail, setAnalyzingDetail] = useState(false);
@@ -35,12 +36,6 @@ const ImportPage = () => {
   const [dialogueSpeakers, setDialogueSpeakers] = useState<string[]>([]);
   const [dialogueLines, setDialogueLines] = useState<DialogueLine[]>([]);
   const [showRolePlay, setShowRolePlay] = useState(false);
-
-  const analyzeText = (content: string) => {
-    const words = content.trim().split(/\s+/).filter(Boolean);
-    const unique = new Set(words);
-    return { wordCount: words.length, uniqueWords: unique.size };
-  };
 
   const handleAnalyze = async () => {
     if (!text.trim() || !user || !profile) return;
@@ -52,14 +47,19 @@ const ImportPage = () => {
     setDetailedAnalysis(null);
 
     try {
-      const analysis = analyzeText(text);
-      setResult(analysis);
+      // Use the new text processor for accurate analysis
+      const analysis = analyzeTextContent(text);
+      setResult({
+        wordCount: analysis.wordCount,
+        uniqueWords: analysis.uniqueWords,
+        speakers: analysis.speakers,
+      });
 
-      // Save import
+      // Save import with masked text for privacy
       const { error } = await supabase.from("language_imports").insert({
         user_id: user.id,
         source_type: "text",
-        content: text.slice(0, 5000),
+        content: analysis.maskedText, // Store masked version
         word_count: analysis.wordCount,
         unique_words: analysis.uniqueWords,
       });
@@ -67,13 +67,22 @@ const ImportPage = () => {
 
       toast.success(`${analysis.wordCount}개 단어 분석 완료! 🎉`);
 
-      // Start detailed AI analysis in parallel with card generation
+      // For large texts, split into chunks and analyze
+      const chunks = splitIntoChunks(analysis.maskedText, 10000);
+      const textToAnalyze = chunks.length > 1 
+        ? `[총 ${chunks.length}개 청크 중 대표 분석]\n${chunks[0]}`
+        : analysis.maskedText;
+
+      // Start detailed AI analysis
       setAnalyzingDetail(true);
       const detailPromise = supabase.functions.invoke("analyze-text", {
         body: {
-          text: text.slice(0, 5000),
+          text: textToAnalyze,
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
           targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
+          totalWordCount: analysis.wordCount,
+          totalUniqueWords: analysis.uniqueWords,
+          speakerNames: analysis.speakers, // Pass speaker names to exclude
         },
       }).then(({ data, error: err }) => {
         if (!err && data) {
@@ -88,11 +97,11 @@ const ImportPage = () => {
         setAnalyzingDetail(false);
       }).catch(() => setAnalyzingDetail(false));
 
-      // Generate SRS cards via AI
+      // Generate SRS cards via AI (use cleaned text)
       setGeneratingCards(true);
       const { data, error: fnError } = await supabase.functions.invoke("generate-cards", {
         body: {
-          text: text.slice(0, 3000),
+          text: analysis.cleanedText.slice(0, 5000), // Use cleaned text
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
           targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
           level: profile.current_level,
@@ -122,9 +131,12 @@ const ImportPage = () => {
     setSplittingDialogue(true);
 
     try {
+      // Mask sensitive data before sending
+      const maskedText = maskSensitiveData(text);
+      
       const { data, error } = await supabase.functions.invoke("split-dialogue", {
         body: {
-          text: text.slice(0, 5000),
+          text: maskedText.slice(0, 8000), // Increased limit
           nativeLanguage: profile.native_language,
           targetLanguage: profile.target_language,
         },
@@ -273,6 +285,12 @@ const ImportPage = () => {
           className="w-full h-48 px-4 py-3 rounded-2xl border-2 border-border bg-card text-foreground font-semibold resize-none focus:border-primary focus:outline-none transition-colors"
         />
 
+        {/* Privacy notice */}
+        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+          <Shield size={14} className="text-primary" />
+          <span>전화번호, 이메일 등 민감한 정보는 자동으로 마스킹됩니다</span>
+        </div>
+
         <div className="flex gap-3 mt-4">
           <label className="flex-1 duo-card flex items-center justify-center gap-2 p-3 cursor-pointer hover:scale-[1.01] transition-transform">
             <FileText size={18} className="text-muted-foreground" />
@@ -308,6 +326,26 @@ const ImportPage = () => {
           </button>
         </div>
       </motion.div>
+
+      {/* Detected speakers */}
+      {result && result.speakers.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="mt-4 p-3 rounded-xl bg-muted/50 border border-border"
+        >
+          <p className="text-xs font-bold text-muted-foreground mb-1">
+            감지된 화자 (단어 수에서 제외됨)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {result.speakers.map((speaker, i) => (
+              <span key={i} className="text-xs font-semibold bg-primary/10 text-primary px-2 py-1 rounded-full">
+                {speaker}
+              </span>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Detailed Analysis Dashboard */}
       {analyzingDetail && !detailedAnalysis && (
