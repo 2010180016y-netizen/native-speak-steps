@@ -50,6 +50,60 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_feedback_results: {
+        Row: {
+          avg_words_per_message: number
+          created_at: string
+          feedback_data: Json
+          good_expressions_count: number
+          id: string
+          improvement_areas_count: number
+          overall_score: number
+          persona_gender: string | null
+          persona_occupation: string | null
+          scenario_label: string | null
+          session_id: string
+          total_user_messages: number
+          total_user_words: number
+          user_id: string
+          vocabulary_richness: number
+        }
+        Insert: {
+          avg_words_per_message?: number
+          created_at?: string
+          feedback_data?: Json
+          good_expressions_count?: number
+          id?: string
+          improvement_areas_count?: number
+          overall_score?: number
+          persona_gender?: string | null
+          persona_occupation?: string | null
+          scenario_label?: string | null
+          session_id: string
+          total_user_messages?: number
+          total_user_words?: number
+          user_id: string
+          vocabulary_richness?: number
+        }
+        Update: {
+          avg_words_per_message?: number
+          created_at?: string
+          feedback_data?: Json
+          good_expressions_count?: number
+          id?: string
+          improvement_areas_count?: number
+          overall_score?: number
+          persona_gender?: string | null
+          persona_occupation?: string | null
+          scenario_label?: string | null
+          session_id?: string
+          total_user_messages?: number
+          total_user_words?: number
+          user_id?: string
+          vocabulary_richness?: number
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
