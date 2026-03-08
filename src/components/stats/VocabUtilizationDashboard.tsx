@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { motion } from "framer-motion";
-import { BookCheck, AlertCircle, CheckCircle2, RefreshCw, TrendingUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { BookCheck, AlertCircle, CheckCircle2, RefreshCw, TrendingUp, Sparkles, Loader2, X } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "sonner";
 
@@ -51,6 +51,36 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
   const [cards, setCards] = useState<SrsCard[]>([]);
   const [userMessages, setUserMessages] = useState<string[]>([]);
   const [showAllUnused, setShowAllUnused] = useState(false);
+  const [selectedWord, setSelectedWord] = useState<UnusedWord | null>(null);
+  const [exampleLoading, setExampleLoading] = useState(false);
+  const [examples, setExamples] = useState<string>("");
+
+  const generateExamples = async (word: UnusedWord) => {
+    if (selectedWord?.target_text === word.target_text && examples) {
+      setSelectedWord(null);
+      setExamples("");
+      return;
+    }
+    setSelectedWord(word);
+    setExamples("");
+    setExampleLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-examples", {
+        body: { target_text: word.target_text, native_text: word.native_text },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      setExamples(data?.examples || "예문을 생성하지 못했습니다.");
+    } catch (err) {
+      console.error("Example generation failed:", err);
+      toast.error("예문 생성에 실패했습니다");
+    } finally {
+      setExampleLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -313,18 +343,58 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
           <p className="text-xs text-muted-foreground font-semibold mb-3">
             다음 대화에서 이 단어들을 사용해보세요!
           </p>
-          <div className="space-y-2">
+           <div className="space-y-2">
             {displayedUnused.map((w, i) => (
-              <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/30">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-foreground">{w.target_text}</span>
-                    {w.mastered && (
-                      <span className="text-[9px] font-bold text-duo-blue bg-duo-blue/10 px-1.5 py-0.5 rounded-full">숙달</span>
-                    )}
+              <div key={i}>
+                <button
+                  onClick={() => generateExamples(w)}
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition-colors text-left ${
+                    selectedWord?.target_text === w.target_text ? "bg-primary/10 ring-1 ring-primary/30" : "bg-muted/30 hover:bg-muted/50"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-foreground">{w.target_text}</span>
+                      {w.mastered && (
+                        <span className="text-[9px] font-bold text-duo-blue bg-duo-blue/10 px-1.5 py-0.5 rounded-full">숙달</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-semibold">{w.native_text}</p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground font-semibold">{w.native_text}</p>
-                </div>
+                  <Sparkles size={14} className="text-primary flex-shrink-0" />
+                </button>
+                <AnimatePresence>
+                  {selectedWord?.target_text === w.target_text && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-3 mt-1 rounded-xl bg-primary/5 border border-primary/20">
+                        {exampleLoading ? (
+                          <div className="flex items-center gap-2 justify-center py-3">
+                            <Loader2 size={16} className="animate-spin text-primary" />
+                            <span className="text-xs font-semibold text-muted-foreground">예문 생성 중...</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] font-bold text-primary">✨ AI 예문</span>
+                              <button onClick={() => { setSelectedWord(null); setExamples(""); }} className="p-0.5">
+                                <X size={12} className="text-muted-foreground" />
+                              </button>
+                            </div>
+                            <p className="text-xs text-foreground font-medium whitespace-pre-line leading-relaxed">
+                              {examples}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ))}
           </div>
