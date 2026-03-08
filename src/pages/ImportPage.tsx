@@ -432,6 +432,9 @@ const ImportPage = () => {
                   handleGenerateCardsForUnknown(unknownWords);
                 }
               }}
+              onAllLearningComplete={() => {
+                toast.success("🎉 오늘의 학습 완료! 카드를 저장하세요.", { duration: 5000 });
+              }}
               generatingCards={generatingCards}
             />
           )}
