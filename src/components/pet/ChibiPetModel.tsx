@@ -439,54 +439,35 @@ export default function ChibiPetModel({
       g.rotation.y += diff * delta * 5;
     }
 
-    // === Animations by action ===
+    // === Animations by action (eyes handled by ChibiEyes component) ===
     if (feeding) {
-      // Happy bouncing
       g.position.y = Math.abs(Math.sin(t * 8)) * 0.3;
       if (headRef.current) headRef.current.rotation.z = Math.sin(t * 6) * 0.15;
       if (tailRef.current) tailRef.current.rotation.x = Math.sin(t * 12) * 0.5;
     } else if (action === "sleeping") {
       g.position.y = 0;
-      // Gentle breathing
       if (bodyRef.current) bodyRef.current.scale.y = 1 + Math.sin(t * 1.5) * 0.03;
       if (headRef.current) {
-        headRef.current.rotation.z = 0.15; // tilted
+        headRef.current.rotation.z = 0.15;
         headRef.current.position.y = 0.42 + Math.sin(t * 1.5) * 0.01;
       }
-      // Closed eyes (squished)
-      if (eyeLRef.current) eyeLRef.current.scale.y = 0.1;
-      if (eyeRRef.current) eyeRRef.current.scale.y = 0.1;
     } else if (action === "walking") {
-      // Bobbing walk
       g.position.y = Math.abs(Math.sin(t * 5)) * 0.08;
       if (headRef.current) headRef.current.rotation.z = Math.sin(t * 5) * 0.06;
-      // Leg animation
       if (legLRef.current) legLRef.current.position.y = -0.18 + Math.sin(t * 10) * 0.04;
       if (legRRef.current) legRRef.current.position.y = -0.18 + Math.sin(t * 10 + Math.PI) * 0.04;
       if (legBLRef.current) legBLRef.current.position.y = -0.18 + Math.sin(t * 10 + Math.PI) * 0.04;
       if (legBRRef.current) legBRRef.current.position.y = -0.18 + Math.sin(t * 10) * 0.04;
       if (tailRef.current) tailRef.current.rotation.z = Math.sin(t * 8) * 0.4;
-      // Open eyes
-      if (eyeLRef.current) eyeLRef.current.scale.y = 1;
-      if (eyeRRef.current) eyeRRef.current.scale.y = 1;
     } else if (action === "playing") {
-      // Excited bouncing
       g.position.y = Math.abs(Math.sin(t * 7)) * 0.2;
       if (headRef.current) headRef.current.rotation.z = Math.sin(t * 4) * 0.2;
       if (tailRef.current) tailRef.current.rotation.z = Math.sin(t * 14) * 0.6;
-      if (eyeLRef.current) eyeLRef.current.scale.y = 1;
-      if (eyeRRef.current) eyeRRef.current.scale.y = 1;
     } else if (action === "eating") {
       g.position.y = 0;
-      // Head bobbing down
-      if (headRef.current) {
-        headRef.current.rotation.x = Math.sin(t * 6) * 0.15 - 0.1;
-      }
+      if (headRef.current) headRef.current.rotation.x = Math.sin(t * 6) * 0.15 - 0.1;
       if (tailRef.current) tailRef.current.rotation.z = Math.sin(t * 5) * 0.3;
-      if (eyeLRef.current) eyeLRef.current.scale.y = 0.7;
-      if (eyeRRef.current) eyeRRef.current.scale.y = 0.7;
     } else {
-      // Idle
       g.position.y = Math.sin(t * 2) * 0.04;
       if (headRef.current) {
         headRef.current.rotation.z = Math.sin(t * 1.5) * 0.04;
@@ -495,10 +476,6 @@ export default function ChibiPetModel({
       }
       if (bodyRef.current) bodyRef.current.scale.y = 1 + Math.sin(t * 2) * 0.02;
       if (tailRef.current) tailRef.current.rotation.z = Math.sin(t * 3) * 0.2;
-      // Occasional blink
-      const blink = Math.sin(t * 0.5) > 0.98;
-      if (eyeLRef.current) eyeLRef.current.scale.y = blink ? 0.1 : 1;
-      if (eyeRRef.current) eyeRRef.current.scale.y = blink ? 0.1 : 1;
     }
 
     g.scale.setScalar(scale);
