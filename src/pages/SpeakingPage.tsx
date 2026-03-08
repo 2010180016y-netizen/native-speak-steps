@@ -111,6 +111,7 @@ const SpeakingPage = () => {
   const startScenario = useCallback(async (scenarioId: string) => {
     setScenario(scenarioId);
     setMessages([]);
+    setFeedback(null);
     setIsAiLoading(true);
 
     try {
@@ -138,6 +139,38 @@ const SpeakingPage = () => {
       setIsAiLoading(false);
     }
   }, [profile, autoSpeak, speak]);
+
+  const endConversation = useCallback(async () => {
+    if (messages.length < 2) {
+      toast.error("대화를 좀 더 진행한 후 피드백을 받아보세요");
+      return;
+    }
+    stopSpeaking();
+    setIsFeedbackLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("speaking-feedback", {
+        body: {
+          messages,
+          targetLanguage: profile?.target_language || "en",
+          nativeLanguage: profile?.native_language || "ko",
+          level: profile?.current_level || "beginner",
+        },
+      });
+
+      if (error) throw error;
+      if (data.feedback) {
+        setFeedback(data.feedback);
+      } else {
+        toast.error("피드백을 생성할 수 없어요");
+      }
+    } catch (e: any) {
+      console.error("Feedback error:", e);
+      toast.error(e?.message || "피드백 생성에 실패했어요");
+    } finally {
+      setIsFeedbackLoading(false);
+    }
+  }, [messages, profile, stopSpeaking]);
 
   const handleMicClick = () => {
     if (isSpeaking) stopSpeaking();
