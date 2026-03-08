@@ -122,6 +122,7 @@ export default function Pet3DScene({
   emotion,
   petAction,
   feeding,
+  expression,
   onTap,
 }: Pet3DSceneProps) {
   const activePet = pets.find((p) => p.isActive) || pets[0];
