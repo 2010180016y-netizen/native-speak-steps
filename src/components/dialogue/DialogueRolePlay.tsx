@@ -116,13 +116,18 @@ const DialogueRolePlay = ({ speakers, lines, targetLang, onClose, onLinesUpdate,
   };
 
   const handleSkip = () => {
-    setCompletedLines((prev) => new Set(prev).add(currentLine));
+    const newCompleted = new Set(completedLines).add(currentLine);
+    setCompletedLines(newCompleted);
     if (currentLine < lines.length - 1) {
       const next = currentLine + 1;
       setCurrentLine(next);
       if (myRole && lines[next]?.speaker !== myRole) {
         setTimeout(() => speak(lines[next].text), 300);
       }
+    } else {
+      // Last line skipped - practice complete
+      toast.success("대화 연습 완료! 🎉");
+      onComplete?.(newCompleted.size, lines.length);
     }
   };
 
