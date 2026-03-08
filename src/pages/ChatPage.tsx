@@ -3,13 +3,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, ThumbsUp, ThumbsDown, Clock, Flag, Target, CheckCircle2, History, Sparkles } from "lucide-react";
+import { Send, Loader2, ThumbsUp, ThumbsDown, Clock, Flag, Target, CheckCircle2, History, Sparkles, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import ChatSetup, { type Persona, type ChatScenario } from "@/components/chat/ChatSetup";
 import ChatFeedback from "@/components/chat/ChatFeedback";
 import { SCENARIO_STARTERS, SCENARIO_MISSIONS, DEFAULT_MISSIONS, type MiniMission } from "@/lib/chatScenarioData";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "한국어", en: "English", ja: "日本語", zh: "中文",
@@ -35,6 +37,12 @@ interface SavedSession {
   messages: Message[];
 }
 
+// Map language codes to BCP-47 for speech APIs
+const SPEECH_LANG_MAP: Record<string, string> = {
+  ko: "ko-KR", en: "en-US", ja: "ja-JP", zh: "zh-CN",
+  es: "es-ES", fr: "fr-FR", de: "de-DE", pt: "pt-BR",
+};
+
 const ChatPage = () => {
   const { user, profile } = useAuth();
   const [phase, setPhase] = useState<Phase>("setup");
@@ -46,7 +54,37 @@ const ChatPage = () => {
   const [scenario, setScenario] = useState<ChatScenario | null>(null);
   const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
   const [restoringSession, setRestoringSession] = useState(true);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const speechLang = SPEECH_LANG_MAP[profile?.target_language || "en"] || "en-US";
+  const { isListening, transcript, interimTranscript, isSupported: sttSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(speechLang);
+  const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(speechLang);
+
+  // When STT transcript is finalized, append to input
+  useEffect(() => {
+    if (transcript) {
+      setInput((prev) => (prev ? prev + " " + transcript : transcript));
+      resetTranscript();
+    }
+  }, [transcript, resetTranscript]);
+
+  const handleTTS = (text: string, index: number) => {
+    if (isSpeaking && playingIndex === index) {
+      stopSpeaking();
+      setPlayingIndex(null);
+    } else {
+      // Strip markdown for cleaner TTS
+      const clean = text.replace(/[*_~`#>\[\]()!]/g, "").replace(/\n+/g, " ").trim();
+      speak(clean);
+      setPlayingIndex(index);
+    }
+  };
+
+  // Reset playing index when speech ends
+  useEffect(() => {
+    if (!isSpeaking) setPlayingIndex(null);
+  }, [isSpeaking]);
 
   // Get missions for current scenario
   const missions: MiniMission[] = scenario
@@ -430,25 +468,39 @@ const ChatPage = () => {
                   )}
                 </div>
 
-                {msg.role === "assistant" && msg.feedbackId && (
+                {msg.role === "assistant" && (
                   <div className="flex items-center gap-2 mt-1 px-1">
+                    {/* TTS button */}
+                    <button
+                      onClick={() => handleTTS(msg.content, i)}
+                      className={`p-1 rounded-md transition-colors ${
+                        isSpeaking && playingIndex === i ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="음성으로 듣기"
+                    >
+                      {isSpeaking && playingIndex === i ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                    </button>
                     {msg.responseTimeMs != null && (
                       <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground font-semibold">
                         <Clock size={10} />{(msg.responseTimeMs / 1000).toFixed(1)}s
                       </span>
                     )}
-                    <button
-                      onClick={() => handleRating(i, 1)}
-                      className={`p-1 rounded-md transition-colors ${
-                        msg.rating === 1 ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    ><ThumbsUp size={12} /></button>
-                    <button
-                      onClick={() => handleRating(i, -1)}
-                      className={`p-1 rounded-md transition-colors ${
-                        msg.rating === -1 ? "bg-destructive/20 text-destructive" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    ><ThumbsDown size={12} /></button>
+                    {msg.feedbackId && (
+                      <>
+                        <button
+                          onClick={() => handleRating(i, 1)}
+                          className={`p-1 rounded-md transition-colors ${
+                            msg.rating === 1 ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        ><ThumbsUp size={12} /></button>
+                        <button
+                          onClick={() => handleRating(i, -1)}
+                          className={`p-1 rounded-md transition-colors ${
+                            msg.rating === -1 ? "bg-destructive/20 text-destructive" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        ><ThumbsDown size={12} /></button>
+                      </>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -466,12 +518,31 @@ const ChatPage = () => {
 
           {/* Input bar */}
           <div className="fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-3">
+            {/* Interim transcript indicator */}
+            {isListening && interimTranscript && (
+              <div className="max-w-lg mx-auto mb-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-xs font-semibold text-primary truncate">
+                🎤 {interimTranscript}
+              </div>
+            )}
             <div className="max-w-lg mx-auto flex gap-2">
+              {sttSupported && (
+                <button
+                  onClick={isListening ? stopListening : startListening}
+                  className={`flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
+                    isListening
+                      ? "bg-destructive text-destructive-foreground animate-pulse"
+                      : "bg-card border-2 border-border text-muted-foreground hover:text-foreground hover:border-primary"
+                  }`}
+                  title={isListening ? "음성 입력 중지" : "음성으로 입력"}
+                >
+                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                </button>
+              )}
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-                placeholder="메시지를 입력하세요..."
+                placeholder={isListening ? "듣고 있어요..." : "메시지를 입력하세요..."}
                 className="flex-1 px-4 py-3 rounded-2xl border-2 border-border bg-card text-foreground font-semibold focus:border-primary focus:outline-none transition-colors"
               />
               <button
