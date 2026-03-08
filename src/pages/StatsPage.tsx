@@ -18,6 +18,7 @@ import SyncGapDashboard from "@/components/stats/SyncGapDashboard";
 import SrsHealthDashboard from "@/components/stats/SrsHealthDashboard";
 import VocabUtilizationDashboard from "@/components/stats/VocabUtilizationDashboard";
 import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
+import SpeakingScoreDashboard from "@/components/stats/SpeakingScoreDashboard";
 
 type DailyData = {
   date: string;
