@@ -29,7 +29,7 @@ type LearnedItem = {
 
 const QUANTITY_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 
-const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete }: Props) => {
+const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onUnknownWordsReady, generatingCards }: Props) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"words" | "structures">("words");
   
