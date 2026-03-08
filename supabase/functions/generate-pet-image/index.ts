@@ -9,13 +9,13 @@ const corsHeaders = {
 const IMAGE_MILESTONES = [1, 5, 10, 15, 20, 25, 30];
 
 const STAGE_DESCRIPTIONS: Record<number, string> = {
-  1: "a tiny adorable baby",
-  5: "a playful young",
-  10: "a growing energetic",
-  15: "a strong healthy teenager",
-  20: "a majestic adult",
-  25: "a wise experienced",
-  30: "a legendary glowing mythical",
+  1: "a tiny adorable baby puppy/kitten, very small and round, with big innocent eyes",
+  5: "a playful young puppy/kitten, slightly bigger, curious and energetic",
+  10: "a growing juvenile, more defined features, athletic and alert",
+  15: "a healthy teenager, strong build, confident posture",
+  20: "a majestic fully grown adult, beautiful coat, proud stance",
+  25: "a wise and distinguished senior, calm and elegant demeanor",
+  30: "a legendary champion, glowing aura, perfect form, mythical presence",
 };
 
 serve(async (req) => {
@@ -64,7 +64,7 @@ serve(async (req) => {
     const speciesName = species === "cat" ? "cat" : "dog";
     const breedHint = petName ? ` named ${petName}` : "";
 
-    const prompt = `Generate a cute kawaii-style illustration of ${stageDesc} ${speciesName}${breedHint}. The ${speciesName} should look happy and lovable. Studio Ghibli inspired, soft pastel colors, white clean background, centered composition, digital art style. Level ${milestoneLevel} pet evolution stage.`;
+    const prompt = `A realistic high-quality photograph of ${stageDesc.replace("puppy/kitten", speciesName === "cat" ? "kitten" : "puppy")}${breedHint}. The ${speciesName} is looking at the camera with a happy expression, sitting in a cozy home environment. Professional pet photography style, soft natural lighting, shallow depth of field, warm tones. Clean simple background. The ${speciesName} should look realistic and lifelike, not cartoon or illustration. Growth stage level ${milestoneLevel} of 30.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
