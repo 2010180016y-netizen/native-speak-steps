@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserPet, PetItem, UserPoints } from "@/hooks/usePet";
-import Pet3DRoom from "./Pet3DRoom";
+import Pet3DScene from "./Pet3DScene";
 
 type Props = {
   activePet: UserPet | null;
