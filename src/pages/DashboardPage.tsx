@@ -13,6 +13,7 @@ import PersonalizedRecommendations from "@/components/dashboard/PersonalizedReco
 import { useReminder } from "@/hooks/useReminder";
 import WeeklyReportWidget from "@/components/dashboard/WeeklyReportWidget";
 import GoalProgressWidget from "@/components/dashboard/GoalProgressWidget";
+import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
 
 const LANGUAGES = [
   { code: "ko", label: "한국어", flag: "🇰🇷" },
@@ -317,6 +318,13 @@ const DashboardPage = () => {
             desc="일별/주별 학습량과 동기화율 차트"
           />
         </motion.div>
+
+        {/* Vocab Growth Map */}
+        {user && (
+          <motion.div variants={item}>
+            <VocabGrowthMap userId={user.id} />
+          </motion.div>
+        )}
 
         {/* Personalized Recommendations */}
         <motion.div variants={item}>
