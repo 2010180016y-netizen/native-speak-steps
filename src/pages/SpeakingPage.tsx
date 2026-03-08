@@ -42,6 +42,22 @@ const LANG_MAP: Record<string, string> = {
   es: "es-ES", fr: "fr-FR", de: "de-DE",
 };
 
+const RANDOM_NAMES: Record<string, { male: string[]; female: string[] }> = {
+  en: { male: ["James", "Oliver", "Ethan", "Liam", "Noah", "Lucas", "Mason", "Logan"], female: ["Emma", "Sophia", "Olivia", "Ava", "Mia", "Isabella", "Charlotte", "Amelia"] },
+  ja: { male: ["太郎", "健太", "翔太", "大輝", "蓮", "悠真", "陽斗", "颯太"], female: ["花子", "美咲", "さくら", "結衣", "陽菜", "凛", "楓", "芽依"] },
+  zh: { male: ["伟明", "浩然", "子轩", "明辉", "志强", "建国", "天宇", "俊杰"], female: ["美玲", "小红", "雨萱", "紫涵", "欣怡", "思琪", "语嫣", "梦洁"] },
+  ko: { male: ["민준", "서준", "예준", "도윤", "시우", "주원", "하준", "지호"], female: ["서연", "서윤", "지우", "하은", "하윤", "민서", "지유", "채원"] },
+  es: { male: ["Carlos", "Miguel", "Diego", "Alejandro", "Pablo", "Javier", "Luis", "Mateo"], female: ["María", "Sofía", "Valentina", "Lucía", "Isabella", "Camila", "Elena", "Paula"] },
+  fr: { male: ["Lucas", "Hugo", "Louis", "Gabriel", "Raphaël", "Arthur", "Léo", "Jules"], female: ["Emma", "Jade", "Louise", "Alice", "Chloé", "Léa", "Manon", "Inès"] },
+  de: { male: ["Felix", "Leon", "Paul", "Lukas", "Maximilian", "Elias", "Noah", "Ben"], female: ["Emma", "Mia", "Hannah", "Sophia", "Lina", "Emilia", "Ella", "Marie"] },
+};
+
+const getRandomName = (lang: string, gender: "male" | "female") => {
+  const names = RANDOM_NAMES[lang] || RANDOM_NAMES.en;
+  const list = names[gender];
+  return list[Math.floor(Math.random() * list.length)];
+};
+
 const SpeakingPage = () => {
   const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>("setup");
@@ -58,6 +74,7 @@ const SpeakingPage = () => {
   // Persona & scenario
   const [persona, setPersona] = useState<Persona | null>(null);
   const [scenario, setScenario] = useState<ChatScenario | null>(null);
+  const [callerName, setCallerName] = useState<string>("");
 
   // Setup step
   const [setupStep, setSetupStep] = useState<1 | 2>(1);
@@ -170,6 +187,8 @@ const SpeakingPage = () => {
     if (!gender || !occupation || !personality) return;
     const p: Persona = { gender: gender!, occupation: occupation!, personality: personality! };
     setPersona(p);
+    const name = getRandomName(profile?.target_language || "en", gender);
+    setCallerName(name);
     setPhase("incoming");
     // Auto-timeout: if user doesn't answer in 15s, go back
     setTimeout(() => {
@@ -259,6 +278,7 @@ const SpeakingPage = () => {
     setFeedback(null);
     setPersona(null);
     setScenario(null);
+    setCallerName("");
     stopSpeaking();
   };
 
@@ -384,7 +404,7 @@ const SpeakingPage = () => {
       <AppLayout>
         <div className="flex flex-col items-center justify-center min-h-[70vh] relative">
           {/* Pulse rings */}
-          <div className="relative mb-8">
+          <div className="relative mb-6">
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
@@ -403,22 +423,36 @@ const SpeakingPage = () => {
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-2">
-            <p className="text-lg font-extrabold text-foreground">{persona?.occupation}</p>
-            <p className="text-sm font-semibold text-muted-foreground">{persona?.personality}</p>
+          {/* Contact Card */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="duo-card w-full max-w-[280px] p-4 mb-4"
+          >
+            <div className="text-center">
+              <p className="text-xl font-extrabold text-foreground mb-0.5">{callerName}</p>
+              <p className="text-sm font-bold text-primary">{persona?.occupation}</p>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <span className="px-2 py-0.5 bg-muted rounded-full text-[10px] font-bold text-muted-foreground">
+                  {persona?.personality}
+                </span>
+              </div>
+            </div>
+            <div className="border-t border-border mt-3 pt-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-semibold">상황</span>
+                <span className="font-bold text-foreground">{scenario?.emoji} {scenario?.label}</span>
+              </div>
+            </div>
           </motion.div>
 
           <motion.p
             animate={{ opacity: [1, 0.4, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
-            className="text-sm font-bold text-primary mb-8"
+            className="text-sm font-bold text-primary mb-6"
           >
             📞 전화가 오고 있어요...
           </motion.p>
-
-          <p className="text-xs text-muted-foreground font-semibold mb-4">
-            {scenario?.emoji} {scenario?.label}
-          </p>
 
           <div className="flex items-center gap-6">
             {/* Decline */}
@@ -465,16 +499,17 @@ const SpeakingPage = () => {
             <ArrowLeft size={20} className="text-muted-foreground" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
-              <span className="text-sm">{persona?.gender === "male" ? "👨" : "👩"}</span>
+            <div className="w-10 h-10 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
+              <span className="text-lg">{persona?.gender === "male" ? "👨" : "👩"}</span>
             </div>
             <div>
-              <h2 className="font-extrabold text-foreground text-sm">
+              <h2 className="font-extrabold text-foreground text-sm">{callerName}</h2>
+              <p className="text-[11px] text-muted-foreground font-semibold">
                 {persona?.occupation} · {scenario?.emoji} {scenario?.label}
-              </h2>
+              </p>
               <div className="flex items-center gap-1.5">
                 <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-[11px] font-bold text-primary">{formatDuration(callDuration)}</span>
+                <span className="text-[10px] font-bold text-primary">{formatDuration(callDuration)}</span>
               </div>
             </div>
           </div>
