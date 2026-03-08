@@ -162,7 +162,7 @@ const PetWardrobe = ({ activePet, loading }: Props) => {
               action="idle"
               position={[0, 0, 0]}
               targetPosition={[0, 0, 0]}
-              scale={1}
+              scale={0.012}
               species={activePet.pet_type?.species || "dog"}
               feeding={false}
             />
