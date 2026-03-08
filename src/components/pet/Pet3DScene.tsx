@@ -149,7 +149,7 @@ export default function Pet3DScene({
   onTap,
 }: Pet3DSceneProps) {
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
-  const petScale = Math.min(0.8 + (petLevel - 1) * 0.04, 1.8);
+  const petScale = Math.min(0.01 + (petLevel - 1) * 0.0005, 0.018);
 
   // Wander logic
   useEffect(() => {
