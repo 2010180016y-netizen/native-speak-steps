@@ -123,6 +123,32 @@ const SpeakingPage = () => {
     return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   };
 
+  const saveMessageToDB = useCallback(async (role: string, content: string) => {
+    if (!user) return;
+    await supabase.from("chat_messages").insert({
+      user_id: user.id, role, content, session_id: speakingSessionId,
+    }).throwOnError().catch(() => {});
+  }, [user, speakingSessionId]);
+
+  const saveCorrectionCards = useCallback(async (corrections: Correction[]) => {
+    if (!user || corrections.length === 0) return;
+    const cardsToInsert = corrections.map((c) => ({
+      user_id: user.id,
+      native_text: `${c.wrong} → ${c.correct}`,
+      target_text: c.correct,
+      context: `📞 스피킹 교정: ${c.explanation || ""}\n원문: ${c.wrong}`,
+      difficulty: 1,
+      ease_factor: 2.5,
+      interval_days: 1,
+      review_count: 0,
+      next_review_at: new Date().toISOString(),
+    }));
+    const { error } = await supabase.from("srs_cards").insert(cardsToInsert);
+    if (!error) {
+      toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
+    }
+  }, [user]);
+
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isAiLoading) return;
     const userMsg: Message = { role: "user", content: text };
@@ -130,10 +156,13 @@ const SpeakingPage = () => {
     setMessages(newMessages);
     setIsAiLoading(true);
 
+    // Save user message to DB
+    saveMessageToDB("user", text);
+
     try {
       const { data, error } = await supabase.functions.invoke("speaking", {
         body: {
-          messages: newMessages,
+          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           targetLanguage: profile?.target_language || "en",
           nativeLanguage: profile?.native_language || "ko",
           level: profile?.current_level || "beginner",
@@ -143,8 +172,18 @@ const SpeakingPage = () => {
         },
       });
       if (error) throw error;
-      const aiMsg: Message = { role: "assistant", content: data.content };
+      const corrections: Correction[] = data.corrections || [];
+      const aiMsg: Message = { role: "assistant", content: data.content, corrections };
       setMessages((prev) => [...prev, aiMsg]);
+
+      // Save assistant message to DB
+      saveMessageToDB("assistant", data.content);
+
+      // Auto-save corrections as SRS cards
+      if (corrections.length > 0) {
+        saveCorrectionCards(corrections);
+      }
+
       if (autoSpeak && data.content) {
         setTimeout(() => speak(data.content), 300);
       }
@@ -154,7 +193,7 @@ const SpeakingPage = () => {
     } finally {
       setIsAiLoading(false);
     }
-  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading]);
+  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName]);
 
   const startCall = useCallback(async () => {
     setPhase("call");
