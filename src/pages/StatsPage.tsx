@@ -31,7 +31,7 @@ type DailyData = {
 const StatsPage = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [activeTab, setActiveTab] = useState<"learning" | "syncgap" | "srshealth" | "vocabutil" | "activity" | "time" | "performance" | "chat">("learning");
+  const [activeTab, setActiveTab] = useState<"learning" | "syncgap" | "srshealth" | "vocabutil" | "growthmap" | "activity" | "time" | "performance" | "chat">("learning");
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
 
