@@ -11,17 +11,21 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, targetLanguage, nativeLanguage, level, scenario } = await req.json();
+    const { messages, targetLanguage, nativeLanguage, level, scenario, persona } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const scenarioPrompts: Record<string, string> = {
-      cafe: `You are a friendly barista at a café. The user is ordering coffee/food. Act naturally as a barista would. Start by greeting them and asking what they'd like to order.`,
-      hotel: `You are a hotel receptionist. The user is checking in. Act naturally, ask for their reservation, help with room selection, etc.`,
-      shopping: `You are a shop assistant at a clothing store. Help the user find what they're looking for, suggest sizes, colors, etc.`,
-      restaurant: `You are a waiter/waitress at a restaurant. Take the user's order, recommend dishes, and be attentive.`,
-      airport: `You are an airline check-in agent. Help the user check in for their flight, handle luggage, seat selection, etc.`,
-      free: `You are a friendly conversation partner. Have a natural, everyday conversation about any topic the user brings up.`,
+      cafe: `The caller is calling a café to place a takeout order or ask about the menu.`,
+      restaurant: `The caller is calling a restaurant to make a reservation or ask about available tables.`,
+      business_meeting: `The caller is calling about a business matter — scheduling a meeting, discussing a project, etc.`,
+      job_interview: `The caller is a recruiter calling to conduct a phone interview for a job position.`,
+      blind_date: `The caller is someone the user was introduced to, calling to chat and get to know each other.`,
+      airport: `The caller is an airline agent calling about a flight change, booking confirmation, or gate info.`,
+      hotel: `The caller is calling from a hotel to confirm a reservation or discuss check-in details.`,
+      shopping: `The caller is a shop assistant calling to let the user know their order is ready or to follow up.`,
+      phone_call: `The caller is making a general phone call — could be scheduling, inquiring, or catching up.`,
+      free: `The caller is a friend or acquaintance calling for a casual chat about anything.`,
     };
 
     const levelGuide: Record<string, string> = {
@@ -31,19 +35,30 @@ serve(async (req) => {
       advanced: "Use sophisticated language with idioms, slang, and complex structures naturally.",
     };
 
-    const systemPrompt = `You are a speaking practice partner for language learners. The user speaks ${nativeLanguage} and is practicing ${targetLanguage} at the ${level} level.
+    // Build persona description
+    let personaDesc = "";
+    if (persona) {
+      const genderLabel = persona.gender === "male" ? "male" : "female";
+      personaDesc = `You are a ${genderLabel} ${persona.occupation}. Your personality is: ${persona.personality}. Stay true to this character throughout the call.`;
+    }
 
-Scenario: ${scenarioPrompts[scenario] || scenarioPrompts.free}
+    const systemPrompt = `You are making a PHONE CALL to a language learner. The user speaks ${nativeLanguage} and is practicing ${targetLanguage} at the ${level} level.
+
+${personaDesc ? personaDesc + "\n" : ""}Scenario: ${scenarioPrompts[scenario] || scenarioPrompts.free}
+
+This is a phone call scenario. You are the one who CALLED the user. The conversation should feel like a real phone call.
 
 Rules:
 - Respond ONLY in ${targetLanguage}
 - ${levelGuide[level] || levelGuide.beginner}
-- Keep responses short and conversational (1-3 sentences max) — this is spoken dialogue, not written
+- Keep responses short and conversational (1-3 sentences max) — this is a phone conversation
+- Start with a natural phone greeting like "Hello? Is this...?" or similar
 - If the user makes mistakes, briefly correct them naturally then continue the conversation
-- Stay in character for the scenario
+- Stay in character for the scenario and persona
 - Be warm, encouraging, and natural
-- Do NOT use markdown formatting — speak naturally as in a real conversation
-- Add a brief ${nativeLanguage} translation in parentheses for key phrases at beginner/elementary levels`;
+- Do NOT use markdown formatting — speak naturally as in a real phone call
+- Add a brief ${nativeLanguage} translation in parentheses for key phrases at beginner/elementary levels
+- Include natural phone conversation elements: pauses, "uh-huh", confirmations, etc.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
