@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
-import { motion } from "framer-motion";
-import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3, PawPrint, Trophy } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3, PawPrint, Trophy, ChevronDown, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { checkAndAwardMilestone } from "@/lib/milestones";
 import { toast } from "sonner";
@@ -14,16 +14,54 @@ import { useReminder } from "@/hooks/useReminder";
 import WeeklyReportWidget from "@/components/dashboard/WeeklyReportWidget";
 import GoalProgressWidget from "@/components/dashboard/GoalProgressWidget";
 
+const LANGUAGES = [
+  { code: "ko", label: "한국어", flag: "🇰🇷" },
+  { code: "en", label: "English", flag: "🇺🇸" },
+  { code: "ja", label: "日本語", flag: "🇯🇵" },
+  { code: "zh", label: "中文", flag: "🇨🇳" },
+  { code: "es", label: "Español", flag: "🇪🇸" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
+  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "pt", label: "Português", flag: "🇧🇷" },
+];
+
 const LANG_NAMES: Record<string, string> = {
   ko: "한국어", en: "English", ja: "日本語", zh: "中文",
   es: "Español", fr: "Français", de: "Deutsch", pt: "Português",
 };
 
 const DashboardPage = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, updateProfile } = useAuth();
   const navigate = useNavigate();
   useReminder();
   const [stats, setStats] = useState({ nativeWords: 0, targetWords: 0, cardsToReview: 0, streak: 0 });
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [langPickerType, setLangPickerType] = useState<"native" | "target">("native");
+
+  const handleLanguageChange = async (code: string) => {
+    if (!profile) return;
+    const updates = langPickerType === "native"
+      ? { native_language: code }
+      : { target_language: code };
+    
+    // Don't allow same language for both
+    if (langPickerType === "native" && code === profile.target_language) {
+      toast.error("모국어와 학습 언어는 다르게 설정해야 합니다");
+      return;
+    }
+    if (langPickerType === "target" && code === profile.native_language) {
+      toast.error("모국어와 학습 언어는 다르게 설정해야 합니다");
+      return;
+    }
+
+    try {
+      await updateProfile(updates);
+      toast.success("언어 설정이 변경되었습니다 ✅");
+      setShowLangPicker(false);
+    } catch {
+      toast.error("변경에 실패했습니다");
+    }
+  };
 
   useEffect(() => {
     if (profile && !profile.onboarding_completed) {
@@ -70,15 +108,79 @@ const DashboardPage = () => {
           <h1 className="text-2xl font-extrabold text-foreground">
             안녕, {profile.display_name || "학습자"}! 👋
           </h1>
-          <p className="text-sm text-muted-foreground font-semibold">
-            {LANG_NAMES[profile.native_language]} → {LANG_NAMES[profile.target_language]}
-          </p>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground font-semibold">
+            <button 
+              onClick={() => { setLangPickerType("native"); setShowLangPicker(true); }}
+              className="flex items-center gap-0.5 hover:text-foreground transition-colors px-1.5 py-0.5 rounded-lg hover:bg-muted"
+            >
+              {LANGUAGES.find(l => l.code === profile.native_language)?.flag} {LANG_NAMES[profile.native_language]}
+              <ChevronDown size={12} />
+            </button>
+            <span>→</span>
+            <button
+              onClick={() => { setLangPickerType("target"); setShowLangPicker(true); }}
+              className="flex items-center gap-0.5 hover:text-foreground transition-colors px-1.5 py-0.5 rounded-lg hover:bg-muted"
+            >
+              {LANGUAGES.find(l => l.code === profile.target_language)?.flag} {LANG_NAMES[profile.target_language]}
+              <ChevronDown size={12} />
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2 bg-secondary/20 rounded-full px-3 py-1.5">
           <Flame className="text-duo-orange" size={18} />
           <span className="font-extrabold text-foreground">{stats.streak}</span>
         </div>
       </motion.div>
+
+      {/* Language Picker Modal */}
+      <AnimatePresence>
+        {showLangPicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center"
+            onClick={() => setShowLangPicker(false)}
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-card rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 pb-8 shadow-xl border border-border"
+            >
+              <h3 className="text-lg font-extrabold text-foreground mb-1">
+                {langPickerType === "native" ? "모국어 변경" : "학습 언어 변경"}
+              </h3>
+              <p className="text-xs text-muted-foreground font-semibold mb-4">
+                {langPickerType === "native" ? "가장 자주 사용하는 언어를 선택하세요" : "배우고 싶은 언어를 선택하세요"}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {LANGUAGES
+                  .filter(l => langPickerType === "native" ? l.code !== profile.target_language : l.code !== profile.native_language)
+                  .map(lang => {
+                    const isSelected = langPickerType === "native"
+                      ? lang.code === profile.native_language
+                      : lang.code === profile.target_language;
+                    return (
+                      <button
+                        key={lang.code}
+                        onClick={() => handleLanguageChange(lang.code)}
+                        className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all hover:scale-[1.02] ${
+                          isSelected ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"
+                        }`}
+                      >
+                        <span className="text-xl">{lang.flag}</span>
+                        <span className="font-bold text-sm text-foreground">{lang.label}</span>
+                        {isSelected && <Check size={14} className="text-primary ml-auto" />}
+                      </button>
+                    );
+                  })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Sync Progress */}
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="duo-card mb-4">

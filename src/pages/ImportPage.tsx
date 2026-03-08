@@ -68,11 +68,8 @@ const ImportPage = () => {
 
       toast.success(`${analysis.wordCount}개 단어 분석 완료! 🎉`);
 
-      // For large texts, split into chunks and analyze
-      const chunks = splitIntoChunks(analysis.maskedText, 10000);
-      const textToAnalyze = chunks.length > 1 
-        ? `[총 ${chunks.length}개 청크 중 대표 분석]\n${chunks[0]}`
-        : analysis.maskedText;
+      // Send full text for analysis (up to 60000 chars to avoid token limits)
+      const textToAnalyze = analysis.maskedText.slice(0, 60000);
 
       // Start detailed AI analysis
       setAnalyzingDetail(true);
@@ -98,14 +95,27 @@ const ImportPage = () => {
         setAnalyzingDetail(false);
       }).catch(() => setAnalyzingDetail(false));
 
-      // Generate SRS cards via AI (use cleaned text)
-      setGeneratingCards(true);
+      await detailPromise;
+    } catch (err) {
+      console.error(err);
+      toast.error("분석에 실패했습니다");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  // Generate cards only for unknown items after pre-test
+  const handleGenerateCardsForUnknown = async (unknownWords: string[]) => {
+    if (!user || !profile || unknownWords.length === 0) return;
+    setGeneratingCards(true);
+    try {
       const { data, error: fnError } = await supabase.functions.invoke("generate-cards", {
         body: {
-          text: analysis.cleanedText.slice(0, 5000), // Use cleaned text
+          text: unknownWords.join(", "),
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
           targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
           level: profile.current_level,
+          wordList: unknownWords,
         },
       });
 
@@ -114,15 +124,12 @@ const ImportPage = () => {
       const cards: GeneratedCard[] = data?.cards || [];
       if (cards.length > 0) {
         setGeneratedCards(cards);
-        toast.success(`${cards.length}개 학습 카드가 생성되었어요! 📚`);
+        toast.success(`모르는 단어 기반으로 ${cards.length}개 카드 생성! 📚`);
       }
-
-      await detailPromise;
     } catch (err) {
       console.error(err);
-      toast.error("분석에 실패했습니다");
+      toast.error("카드 생성에 실패했습니다");
     } finally {
-      setAnalyzing(false);
       setGeneratingCards(false);
     }
   };
@@ -300,24 +307,23 @@ const ImportPage = () => {
           </label>
         </div>
 
-        {/* Action buttons */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="mt-4">
           <button
             onClick={handleAnalyze}
-            disabled={!text.trim() || analyzing || generatingCards}
-            className="duo-btn-primary flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+            disabled={!text.trim() || analyzing}
+            className="duo-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
-            {analyzing || generatingCards ? (
-              <><Loader2 size={18} className="animate-spin" /> {generatingCards ? "카드 생성..." : "분석..."}</>
+            {analyzing ? (
+              <><Loader2 size={18} className="animate-spin" /> 분석 중...</>
             ) : (
-              <><Upload size={18} /> 분석 + 카드</>
+              <><Upload size={18} /> 분석 시작</>
             )}
           </button>
-
+          
           <button
             onClick={handleSplitDialogue}
             disabled={!text.trim() || splittingDialogue}
-            className="duo-btn-secondary flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+            className="duo-btn-secondary w-full mt-3 flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
             {splittingDialogue ? (
               <><Loader2 size={18} className="animate-spin" /> 분리 중...</>
@@ -370,8 +376,14 @@ const ImportPage = () => {
               wordFrequency={detailedAnalysis.wordFrequency || []}
               sentenceStructures={detailedAnalysis.sentenceStructures || []}
               onComplete={(type, count) => {
-                toast.success(`${type === "word" ? "단어" : "문장구조"} ${count}개 학습 완료!`);
+                toast.success(`${type === "word" ? "단어" : "문장구조"} ${count}개 사전 테스트 완료!`);
               }}
+              onUnknownWordsReady={(unknownWords) => {
+                if (unknownWords.length > 0) {
+                  handleGenerateCardsForUnknown(unknownWords);
+                }
+              }}
+              generatingCards={generatingCards}
             />
           )}
         </>

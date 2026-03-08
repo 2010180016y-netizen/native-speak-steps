@@ -15,6 +15,8 @@ type Props = {
   wordFrequency: WordItem[];
   sentenceStructures: StructureItem[];
   onComplete?: (type: "word" | "structure", completedCount: number) => void;
+  onUnknownWordsReady?: (unknownWords: string[]) => void;
+  generatingCards?: boolean;
 };
 
 type LearnedItem = {
@@ -27,7 +29,7 @@ type LearnedItem = {
 
 const QUANTITY_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 
-const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete }: Props) => {
+const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onUnknownWordsReady, generatingCards }: Props) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"words" | "structures">("words");
   
@@ -117,9 +119,17 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete }: P
       setShowWordAnswer(false);
     } else {
       // Batch complete
-      const knownCount = Array.from(learnedWords.values()).filter(v => v).length + (known ? 1 : 0);
-      toast.success(`단어 학습 완료! ${knownCount}/${currentWordBatch.length}개 알고 있음`);
+      const allLearned = new Map(learnedWords).set(currentWord.word, known);
+      const knownCount = Array.from(allLearned.values()).filter(v => v).length;
+      const unknownItems = Array.from(allLearned.entries()).filter(([_, v]) => !v).map(([k]) => k);
+      
+      toast.success(`사전 테스트 완료! ${knownCount}/${currentWordBatch.length}개 알고 있음`);
       onComplete?.("word", currentWordBatch.length);
+      
+      // Trigger card generation for unknown words
+      if (unknownItems.length > 0 && onUnknownWordsReady) {
+        onUnknownWordsReady(unknownItems);
+      }
       
       // Auto advance to next batch
       if (wordBatchIndex < totalWordBatches - 1) {
@@ -129,9 +139,9 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete }: P
           setLearnedWords(new Map());
           setShowWordAnswer(false);
           toast.info(`다음 단어 배치 시작! (${wordBatchIndex + 2}/${totalWordBatches})`);
-        }, 1500);
+        }, 2000);
       } else {
-        toast.success("🎉 모든 단어 학습 완료!");
+        toast.success("🎉 모든 단어 사전 테스트 완료!");
       }
     }
   };
@@ -374,6 +384,14 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete }: P
               {currentWordIndex + 1} / {currentWordBatch.length}
             </p>
 
+            {/* Generating cards indicator */}
+            {generatingCards && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 p-3 rounded-xl bg-primary/10 flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs font-bold text-primary">모르는 단어로 학습 카드 생성 중...</span>
+              </motion.div>
+            )}
+
             {/* Current word card */}
             {currentWord ? (
               <AnimatePresence mode="wait">
@@ -384,6 +402,9 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete }: P
                   exit={{ x: -50, opacity: 0 }}
                   className="text-center py-8"
                 >
+                  <span className="text-xs font-bold text-duo-orange mb-2 block">
+                    🧪 사전 테스트
+                  </span>
                   <span className="text-xs font-bold text-primary mb-2 block">
                     #{wordBatchIndex * wordQuantity + currentWordIndex + 1} 빈도 단어
                   </span>
