@@ -283,25 +283,18 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-      {/* 3D Room Scene */}
       <div className="relative mb-4">
-        <Suspense fallback={
-          <div className="w-full rounded-2xl border-2 border-border flex items-center justify-center" style={{ height: 320, background: "hsl(var(--muted))" }}>
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="text-4xl">🐾</motion.div>
-          </div>
-        }>
-          <Pet3DRoom
-            petImageUrl={activePet.image_url || activePet.pet_type?.base_image_url || null}
-            petName={activePet.name}
-            petLevel={activePet.level}
-            species={activePet.pet_type?.species || "dog"}
-            equippedAccessories={equippedAccessories}
-            emotion={emotion}
-            petAction={petAction}
-            feeding={feeding.active}
-            onTap={handleTap}
-          />
-        </Suspense>
+        <Pet3DRoom
+          petImageUrl={activePet.image_url || activePet.pet_type?.base_image_url || null}
+          petName={activePet.name}
+          petLevel={activePet.level}
+          species={activePet.pet_type?.species || "dog"}
+          equippedAccessories={equippedAccessories}
+          emotion={emotion}
+          petAction={petAction}
+          feeding={feeding.active}
+          onTap={handleTap}
+        />
 
         {/* Speech bubble overlay (on top of 3D canvas) */}
         <AnimatePresence>
