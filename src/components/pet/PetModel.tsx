@@ -194,6 +194,6 @@ export default function PetModel({
 }
 
 // Preload all models
-Object.values(SPECIES_MODEL).forEach((path) => {
+Object.values(BREED_MODEL).forEach((path) => {
   useGLTF.preload(path);
 });
