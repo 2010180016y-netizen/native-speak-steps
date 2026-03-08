@@ -186,7 +186,7 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
     }
   }, [activePet?.id, user]);
 
-
+  const handleTap = useCallback(() => {
     if (!activePet || feeding.active) return;
     setTapCount((c) => c + 1);
     setHappiness((h) => Math.min(100, h + 5));
