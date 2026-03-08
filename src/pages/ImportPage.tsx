@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield, GraduationCap } from "lucide-react";
+import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield, Plus, History } from "lucide-react";
 import { toast } from "sonner";
 import DialogueRolePlay, { type DialogueLine } from "@/components/dialogue/DialogueRolePlay";
 import AnalysisDashboard, { type TextAnalysis } from "@/components/analysis/AnalysisDashboard";
 import ImportLearningFlow from "@/components/import/ImportLearningFlow";
-import { analyzeTextContent, maskSensitiveData, splitIntoChunks } from "@/lib/textProcessor";
+import { analyzeTextContent, maskSensitiveData } from "@/lib/textProcessor";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese",
@@ -31,12 +31,44 @@ const ImportPage = () => {
   const [generatedCards, setGeneratedCards] = useState<GeneratedCard[]>([]);
   const [detailedAnalysis, setDetailedAnalysis] = useState<TextAnalysis | null>(null);
   const [analyzingDetail, setAnalyzingDetail] = useState(false);
+  const [loadingPrevious, setLoadingPrevious] = useState(true);
 
   // Dialogue state
   const [splittingDialogue, setSplittingDialogue] = useState(false);
   const [dialogueSpeakers, setDialogueSpeakers] = useState<string[]>([]);
   const [dialogueLines, setDialogueLines] = useState<DialogueLine[]>([]);
   const [showRolePlay, setShowRolePlay] = useState(false);
+
+  // Load previous analysis on mount
+  useEffect(() => {
+    if (!user) return;
+    const loadPreviousAnalysis = async () => {
+      setLoadingPrevious(true);
+      try {
+        const { data } = await supabase
+          .from("language_imports")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data && data.analysis_result) {
+          setDetailedAnalysis(data.analysis_result as unknown as TextAnalysis);
+          setResult({
+            wordCount: data.word_count,
+            uniqueWords: data.unique_words,
+            speakers: [],
+          });
+        }
+      } catch (e) {
+        console.error("Failed to load previous analysis:", e);
+      } finally {
+        setLoadingPrevious(false);
+      }
+    };
+    loadPreviousAnalysis();
+  }, [user]);
 
   const handleAnalyze = async () => {
     if (!text.trim() || !user || !profile) return;
@@ -45,10 +77,8 @@ const ImportPage = () => {
     setCardsSaved(false);
     setDialogueSpeakers([]);
     setDialogueLines([]);
-    setDetailedAnalysis(null);
 
     try {
-      // Use the new text processor for accurate analysis
       const analysis = analyzeTextContent(text);
       setResult({
         wordCount: analysis.wordCount,
@@ -60,7 +90,7 @@ const ImportPage = () => {
       const { error } = await supabase.from("language_imports").insert({
         user_id: user.id,
         source_type: "text",
-        content: analysis.maskedText, // Store masked version
+        content: analysis.maskedText,
         word_count: analysis.wordCount,
         unique_words: analysis.uniqueWords,
       });
@@ -68,37 +98,39 @@ const ImportPage = () => {
 
       toast.success(`${analysis.wordCount}개 단어 분석 완료! 🎉`);
 
-      // Send full text for analysis (up to 60000 chars to avoid token limits)
+      // Send full text for analysis
       const textToAnalyze = analysis.maskedText.slice(0, 60000);
 
       // Start detailed AI analysis
       setAnalyzingDetail(true);
-      const detailPromise = supabase.functions.invoke("analyze-text", {
+      setDetailedAnalysis(null);
+      
+      const { data: aiData, error: aiErr } = await supabase.functions.invoke("analyze-text", {
         body: {
           text: textToAnalyze,
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
           targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
           totalWordCount: analysis.wordCount,
           totalUniqueWords: analysis.uniqueWords,
-          speakerNames: analysis.speakers, // Pass speaker names to exclude
+          speakerNames: analysis.speakers,
         },
-      }).then(({ data, error: err }) => {
-        if (!err && data) {
-          setDetailedAnalysis(data as TextAnalysis);
-          // Update the import with analysis result
-          supabase.from("language_imports")
-            .update({ analysis_result: data })
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(1);
-        }
-        setAnalyzingDetail(false);
-      }).catch(() => setAnalyzingDetail(false));
+      });
 
-      await detailPromise;
+      if (!aiErr && aiData) {
+        setDetailedAnalysis(aiData as TextAnalysis);
+        // Save analysis result to latest import
+        supabase.from("language_imports")
+          .update({ analysis_result: aiData })
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .then(() => {});
+      }
+      setAnalyzingDetail(false);
     } catch (err) {
       console.error(err);
       toast.error("분석에 실패했습니다");
+      setAnalyzingDetail(false);
     } finally {
       setAnalyzing(false);
     }
@@ -123,7 +155,7 @@ const ImportPage = () => {
 
       const cards: GeneratedCard[] = data?.cards || [];
       if (cards.length > 0) {
-        setGeneratedCards(cards);
+        setGeneratedCards(prev => [...prev, ...cards]);
         toast.success(`모르는 단어 기반으로 ${cards.length}개 카드 생성! 📚`);
       }
     } catch (err) {
@@ -139,12 +171,11 @@ const ImportPage = () => {
     setSplittingDialogue(true);
 
     try {
-      // Mask sensitive data before sending
       const maskedText = maskSensitiveData(text);
       
       const { data, error } = await supabase.functions.invoke("split-dialogue", {
         body: {
-          text: maskedText.slice(0, 8000), // Increased limit
+          text: maskedText.slice(0, 8000),
           nativeLanguage: profile.native_language,
           targetLanguage: profile.target_language,
         },
@@ -315,6 +346,8 @@ const ImportPage = () => {
           >
             {analyzing ? (
               <><Loader2 size={18} className="animate-spin" /> 분석 중...</>
+            ) : detailedAnalysis ? (
+              <><Plus size={18} /> 새 텍스트 분석 추가</>
             ) : (
               <><Upload size={18} /> 분석 시작</>
             )}
@@ -354,6 +387,22 @@ const ImportPage = () => {
         </motion.div>
       )}
 
+      {/* Loading previous analysis */}
+      {loadingPrevious && !detailedAnalysis && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="duo-card mt-6 flex items-center justify-center gap-3 py-6">
+          <Loader2 size={20} className="animate-spin text-muted-foreground" />
+          <span className="font-semibold text-muted-foreground text-sm">이전 분석 결과 불러오는 중...</span>
+        </motion.div>
+      )}
+
+      {/* Previous analysis indicator */}
+      {detailedAnalysis && !analyzing && !analyzingDetail && result && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+          <History size={14} />
+          <span className="font-semibold">이전 분석 결과가 표시됩니다. 새 텍스트를 입력하면 업데이트됩니다.</span>
+        </motion.div>
+      )}
+
       {/* Detailed Analysis Dashboard */}
       {analyzingDetail && !detailedAnalysis && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="duo-card mt-6 flex items-center justify-center gap-3 py-8">
@@ -383,6 +432,9 @@ const ImportPage = () => {
                   handleGenerateCardsForUnknown(unknownWords);
                 }
               }}
+              onAllLearningComplete={() => {
+                toast.success("🎉 오늘의 학습 완료! 카드를 저장하세요.", { duration: 5000 });
+              }}
               generatingCards={generatingCards}
             />
           )}
@@ -390,7 +442,7 @@ const ImportPage = () => {
       )}
 
       {/* Basic result (shown only if no detailed analysis yet) */}
-      {result && !detailedAnalysis && !analyzingDetail && (
+      {result && !detailedAnalysis && !analyzingDetail && !loadingPrevious && (
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="duo-card mt-6">
           <h3 className="font-bold text-foreground mb-4">📊 분석 결과</h3>
           <div className="grid grid-cols-2 gap-4">

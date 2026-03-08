@@ -16,6 +16,7 @@ type Props = {
   sentenceStructures: StructureItem[];
   onComplete?: (type: "word" | "structure", completedCount: number) => void;
   onUnknownWordsReady?: (unknownWords: string[]) => void;
+  onAllLearningComplete?: () => void;
   generatingCards?: boolean;
 };
 
@@ -29,7 +30,7 @@ type LearnedItem = {
 
 const QUANTITY_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 
-const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onUnknownWordsReady, generatingCards }: Props) => {
+const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onUnknownWordsReady, onAllLearningComplete, generatingCards }: Props) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"words" | "structures">("words");
   
@@ -142,6 +143,15 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
         }, 2000);
       } else {
         toast.success("🎉 모든 단어 사전 테스트 완료!");
+        // Auto-switch to structures tab if structures exist
+        if (sentenceStructures.length > 0) {
+          setTimeout(() => {
+            setActiveTab("structures");
+            toast.info("문장구조 학습으로 자동 전환합니다 📝");
+          }, 2500);
+        } else {
+          onAllLearningComplete?.();
+        }
       }
     }
   };
@@ -158,9 +168,17 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
       setShowStructureAnswer(false);
     } else {
       // Batch complete
-      const knownCount = Array.from(learnedStructures.values()).filter(v => v).length + (known ? 1 : 0);
+      const allLearned = new Map(learnedStructures).set(currentStructure.pattern, known);
+      const knownCount = Array.from(allLearned.values()).filter(v => v).length;
+      const unknownItems = Array.from(allLearned.entries()).filter(([_, v]) => !v).map(([k]) => k);
+      
       toast.success(`문장구조 학습 완료! ${knownCount}/${currentStructureBatch.length}개 알고 있음`);
       onComplete?.("structure", currentStructureBatch.length);
+      
+      // Also generate cards for unknown structures
+      if (unknownItems.length > 0 && onUnknownWordsReady) {
+        onUnknownWordsReady(unknownItems);
+      }
       
       // Auto advance to next batch
       if (structureBatchIndex < totalStructureBatches - 1) {
@@ -173,6 +191,7 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
         }, 1500);
       } else {
         toast.success("🎉 모든 문장구조 학습 완료!");
+        onAllLearningComplete?.();
       }
     }
   };
