@@ -189,7 +189,15 @@ const StatsPage = () => {
             activeTab === "feedback" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
-          <MessageCircle size={14} /> 피드백
+          <MessageCircle size={14} /> AI
+        </button>
+        <button
+          onClick={() => setActiveTab("chat")}
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <MessagesSquare size={14} /> 회화
         </button>
       </div>
 
