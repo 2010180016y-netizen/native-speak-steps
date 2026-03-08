@@ -384,6 +384,14 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
               {currentWordIndex + 1} / {currentWordBatch.length}
             </p>
 
+            {/* Generating cards indicator */}
+            {generatingCards && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 p-3 rounded-xl bg-primary/10 flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs font-bold text-primary">모르는 단어로 학습 카드 생성 중...</span>
+              </motion.div>
+            )}
+
             {/* Current word card */}
             {currentWord ? (
               <AnimatePresence mode="wait">
@@ -394,6 +402,9 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
                   exit={{ x: -50, opacity: 0 }}
                   className="text-center py-8"
                 >
+                  <span className="text-xs font-bold text-duo-orange mb-2 block">
+                    🧪 사전 테스트
+                  </span>
                   <span className="text-xs font-bold text-primary mb-2 block">
                     #{wordBatchIndex * wordQuantity + currentWordIndex + 1} 빈도 단어
                   </span>
