@@ -11,6 +11,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import DashboardPage from "./pages/DashboardPage";
 import ImportPage from "./pages/ImportPage";
 import ChatPage from "./pages/ChatPage";
+import ChatHistoryPage from "./pages/ChatHistoryPage";
 import CardsPage from "./pages/CardsPage";
 import StatsPage from "./pages/StatsPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+            <Route path="/chat-history" element={<ProtectedRoute><ChatHistoryPage /></ProtectedRoute>} />
             <Route path="/cards" element={<ProtectedRoute><CardsPage /></ProtectedRoute>} />
             <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
