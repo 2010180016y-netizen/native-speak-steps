@@ -161,14 +161,51 @@ const SpeakingPage = () => {
     }
   }, [user]);
 
+  // Mission checking
+  const checkMissions = useCallback((allMessages: Message[]) => {
+    if (!scenario) return;
+    const userMessages = allMessages.filter((m) => m.role === "user");
+    const questionCount = userMessages.filter((m) => m.content.includes("?")).length;
+
+    const newCompleted = new Set(completedMissions);
+    let xpGained = 0;
+
+    for (const mission of missions) {
+      if (newCompleted.has(mission.id)) continue;
+      let done = false;
+      if (mission.checkType === "message_count" && userMessages.length >= mission.threshold) done = true;
+      if (mission.checkType === "question_count" && questionCount >= mission.threshold) done = true;
+      if (mission.checkType === "duration" && callDuration >= mission.threshold) done = true;
+
+      if (done) {
+        newCompleted.add(mission.id);
+        xpGained += mission.xpReward;
+      }
+    }
+
+    if (newCompleted.size > completedMissions.size) {
+      setCompletedMissions(newCompleted);
+      const newlyDone = [...newCompleted].filter((id) => !completedMissions.has(id));
+      for (const id of newlyDone) {
+        const m = missions.find((mi) => mi.id === id);
+        if (m) toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
+      }
+      if (xpGained > 0 && user) {
+        supabase.from("profiles").select("total_xp").eq("user_id", user.id).single().then(({ data }) => {
+          if (data) supabase.from("profiles").update({ total_xp: data.total_xp + xpGained }).eq("user_id", user.id);
+        });
+      }
+    }
+  }, [scenario, missions, completedMissions, callDuration, user]);
+
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isAiLoading) return;
+    setLastFailedText(null);
     const userMsg: Message = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setIsAiLoading(true);
 
-    // Save user message to DB
     saveMessageToDB("user", text);
 
     try {
@@ -186,26 +223,36 @@ const SpeakingPage = () => {
       if (error) throw error;
       const corrections: Correction[] = data.corrections || [];
       const aiMsg: Message = { role: "assistant", content: data.content, corrections };
-      setMessages((prev) => [...prev, aiMsg]);
+      const finalMessages = [...newMessages, aiMsg];
+      setMessages(finalMessages);
 
-      // Save assistant message to DB
       saveMessageToDB("assistant", data.content);
 
-      // Auto-save corrections as SRS cards
       if (corrections.length > 0) {
         saveCorrectionCards(corrections);
       }
+
+      // Check missions
+      checkMissions(finalMessages);
 
       if (autoSpeak && data.content) {
         setTimeout(() => speak(data.content), 300);
       }
     } catch (e: any) {
       console.error("Speaking error:", e);
-      toast.error(e?.message || "AI 응답에 실패했어요");
+      setLastFailedText(text);
+      // Remove the failed user message
+      setMessages(messages);
+      toast.error(
+        e?.message || "AI 응답에 실패했어요. 다시 시도해 주세요.",
+        {
+          action: { label: "재시도", onClick: () => sendMessage(text) },
+        }
+      );
     } finally {
       setIsAiLoading(false);
     }
-  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName]);
+  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions]);
 
   const startCall = useCallback(async () => {
     setPhase("call");
