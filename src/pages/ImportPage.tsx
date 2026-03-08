@@ -2,15 +2,29 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
-import { motion } from "framer-motion";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Upload, FileText, Loader2, BookOpen, Check } from "lucide-react";
 import { toast } from "sonner";
 
+const LANG_NAMES: Record<string, string> = {
+  ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese",
+  es: "Spanish", fr: "French", de: "German", pt: "Portuguese",
+};
+
+type GeneratedCard = {
+  native_text: string;
+  target_text: string;
+  context: string;
+};
+
 const ImportPage = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [text, setText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
+  const [generatingCards, setGeneratingCards] = useState(false);
+  const [cardsSaved, setCardsSaved] = useState(false);
   const [result, setResult] = useState<{ wordCount: number; uniqueWords: number } | null>(null);
+  const [generatedCards, setGeneratedCards] = useState<GeneratedCard[]>([]);
 
   const analyzeText = (content: string) => {
     const words = content.trim().split(/\s+/).filter(Boolean);
@@ -19,13 +33,16 @@ const ImportPage = () => {
   };
 
   const handleAnalyze = async () => {
-    if (!text.trim() || !user) return;
+    if (!text.trim() || !user || !profile) return;
     setAnalyzing(true);
+    setGeneratedCards([]);
+    setCardsSaved(false);
 
     try {
       const analysis = analyzeText(text);
       setResult(analysis);
 
+      // Save import
       const { error } = await supabase.from("language_imports").insert({
         user_id: user.id,
         source_type: "text",
@@ -33,25 +50,63 @@ const ImportPage = () => {
         word_count: analysis.wordCount,
         unique_words: analysis.uniqueWords,
       });
-
       if (error) throw error;
+
       toast.success(`${analysis.wordCount}개 단어 분석 완료! 🎉`);
-    } catch {
+
+      // Generate SRS cards via AI
+      setGeneratingCards(true);
+      const { data, error: fnError } = await supabase.functions.invoke("generate-cards", {
+        body: {
+          text: text.slice(0, 3000),
+          nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
+          targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
+          level: profile.current_level,
+        },
+      });
+
+      if (fnError) throw fnError;
+
+      const cards: GeneratedCard[] = data?.cards || [];
+      if (cards.length > 0) {
+        setGeneratedCards(cards);
+        toast.success(`${cards.length}개 학습 카드가 생성되었어요! 📚`);
+      }
+    } catch (err) {
+      console.error(err);
       toast.error("분석에 실패했습니다");
     } finally {
       setAnalyzing(false);
+      setGeneratingCards(false);
+    }
+  };
+
+  const handleSaveCards = async () => {
+    if (!user || generatedCards.length === 0) return;
+
+    try {
+      const cardsToInsert = generatedCards.map((card) => ({
+        user_id: user.id,
+        native_text: card.native_text,
+        target_text: card.target_text,
+        context: card.context,
+      }));
+
+      const { error } = await supabase.from("srs_cards").insert(cardsToInsert);
+      if (error) throw error;
+
+      setCardsSaved(true);
+      toast.success("카드가 저장되었어요! 복습 탭에서 확인하세요 ✅");
+    } catch {
+      toast.error("카드 저장에 실패했습니다");
     }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const content = ev.target?.result as string;
-      setText(content);
-    };
+    reader.onload = (ev) => setText(ev.target?.result as string);
     reader.readAsText(file);
   };
 
@@ -60,7 +115,7 @@ const ImportPage = () => {
       <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
         <h1 className="text-2xl font-extrabold text-foreground mb-1">모국어 분석</h1>
         <p className="text-sm text-muted-foreground font-semibold mb-6">
-          평소 쓰는 대화를 입력하면 학습량을 계산해 드려요
+          대화를 입력하면 학습 카드를 자동으로 만들어 드려요
         </p>
       </motion.div>
 
@@ -76,34 +131,26 @@ const ImportPage = () => {
           <label className="flex-1 duo-card flex items-center justify-center gap-2 p-3 cursor-pointer hover:scale-[1.01] transition-transform">
             <FileText size={18} className="text-muted-foreground" />
             <span className="text-sm font-bold text-muted-foreground">파일 업로드</span>
-            <input
-              type="file"
-              accept=".txt,.csv,.json"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
+            <input type="file" accept=".txt,.csv,.json" onChange={handleFileUpload} className="hidden" />
           </label>
         </div>
 
         <button
           onClick={handleAnalyze}
-          disabled={!text.trim() || analyzing}
+          disabled={!text.trim() || analyzing || generatingCards}
           className="duo-btn-primary w-full mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {analyzing ? (
-            <><Loader2 size={20} className="animate-spin" /> 분석 중...</>
+          {analyzing || generatingCards ? (
+            <><Loader2 size={20} className="animate-spin" /> {generatingCards ? "카드 생성 중..." : "분석 중..."}</>
           ) : (
-            <><Upload size={20} /> 분석하기</>
+            <><Upload size={20} /> 분석 + 카드 생성</>
           )}
         </button>
       </motion.div>
 
+      {/* Analysis Result */}
       {result && (
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="duo-card mt-6"
-        >
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="duo-card mt-6">
           <h3 className="font-bold text-foreground mb-4">📊 분석 결과</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
@@ -117,12 +164,74 @@ const ImportPage = () => {
           </div>
           <div className="mt-4 p-3 rounded-xl bg-primary/10">
             <p className="text-sm font-semibold text-foreground">
-              💡 당신은 약 <strong>{result.uniqueWords}</strong>개의 고유 단어를 사용해요.
+              💡 약 <strong>{result.uniqueWords}</strong>개의 고유 단어를 사용해요.
               같은 수준으로 외국어를 배우면 일상 대화가 가능합니다!
             </p>
           </div>
         </motion.div>
       )}
+
+      {/* Generated Cards */}
+      <AnimatePresence>
+        {generatedCards.length > 0 && (
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="mt-6"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
+                <BookOpen size={18} className="text-duo-blue" />
+                생성된 학습 카드 ({generatedCards.length})
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              {generatedCards.map((card, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ x: 30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: i * 0.08 }}
+                  className="duo-card p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-foreground">{card.native_text}</p>
+                      <p className="text-sm font-extrabold text-primary mt-1">{card.target_text}</p>
+                      {card.context && (
+                        <p className="text-xs text-muted-foreground font-semibold mt-2">💬 {card.context}</p>
+                      )}
+                    </div>
+                    <div className="text-xs font-bold text-muted-foreground bg-muted rounded-full px-2 py-1">
+                      #{i + 1}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {!cardsSaved ? (
+              <button
+                onClick={handleSaveCards}
+                className="duo-btn-secondary w-full mt-4 flex items-center justify-center gap-2"
+              >
+                <BookOpen size={20} /> 모든 카드 저장하기
+              </button>
+            ) : (
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="mt-4 p-4 rounded-2xl bg-primary/10 flex items-center justify-center gap-2"
+              >
+                <Check size={20} className="text-primary" />
+                <span className="font-bold text-primary">저장 완료! 복습 탭에서 학습하세요</span>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AppLayout>
   );
 };
