@@ -92,13 +92,19 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
   const petLevel = activePet?.level || 1;
   const petSize = Math.min(120 + (petLevel - 1) * 2.5, 180); // 120px to 180px
 
-  // Simulate walking
+  // Simulate walking — walking is the most frequent action
   useEffect(() => {
     if (!activePet || feeding.active) return;
 
     const walk = () => {
-      const actions: PetAction[] = ["idle", "idle", "walking", "walking", "sleeping", "playing"];
-      const newAction = actions[Math.floor(Math.random() * actions.length)];
+      // Walking 50%, idle 25%, sleeping 12.5%, playing 12.5%
+      const rand = Math.random();
+      let newAction: PetAction;
+      if (rand < 0.5) newAction = "walking";
+      else if (rand < 0.75) newAction = "idle";
+      else if (rand < 0.875) newAction = "sleeping";
+      else newAction = "playing";
+
       setPetAction(newAction);
 
       if (newAction === "walking") {
@@ -109,7 +115,9 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
       }
     };
 
-    walkTimerRef.current = setInterval(walk, 3000 + Math.random() * 2000);
+    // Trigger first action immediately
+    walk();
+    walkTimerRef.current = setInterval(walk, 2500 + Math.random() * 1500);
     return () => { if (walkTimerRef.current) clearInterval(walkTimerRef.current); };
   }, [activePet, feeding.active]);
 
