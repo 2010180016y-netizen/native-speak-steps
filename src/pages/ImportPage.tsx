@@ -376,8 +376,14 @@ const ImportPage = () => {
               wordFrequency={detailedAnalysis.wordFrequency || []}
               sentenceStructures={detailedAnalysis.sentenceStructures || []}
               onComplete={(type, count) => {
-                toast.success(`${type === "word" ? "단어" : "문장구조"} ${count}개 학습 완료!`);
+                toast.success(`${type === "word" ? "단어" : "문장구조"} ${count}개 사전 테스트 완료!`);
               }}
+              onUnknownWordsReady={(unknownWords) => {
+                if (unknownWords.length > 0) {
+                  handleGenerateCardsForUnknown(unknownWords);
+                }
+              }}
+              generatingCards={generatingCards}
             />
           )}
         </>
