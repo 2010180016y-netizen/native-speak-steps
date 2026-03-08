@@ -122,7 +122,22 @@ const DashboardPetWidget = () => {
                 </div>
               </>
             ) : (
-              <p className="font-bold text-foreground text-sm mb-1">펫을 입양해 보세요! 🐾</p>
+              <div>
+                <p className="font-bold text-foreground text-sm mb-1">펫을 입양해 보세요! 🐾</p>
+              </div>
+            )}
+
+            {/* Feeding reminder */}
+            {pet && needsFeeding && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-destructive/10 rounded-lg px-2 py-1 mb-1.5"
+              >
+                <p className="text-[10px] font-bold text-destructive">
+                  🍽️ {pet.name}이(가) 배고파해요! {lastFedHoursAgo != null ? `(${lastFedHoursAgo}시간 전 마지막 식사)` : "아직 밥을 못 먹었어요"}
+                </p>
+              </motion.div>
             )}
 
             {/* Milestone info */}
