@@ -214,6 +214,9 @@ export default function Pet3DScene({
         )}
       </div>
 
+      {/* CSS Vignette overlay */}
+      <div className="absolute inset-0 pointer-events-none z-[5] rounded-2xl" style={{ boxShadow: "inset 0 0 60px rgba(0,0,0,0.25)" }} />
+
       <div className="absolute bottom-2 right-3 text-[10px] font-semibold text-white/60 pointer-events-none z-10">
         👆 터치해서 쓰다듬기
       </div>
