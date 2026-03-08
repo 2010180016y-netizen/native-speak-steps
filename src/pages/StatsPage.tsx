@@ -3,13 +3,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Activity } from "lucide-react";
+import { BarChart3, TrendingUp, Activity, Clock } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { format, subDays, startOfWeek, eachDayOfInterval } from "date-fns";
 import { ko } from "date-fns/locale";
 import ActivityLogDashboard from "@/components/stats/ActivityLogDashboard";
+import TimeBasedDashboard from "@/components/stats/TimeBasedDashboard";
 
 type DailyData = {
   date: string;
@@ -23,7 +24,7 @@ type DailyData = {
 const StatsPage = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [activeTab, setActiveTab] = useState<"learning" | "activity">("learning");
+  const [activeTab, setActiveTab] = useState<"learning" | "activity" | "time">("learning");
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -145,28 +146,38 @@ const StatsPage = () => {
         </p>
       </motion.div>
 
-      {/* Tab toggle: Learning vs Activity */}
+      {/* Tab toggle */}
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setActiveTab("learning")}
-          className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "learning" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
-          <BarChart3 size={16} /> 학습 분석
+          <BarChart3 size={14} /> 학습
         </button>
         <button
           onClick={() => setActiveTab("activity")}
-          className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "activity" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
-          <Activity size={16} /> 활동 로그
+          <Activity size={14} /> 활동
+        </button>
+        <button
+          onClick={() => setActiveTab("time")}
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "time" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <Clock size={14} /> 시간
         </button>
       </div>
 
       {activeTab === "activity" ? (
         user ? <ActivityLogDashboard userId={user.id} /> : null
+      ) : activeTab === "time" ? (
+        user ? <TimeBasedDashboard userId={user.id} /> : null
       ) : (
         <>
           {/* View toggle */}
