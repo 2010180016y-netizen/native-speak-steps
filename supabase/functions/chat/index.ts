@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, targetLanguage, nativeLanguage, level } = await req.json();
+    const { messages, targetLanguage, nativeLanguage, level, persona, scenario } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -22,17 +22,31 @@ serve(async (req) => {
       advanced: "Use sophisticated language with idioms and complex structures.",
     };
 
-    const systemPrompt = `You are a friendly language practice partner. The user speaks ${nativeLanguage} and is learning ${targetLanguage} at the ${level} level.
+    // Build persona description
+    const personaDesc = persona
+      ? `You are a ${persona.gender === "male" ? "man" : "woman"} who works as a ${persona.occupation}. Your personality is ${persona.personality}.`
+      : "";
+    
+    const scenarioDesc = scenario
+      ? `The conversation takes place in a "${scenario}" scenario. Stay in character and context.`
+      : "";
 
-Rules:
-- Respond primarily in ${targetLanguage}
+    const systemPrompt = `You are a real conversation partner for language practice. The user speaks ${nativeLanguage} and is learning ${targetLanguage} at the ${level} level.
+
+${personaDesc}
+${scenarioDesc}
+
+CRITICAL RULES:
+- Respond ONLY in ${targetLanguage} (use ${nativeLanguage} only for brief translations when absolutely needed)
 - ${levelGuide[level] || levelGuide.beginner}
-- If the user writes in ${nativeLanguage}, gently encourage them to try in ${targetLanguage}
-- Correct mistakes kindly and naturally
-- Keep responses concise (2-4 sentences)
-- Add a brief ${nativeLanguage} explanation when needed
-- Be encouraging and fun, like Duolingo!
-- Use emoji occasionally`;
+- Talk like a REAL person in a messenger chat: short, natural, one thought per message
+- Do NOT list multiple expressions or alternatives. Pick ONE natural reply like a real person would
+- Do NOT be overly educational. You're a conversation partner, not a teacher
+- Keep responses to 1-3 short sentences maximum, like real texting
+- If the user makes mistakes, don't correct them explicitly. Instead, naturally use the correct form in your reply
+- React naturally to what the user says. Ask follow-up questions
+- Use casual/natural tone appropriate for the scenario
+- Use emoji sparingly (0-1 per message), like a real person`;
 
     const startTime = Date.now();
 
@@ -43,6 +57,7 @@ Rules:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
@@ -56,21 +71,18 @@ Rules:
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limits exceeded", response_time_ms: responseTimeMs, error_type: "rate_limit" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Payment required", response_time_ms: responseTimeMs, error_type: "payment_required" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI gateway error", response_time_ms: responseTimeMs, error_type: "gateway_error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -83,8 +95,7 @@ Rules:
   } catch (e) {
     console.error("chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error", error_type: "server_error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
