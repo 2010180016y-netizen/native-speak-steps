@@ -202,14 +202,6 @@ const StatsPage = () => {
           <Target size={14} /> 성과
         </button>
         <button
-          onClick={() => setActiveTab("feedback")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "feedback" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <MessageCircle size={14} /> AI
-        </button>
-        <button
           onClick={() => setActiveTab("chat")}
           className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
