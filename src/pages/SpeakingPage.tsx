@@ -632,7 +632,7 @@ const SpeakingPage = () => {
       <div className="space-y-3 mb-28 min-h-[40vh]">
         <AnimatePresence>
           {messages.map((msg, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
               <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-br-md" : "bg-card border-2 border-border text-foreground rounded-bl-md"}`}>
                 <p className="text-sm font-semibold whitespace-pre-wrap">{msg.content}</p>
                 {msg.role === "assistant" && (
@@ -641,6 +641,34 @@ const SpeakingPage = () => {
                   </button>
                 )}
               </div>
+
+              {/* Correction highlights */}
+              {msg.role === "assistant" && msg.corrections && msg.corrections.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="max-w-[85%] mt-1.5 space-y-1.5"
+                >
+                  {msg.corrections.map((c, ci) => (
+                    <div
+                      key={ci}
+                      className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-[11px]"
+                    >
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-amber-600 font-bold mt-px">✏️</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="line-through text-destructive/70 font-semibold">{c.wrong}</span>
+                          <span className="mx-1.5 text-muted-foreground">→</span>
+                          <span className="text-primary font-bold">{c.correct}</span>
+                          {c.explanation && (
+                            <p className="text-muted-foreground font-medium mt-0.5">{c.explanation}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>
