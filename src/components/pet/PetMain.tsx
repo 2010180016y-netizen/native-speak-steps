@@ -13,6 +13,7 @@ type Props = {
   items: PetItem[];
   points: UserPoints | null;
   feedPet: (itemId: string) => Promise<boolean>;
+  switchPet: (petId: string) => Promise<void>;
   loading: boolean;
 };
 
