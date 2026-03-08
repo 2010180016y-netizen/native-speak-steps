@@ -42,6 +42,22 @@ const LANG_MAP: Record<string, string> = {
   es: "es-ES", fr: "fr-FR", de: "de-DE",
 };
 
+const RANDOM_NAMES: Record<string, { male: string[]; female: string[] }> = {
+  en: { male: ["James", "Oliver", "Ethan", "Liam", "Noah", "Lucas", "Mason", "Logan"], female: ["Emma", "Sophia", "Olivia", "Ava", "Mia", "Isabella", "Charlotte", "Amelia"] },
+  ja: { male: ["太郎", "健太", "翔太", "大輝", "蓮", "悠真", "陽斗", "颯太"], female: ["花子", "美咲", "さくら", "結衣", "陽菜", "凛", "楓", "芽依"] },
+  zh: { male: ["伟明", "浩然", "子轩", "明辉", "志强", "建国", "天宇", "俊杰"], female: ["美玲", "小红", "雨萱", "紫涵", "欣怡", "思琪", "语嫣", "梦洁"] },
+  ko: { male: ["민준", "서준", "예준", "도윤", "시우", "주원", "하준", "지호"], female: ["서연", "서윤", "지우", "하은", "하윤", "민서", "지유", "채원"] },
+  es: { male: ["Carlos", "Miguel", "Diego", "Alejandro", "Pablo", "Javier", "Luis", "Mateo"], female: ["María", "Sofía", "Valentina", "Lucía", "Isabella", "Camila", "Elena", "Paula"] },
+  fr: { male: ["Lucas", "Hugo", "Louis", "Gabriel", "Raphaël", "Arthur", "Léo", "Jules"], female: ["Emma", "Jade", "Louise", "Alice", "Chloé", "Léa", "Manon", "Inès"] },
+  de: { male: ["Felix", "Leon", "Paul", "Lukas", "Maximilian", "Elias", "Noah", "Ben"], female: ["Emma", "Mia", "Hannah", "Sophia", "Lina", "Emilia", "Ella", "Marie"] },
+};
+
+const getRandomName = (lang: string, gender: "male" | "female") => {
+  const names = RANDOM_NAMES[lang] || RANDOM_NAMES.en;
+  const list = names[gender];
+  return list[Math.floor(Math.random() * list.length)];
+};
+
 const SpeakingPage = () => {
   const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>("setup");
