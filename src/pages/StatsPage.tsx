@@ -16,6 +16,7 @@ import PerformanceDashboard from "@/components/stats/PerformanceDashboard";
 import ChatScoreDashboard from "@/components/stats/ChatScoreDashboard";
 import SyncGapDashboard from "@/components/stats/SyncGapDashboard";
 import SrsHealthDashboard from "@/components/stats/SrsHealthDashboard";
+import VocabUtilizationDashboard from "@/components/stats/VocabUtilizationDashboard";
 
 type DailyData = {
   date: string;
