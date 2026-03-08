@@ -136,7 +136,7 @@ function ChibiEar({ side, config }: { side: "left" | "right"; config: BreedConfi
 }
 
 /** Chibi tail */
-function ChibiTail({ config }: { config: BreedConfig }) {
+const ChibiTail = forwardRef<THREE.Group, { config: BreedConfig }>(function ChibiTail({ config }, ref) {
   const mat = useMemo(() => new THREE.MeshToonMaterial({ color: config.bodyColor }), [config.bodyColor]);
   
   if (config.tailType === "curly") {

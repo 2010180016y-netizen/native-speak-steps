@@ -70,13 +70,13 @@ function LoadingFallback() {
 }
 
 /** Inactive pet that wanders slowly around its home zone */
-function InactivePetWanderer({ homePos, scale, species, petTypeName, onClick }: {
+const InactivePetWanderer = forwardRef<THREE.Group, {
   homePos: [number, number, number];
   scale: number;
   species: string;
   petTypeName?: string;
   onClick?: () => void;
-}) {
+}>(function InactivePetWanderer({ homePos, scale, species, petTypeName, onClick }, ref) {
   const [action, setAction] = useState<"idle" | "walking" | "sleeping">("idle");
   const [target, setTarget] = useState<[number, number, number]>(homePos);
 
