@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+const IMAGE_MILESTONES = [1, 5, 10, 15, 20, 25, 30];
+
 export type PetType = {
   id: string;
   name: string;
@@ -127,22 +129,51 @@ export const usePet = () => {
         .eq("user_id", user.id);
     }
 
-    const { error } = await supabase.from("user_pets").insert({
+    const { data: newPetData, error } = await supabase.from("user_pets").insert({
       user_id: user.id,
       pet_type_id: petTypeId,
       name,
       is_active: true,
       exp_to_next_level: LEVEL_THRESHOLDS[0],
-    });
+    }).select().single();
 
-    if (error) {
+    if (error || !newPetData) {
       toast.error("입양에 실패했어요");
       return false;
     }
 
     toast.success(`${name}이(가) 가족이 되었어요! 🎉`);
+    
+    // Generate initial pet image
+    generatePetImage((newPetData as any).id, petType.species, name, 1);
+    
     await fetchAll();
     return true;
+  };
+
+  const generatePetImage = async (petId: string, species: string, petName: string, level: number) => {
+    // Only generate at milestone levels
+    const milestoneLevel = IMAGE_MILESTONES.filter((m) => m <= level).pop() || 1;
+    if (!IMAGE_MILESTONES.includes(level) && level !== 1) return;
+
+    try {
+      toast.info("🎨 펫 이미지를 생성하고 있어요...");
+      const { data, error } = await supabase.functions.invoke("generate-pet-image", {
+        body: { petId, species, petName, level: milestoneLevel },
+      });
+
+      if (error) {
+        console.error("Image generation error:", error);
+        return;
+      }
+
+      if (data?.image_url) {
+        toast.success("✨ 새로운 펫 이미지가 생성되었어요!");
+        await fetchAll();
+      }
+    } catch (e) {
+      console.error("Failed to generate pet image:", e);
+    }
   };
 
   const feedPet = async (itemId: string) => {
@@ -198,6 +229,11 @@ export const usePet = () => {
 
     if (leveledUp) {
       toast.success(`🎉 레벨 업! Lv.${newLevel}!`);
+      // Check if we hit an image milestone
+      const species = activePet.pet_type?.species || "dog";
+      if (IMAGE_MILESTONES.includes(newLevel)) {
+        generatePetImage(activePet.id, species, activePet.name, newLevel);
+      }
     } else {
       toast.success(`${item.emoji} ${item.name}을(를) 줬어요!`);
     }
