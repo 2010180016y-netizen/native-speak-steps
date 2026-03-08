@@ -5,18 +5,7 @@ import { LogOut, Flame, Zap, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ReminderSettings from "@/components/profile/ReminderSettings";
 import GoalSettings from "@/components/profile/GoalSettings";
-
-const LANG_NAMES: Record<string, string> = {
-  ko: "한국어", en: "English", ja: "日本語", zh: "中文",
-  es: "Español", fr: "Français", de: "Deutsch", pt: "Português",
-};
-
-const LEVEL_NAMES: Record<string, string> = {
-  beginner: "🌱 초보자",
-  elementary: "🌿 초급",
-  intermediate: "🌳 중급",
-  advanced: "🏔️ 고급",
-};
+import { LANG_NAMES, LEVEL_NAMES } from "@/lib/constants";
 
 const ProfilePage = () => {
   const { profile, signOut } = useAuth();

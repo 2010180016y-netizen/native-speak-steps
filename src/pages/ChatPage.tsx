@@ -13,10 +13,7 @@ import { SCENARIO_STARTERS, SCENARIO_MISSIONS, DEFAULT_MISSIONS, type MiniMissio
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 
-const LANG_NAMES: Record<string, string> = {
-  ko: "한국어", en: "English", ja: "日本語", zh: "中文",
-  es: "Español", fr: "Français", de: "Deutsch", pt: "Português",
-};
+import { LANG_NAMES, SPEECH_LANG_MAP } from "@/lib/constants";
 
 type Correction = {
   wrong: string;
@@ -44,11 +41,7 @@ interface SavedSession {
   messages: Message[];
 }
 
-// Map language codes to BCP-47 for speech APIs
-const SPEECH_LANG_MAP: Record<string, string> = {
-  ko: "ko-KR", en: "en-US", ja: "ja-JP", zh: "zh-CN",
-  es: "es-ES", fr: "fr-FR", de: "de-DE", pt: "pt-BR",
-};
+// Speech lang map imported from constants
 
 const ChatPage = () => {
   const { user, profile } = useAuth();
