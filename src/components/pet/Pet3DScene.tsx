@@ -226,7 +226,7 @@ export default function Pet3DScene({
           const homePos = getHomePosForIndex(i);
           const s = Math.min(0.7 + (pet.level - 1) * 0.02, 1.2);
           return (
-            <InactivePetWanderer key={pet.id} homePos={homePos} scale={s} species={pet.species} petTypeName={pet.petTypeName} />
+            <InactivePetWanderer key={pet.id} homePos={homePos} scale={s} species={pet.species} petTypeName={pet.petTypeName} onClick={() => onSwitchPet?.(pet.id)} />
           );
         })}
 
