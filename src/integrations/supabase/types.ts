@@ -110,6 +110,135 @@ export type Database = {
         }
         Relationships: []
       }
+      pet_feeding_log: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          pet_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          pet_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          pet_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_feeding_log_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "pet_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_feeding_log_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "user_pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          emoji: string
+          exp_reward: number
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string
+          exp_reward?: number
+          id?: string
+          name: string
+          price?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string
+          exp_reward?: number
+          id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
+      pet_types: {
+        Row: {
+          base_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          species: string
+          unlock_cost: number
+        }
+        Insert: {
+          base_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          species?: string
+          unlock_cost?: number
+        }
+        Update: {
+          base_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          species?: string
+          unlock_cost?: number
+        }
+        Relationships: []
+      }
+      point_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -195,6 +324,80 @@ export type Database = {
           next_review_at?: string
           review_count?: number
           target_text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_pets: {
+        Row: {
+          created_at: string
+          exp_to_next_level: number
+          experience: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          level: number
+          name: string
+          pet_type_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          exp_to_next_level?: number
+          experience?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          level?: number
+          name?: string
+          pet_type_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          exp_to_next_level?: number
+          experience?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          level?: number
+          name?: string
+          pet_type_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_pets_pet_type_id_fkey"
+            columns: ["pet_type_id"]
+            isOneToOne: false
+            referencedRelation: "pet_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_points: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
           updated_at?: string
           user_id?: string
         }
