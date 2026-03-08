@@ -14,6 +14,7 @@ import { useReminder } from "@/hooks/useReminder";
 import WeeklyReportWidget from "@/components/dashboard/WeeklyReportWidget";
 import GoalProgressWidget from "@/components/dashboard/GoalProgressWidget";
 import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
+import DashboardSpeakingWidget from "@/components/dashboard/DashboardSpeakingWidget";
 
 const LANGUAGES = [
   { code: "ko", label: "한국어", flag: "🇰🇷" },
@@ -298,6 +299,11 @@ const DashboardPage = () => {
         {/* ═══ Section 4: 학습 인사이트 ═══ */}
         <motion.div variants={item}>
           <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest">학습 인사이트</p>
+        </motion.div>
+
+        {/* Speaking Score Widget */}
+        <motion.div variants={item}>
+          <DashboardSpeakingWidget />
         </motion.div>
 
         {/* Vocab Growth Map */}
