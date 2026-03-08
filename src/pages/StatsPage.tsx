@@ -221,8 +221,6 @@ const StatsPage = () => {
         user ? <TimeBasedDashboard userId={user.id} /> : null
       ) : activeTab === "performance" ? (
         user ? <PerformanceDashboard userId={user.id} /> : null
-      ) : activeTab === "feedback" ? (
-        user ? <FeedbackDashboard userId={user.id} /> : null
       ) : activeTab === "chat" ? (
         user ? <ChatScoreDashboard userId={user.id} /> : null
       ) : (
