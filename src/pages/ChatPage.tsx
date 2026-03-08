@@ -41,11 +41,7 @@ interface SavedSession {
   messages: Message[];
 }
 
-// Map language codes to BCP-47 for speech APIs
-const SPEECH_LANG_MAP: Record<string, string> = {
-  ko: "ko-KR", en: "en-US", ja: "ja-JP", zh: "zh-CN",
-  es: "es-ES", fr: "fr-FR", de: "de-DE", pt: "pt-BR",
-};
+// Speech lang map imported from constants
 
 const ChatPage = () => {
   const { user, profile } = useAuth();

@@ -4,24 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { ChevronRight } from "lucide-react";
-
-const LANGUAGES = [
-  { code: "ko", label: "한국어", flag: "🇰🇷" },
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "ja", label: "日本語", flag: "🇯🇵" },
-  { code: "zh", label: "中文", flag: "🇨🇳" },
-  { code: "es", label: "Español", flag: "🇪🇸" },
-  { code: "fr", label: "Français", flag: "🇫🇷" },
-  { code: "de", label: "Deutsch", flag: "🇩🇪" },
-  { code: "pt", label: "Português", flag: "🇧🇷" },
-];
-
-const LEVELS = [
-  { value: "beginner", label: "초보자", emoji: "🌱", desc: "기초부터 시작" },
-  { value: "elementary", label: "초급", emoji: "🌿", desc: "간단한 표현 가능" },
-  { value: "intermediate", label: "중급", emoji: "🌳", desc: "일상 대화 가능" },
-  { value: "advanced", label: "고급", emoji: "🏔️", desc: "복잡한 주제도 OK" },
-];
+import { LANGUAGES, LEVELS } from "@/lib/constants";
 
 const OnboardingPage = () => {
   const [step, setStep] = useState(0);

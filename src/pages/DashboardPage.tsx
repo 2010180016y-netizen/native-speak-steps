@@ -16,21 +16,7 @@ import GoalProgressWidget from "@/components/dashboard/GoalProgressWidget";
 import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
 import DashboardSpeakingWidget from "@/components/dashboard/DashboardSpeakingWidget";
 
-const LANGUAGES = [
-  { code: "ko", label: "한국어", flag: "🇰🇷" },
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "ja", label: "日本語", flag: "🇯🇵" },
-  { code: "zh", label: "中文", flag: "🇨🇳" },
-  { code: "es", label: "Español", flag: "🇪🇸" },
-  { code: "fr", label: "Français", flag: "🇫🇷" },
-  { code: "de", label: "Deutsch", flag: "🇩🇪" },
-  { code: "pt", label: "Português", flag: "🇧🇷" },
-];
-
-const LANG_NAMES: Record<string, string> = {
-  ko: "한국어", en: "English", ja: "日本語", zh: "中文",
-  es: "Español", fr: "Français", de: "Deutsch", pt: "Português",
-};
+import { LANGUAGES, LANG_NAMES } from "@/lib/constants";
 
 // Stagger animation variants
 const container = {
