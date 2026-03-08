@@ -185,81 +185,47 @@ const StatsPage = () => {
         </p>
       </motion.div>
 
-      {/* Tab toggle - scrollable */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1">
-        <button
-          onClick={() => setActiveTab("learning")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "learning" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <BarChart3 size={14} /> 학습
-        </button>
-        <button
-          onClick={() => setActiveTab("syncgap")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "syncgap" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Radar size={14} /> 동기화
-        </button>
-        <button
-          onClick={() => setActiveTab("srshealth")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "srshealth" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Heart size={14} /> SRS
-        </button>
-        <button
-          onClick={() => setActiveTab("vocabutil")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "vocabutil" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <BookCheck size={14} /> 활용
-        </button>
-        <button
-          onClick={() => setActiveTab("growthmap")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "growthmap" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Map size={14} /> 성장맵
-        </button>
-        <button
-          onClick={() => setActiveTab("activity")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "activity" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Activity size={14} /> 활동
-        </button>
-        <button
-          onClick={() => setActiveTab("time")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "time" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Clock size={14} /> 시간
-        </button>
-        <button
-          onClick={() => setActiveTab("performance")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "performance" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <Target size={14} /> 성과
-        </button>
-        <button
-          onClick={() => setActiveTab("chat")}
-          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
-            activeTab === "chat" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          }`}
-        >
-          <MessagesSquare size={14} /> 회화
-        </button>
+      {/* Category tabs */}
+      <div className="flex gap-2 mb-3">
+        {TAB_GROUPS.map((group) => (
+          <button
+            key={group.id}
+            onClick={() => {
+              setActiveCategory(group.id);
+              setActiveTab(group.tabs[0].id);
+            }}
+            className={`flex-1 py-2.5 px-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+              activeCategory === group.id
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {group.icon} {group.label}
+          </button>
+        ))}
       </div>
+
+      {/* Sub-tabs */}
+      {(() => {
+        const group = TAB_GROUPS.find((g) => g.id === activeCategory)!;
+        return group.tabs.length > 1 ? (
+          <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
+            {group.tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-shrink-0 py-1.5 px-3 rounded-lg font-semibold text-[11px] transition-all flex items-center gap-1 ${
+                  activeTab === tab.id
+                    ? "bg-primary/15 text-primary border border-primary/30"
+                    : "text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+        ) : null;
+      })()}
 
       {activeTab === "syncgap" ? (
         user ? <SyncGapDashboard userId={user.id} /> : null
