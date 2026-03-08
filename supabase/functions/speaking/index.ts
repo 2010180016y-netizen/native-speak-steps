@@ -39,7 +39,8 @@ serve(async (req) => {
     let personaDesc = "";
     if (persona) {
       const genderLabel = persona.gender === "male" ? "male" : "female";
-      personaDesc = `You are a ${genderLabel} ${persona.occupation}. Your personality is: ${persona.personality}. Stay true to this character throughout the call.`;
+      const nameStr = callerName ? `Your name is ${callerName}.` : "";
+      personaDesc = `You are a ${genderLabel} ${persona.occupation}. ${nameStr} Your personality is: ${persona.personality}. Stay true to this character throughout the call.`;
     }
 
     const systemPrompt = `You are making a PHONE CALL to a language learner. The user speaks ${nativeLanguage} and is practicing ${targetLanguage} at the ${level} level.
