@@ -128,7 +128,7 @@ export default function PetModel({
     });
   }, [clonedScene, breed]);
 
-  // Switch animations based on action
+  // Switch animations with crossfade
   useEffect(() => {
     const searchTerms = ACTION_SEARCH[action] || ACTION_SEARCH.idle;
     const animName = findAnimation(animations, searchTerms);
@@ -136,17 +136,19 @@ export default function PetModel({
 
     const current = actions[animName]!;
 
-    // Fade out all other animations, fade in current
+    // Crossfade: longer blend for smoother transitions
     Object.values(actions).forEach((a) => {
-      if (a && a !== current) a.fadeOut(0.4);
+      if (a && a !== current) a.fadeOut(0.6);
     });
-    current.reset().fadeIn(0.4).play();
+    current.reset().fadeIn(0.6).play();
 
-    // Slow down for sleeping
+    // Action-specific timescale
     if (action === "sleeping") {
-      current.setEffectiveTimeScale(0.2);
+      current.setEffectiveTimeScale(0.15);
     } else if (action === "playing") {
-      current.setEffectiveTimeScale(1.3);
+      current.setEffectiveTimeScale(1.4);
+    } else if (action === "walking") {
+      current.setEffectiveTimeScale(0.8);
     } else {
       current.setEffectiveTimeScale(1);
     }

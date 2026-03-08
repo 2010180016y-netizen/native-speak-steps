@@ -1,9 +1,11 @@
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows } from "@react-three/drei";
+import { ContactShadows, Environment } from "@react-three/drei";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { motion, AnimatePresence } from "framer-motion";
 import PetModel from "./PetModel";
 import Pet3DAccessory from "./Pet3DAccessory";
+import Room from "./Pet3DRoom";
 import * as THREE from "three";
 
 type PetAction = "idle" | "walking" | "sleeping" | "playing" | "eating";
@@ -20,139 +22,19 @@ type Pet3DSceneProps = {
   onTap: () => void;
 };
 
-function Room() {
-  return (
-    <group>
-      {/* Floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-        <planeGeometry args={[10, 10]} />
-        <meshStandardMaterial color="#c4956a" roughness={0.8} />
-      </mesh>
-
-      {/* Back wall */}
-      <mesh position={[0, 2.5, -5]} receiveShadow>
-        <planeGeometry args={[10, 5]} />
-        <meshStandardMaterial color="#f5e6d3" roughness={0.9} />
-      </mesh>
-
-      {/* Left wall */}
-      <mesh position={[-5, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[10, 5]} />
-        <meshStandardMaterial color="#ede0d4" roughness={0.9} />
-      </mesh>
-
-      {/* Right wall */}
-      <mesh position={[5, 2.5, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[10, 5]} />
-        <meshStandardMaterial color="#ede0d4" roughness={0.9} />
-      </mesh>
-
-      {/* Pet bed */}
-      <group position={[-2.5, 0, -2]}>
-        <mesh position={[0, 0.15, 0]} castShadow>
-          <cylinderGeometry args={[0.8, 0.9, 0.3, 16]} />
-          <meshStandardMaterial color="#8b4513" roughness={0.7} />
-        </mesh>
-        <mesh position={[0, 0.25, 0]}>
-          <cylinderGeometry args={[0.6, 0.65, 0.15, 16]} />
-          <meshStandardMaterial color="#d2691e" roughness={0.9} />
-        </mesh>
-      </group>
-
-      {/* Food bowl */}
-      <group position={[2.5, 0, -3]}>
-        <mesh position={[0, 0.12, 0]} castShadow>
-          <cylinderGeometry args={[0.3, 0.25, 0.2, 16]} />
-          <meshStandardMaterial color="#c0c0c0" metalness={0.8} roughness={0.2} />
-        </mesh>
-        <mesh position={[0, 0.2, 0]}>
-          <cylinderGeometry args={[0.22, 0.22, 0.05, 16]} />
-          <meshStandardMaterial color="#8B4513" roughness={0.9} />
-        </mesh>
-      </group>
-
-      {/* Water bowl */}
-      <group position={[3.2, 0, -3]}>
-        <mesh position={[0, 0.12, 0]} castShadow>
-          <cylinderGeometry args={[0.25, 0.2, 0.2, 16]} />
-          <meshStandardMaterial color="#4682b4" metalness={0.6} roughness={0.3} />
-        </mesh>
-        <mesh position={[0, 0.2, 0]}>
-          <cylinderGeometry args={[0.18, 0.18, 0.03, 16]} />
-          <meshStandardMaterial color="#87ceeb" transparent opacity={0.7} roughness={0.1} />
-        </mesh>
-      </group>
-
-      {/* Toy ball */}
-      <mesh position={[1.5, 0.2, 1]} castShadow>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color="#ff4444" roughness={0.5} />
-      </mesh>
-
-      {/* Toy bone */}
-      <group position={[-1, 0.08, 2]} rotation={[0, 0.5, 0]}>
-        <mesh castShadow>
-          <capsuleGeometry args={[0.06, 0.3, 4, 8]} />
-          <meshStandardMaterial color="#f5f5dc" roughness={0.8} />
-        </mesh>
-        <mesh position={[-0.2, 0, 0]} castShadow>
-          <sphereGeometry args={[0.1, 8, 8]} />
-          <meshStandardMaterial color="#f5f5dc" roughness={0.8} />
-        </mesh>
-        <mesh position={[0.2, 0, 0]} castShadow>
-          <sphereGeometry args={[0.1, 8, 8]} />
-          <meshStandardMaterial color="#f5f5dc" roughness={0.8} />
-        </mesh>
-      </group>
-
-      {/* Window */}
-      <group position={[0, 3, -4.95]}>
-        <mesh>
-          <planeGeometry args={[2, 1.5]} />
-          <meshStandardMaterial color="#87ceeb" emissive="#87ceeb" emissiveIntensity={0.5} />
-        </mesh>
-        <mesh position={[0, 0, 0.01]}>
-          <planeGeometry args={[2.1, 0.05]} />
-          <meshStandardMaterial color="#8B4513" />
-        </mesh>
-        <mesh position={[0, 0, 0.01]} rotation={[0, 0, Math.PI / 2]}>
-          <planeGeometry args={[1.6, 0.05]} />
-          <meshStandardMaterial color="#8B4513" />
-        </mesh>
-      </group>
-
-      {/* Baseboard */}
-      <mesh position={[0, 0.1, -4.95]}>
-        <boxGeometry args={[10, 0.2, 0.05]} />
-        <meshStandardMaterial color="#8B4513" />
-      </mesh>
-    </group>
-  );
-}
-
-// Camera that smoothly follows the pet
+/** Camera smoothly follows the pet */
 function CameraFollower({ targetPos }: { targetPos: [number, number, number] }) {
   const { camera } = useThree();
-  const offset = useRef(new THREE.Vector3(0, 4, 6));
 
   useFrame((_, delta) => {
-    // Smoothly move camera to follow pet with offset
-    const targetX = targetPos[0] * 0.5; // dampen so camera doesn't swing too much
-    const targetZ = targetPos[2] * 0.3;
-    
-    const desiredPos = new THREE.Vector3(
-      targetX + offset.current.x,
-      offset.current.y,
-      targetZ + offset.current.z
-    );
+    const tx = targetPos[0] * 0.45;
+    const tz = targetPos[2] * 0.25;
 
-    camera.position.lerp(desiredPos, delta * 1.2);
+    const desired = new THREE.Vector3(tx, 4, tz + 6);
+    camera.position.lerp(desired, delta * 1.0);
 
-    // Look at a point slightly ahead of the pet
-    const lookTarget = new THREE.Vector3(targetX, 0.5, targetZ - 1);
-    const currentLook = new THREE.Vector3();
-    camera.getWorldDirection(currentLook);
-    camera.lookAt(lookTarget);
+    const look = new THREE.Vector3(tx, 0.5, tz - 1);
+    camera.lookAt(look);
   });
 
   return null;
@@ -181,17 +63,15 @@ export default function Pet3DScene({
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
   const petScale = Math.min(0.01 + (petLevel - 1) * 0.0005, 0.018);
 
-  // Wander logic — walk to a new random spot every 2-3.5s
+  // Wander logic
   useEffect(() => {
     if (feeding) return;
-
     const wander = () => {
       if (petAction === "walking") {
-        // Wider range across the room for more visible movement
         setTargetPos([
-          -3.5 + Math.random() * 7,   // x: -3.5 ~ 3.5
+          -3.5 + Math.random() * 7,
           0,
-          -3.5 + Math.random() * 5.5,  // z: -3.5 ~ 2
+          -3.5 + Math.random() * 5.5,
         ]);
       } else if (petAction === "sleeping") {
         setTargetPos([-2.5, 0, -2]);
@@ -199,8 +79,6 @@ export default function Pet3DScene({
         setTargetPos([2.5, 0, -3]);
       }
     };
-
-    // Trigger immediately so pet starts moving right away
     wander();
     const id = setInterval(wander, 2000 + Math.random() * 1500);
     return () => clearInterval(id);
@@ -219,23 +97,44 @@ export default function Pet3DScene({
       <Canvas
         shadows
         camera={{ position: [0, 4, 6], fov: 45, near: 0.1, far: 50 }}
-        gl={{ antialias: true, alpha: false }}
+        gl={{ antialias: true, alpha: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
         style={{ background: "linear-gradient(180deg, #87CEEB 0%, #E0F0FF 100%)" }}
       >
-        <ambientLight intensity={0.5} />
+        {/* ─── Lighting ─── */}
+        <ambientLight intensity={0.35} color="#fef3e2" />
         <directionalLight
-          position={[3, 8, 5]}
-          intensity={1.2}
+          position={[2, 8, 4]}
+          intensity={1.5}
           castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-bias={-0.0001}
+          color="#fff5e6"
         />
-        <pointLight position={[-2, 3, -2]} intensity={0.3} color="#ffeedd" />
+        {/* Window light (warm) */}
+        <spotLight
+          position={[0, 4.5, -4]}
+          angle={0.5}
+          penumbra={0.8}
+          intensity={0.8}
+          color="#ffeedd"
+          castShadow={false}
+        />
+        {/* Fill light */}
+        <pointLight position={[-3, 2, 2]} intensity={0.2} color="#e0d0c0" />
+        {/* Rim light */}
+        <pointLight position={[3, 1, 3]} intensity={0.15} color="#c0d0e0" />
 
+        {/* ─── Environment (soft reflections) ─── */}
+        <Environment preset="apartment" environmentIntensity={0.15} />
+
+        {/* ─── Room ─── */}
         <Room />
 
-        <ContactShadows position={[0, 0, 0]} opacity={0.5} scale={10} blur={2} far={5} />
+        {/* ─── Shadows ─── */}
+        <ContactShadows position={[0, 0.01, 0]} opacity={0.6} scale={12} blur={2.5} far={5} />
 
+        {/* ─── Pet ─── */}
         <Suspense fallback={<LoadingFallback />}>
           <PetModel
             action={petAction}
@@ -248,6 +147,7 @@ export default function Pet3DScene({
           />
         </Suspense>
 
+        {/* ─── Accessories ─── */}
         {equippedAccessories.map((acc, i) => (
           <Pet3DAccessory
             key={i}
@@ -259,10 +159,21 @@ export default function Pet3DScene({
           />
         ))}
 
+        {/* ─── Camera ─── */}
         <CameraFollower targetPos={targetPos} />
+
+        {/* ─── Post Processing ─── */}
+        <EffectComposer>
+          <Bloom
+            luminanceThreshold={0.9}
+            luminanceSmoothing={0.4}
+            intensity={0.3}
+          />
+          <Vignette eskil={false} offset={0.15} darkness={0.4} />
+        </EffectComposer>
       </Canvas>
 
-      {/* Speech bubble */}
+      {/* ─── Speech bubble ─── */}
       <AnimatePresence>
         {emotion && (
           <motion.div
@@ -280,7 +191,7 @@ export default function Pet3DScene({
         )}
       </AnimatePresence>
 
-      {/* Feeding particles */}
+      {/* ─── Feeding particles ─── */}
       <AnimatePresence>
         {feeding &&
           [...Array(8)].map((_, i) => (
@@ -302,7 +213,7 @@ export default function Pet3DScene({
           ))}
       </AnimatePresence>
 
-      {/* Action indicator */}
+      {/* ─── Action indicator ─── */}
       <div className="absolute top-2 left-3 z-10">
         {petAction === "sleeping" && !feeding && (
           <motion.span className="text-lg" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }}>💤</motion.span>
