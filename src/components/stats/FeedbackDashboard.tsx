@@ -88,12 +88,15 @@ const FeedbackDashboard = ({ userId }: Props) => {
     chat: "회화", speaking: "스피킹", cards: "카드", analysis: "분석",
   };
 
-  const featureData = Object.entries(featureRatings).map(([feature, data]) => ({
-    name: FEATURE_NAMES[feature] || feature,
-    positive: data.pos,
-    negative: data.neg,
-    satisfaction: data.pos + data.neg > 0 ? Math.round((data.pos / (data.pos + data.neg)) * 100) : 0,
-  }));
+  const featureData = Object.entries(featureRatings).map(([feature, d]) => {
+    const data = d as { pos: number; neg: number; total: number };
+    return {
+      name: FEATURE_NAMES[feature] || feature,
+      positive: data.pos,
+      negative: data.neg,
+      satisfaction: data.pos + data.neg > 0 ? Math.round((data.pos / (data.pos + data.neg)) * 100) : 0,
+    };
+  });
 
   const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--duo-orange))", "hsl(var(--duo-purple))"];
 
