@@ -63,13 +63,19 @@ serve(async (req) => {
       es: "Spanish", fr: "French", de: "German", pt: "Portuguese",
     };
 
-    const prompt = `You are a language learning advisor for the LangSync app. Generate exactly 4 personalized learning recommendations in JSON format.
+    const prompt = `You are a language learning advisor for the LangSync app. LangSync's core concept is: "You only need to learn what you actually use in your native language." Users import their real native language content (texts, articles, conversations) and the app extracts vocabulary and sentence patterns from that content for efficient learning.
+
+Generate exactly 4 personalized learning recommendations in JSON format.
+
+IMPORTANT RULES:
+- NEVER suggest generic language tips like "basic pronunciation practice", "start a streak", "daily challenge", or "grammar drills"
+- Every recommendation MUST relate to the user's actual imported content, SRS review cards, or conversation practice using their real vocabulary
+- Focus on: reviewing weak cards, importing more native content, practicing learned words in conversation, analyzing usage patterns
 
 User profile:
 - Native language: ${langNames[profile?.native_language] || profile?.native_language}
 - Target language: ${langNames[profile?.target_language] || profile?.target_language}
 - Level: ${profile?.current_level}
-- Streak: ${profile?.streak_days} days
 - Total XP: ${profile?.total_xp}
 
 Learning metrics (last 14 days):
@@ -79,8 +85,6 @@ Learning metrics (last 14 days):
 - Most used activity: ${mostUsedActivity}
 - Least used activity: ${leastUsedActivity}
 - Recent completions: ${completions.length}
-
-Generate recommendations that are specific to their level, language pair, and learning patterns. Each recommendation should have an actionable suggestion.
 
 Respond in Korean (한국어).`;
 
