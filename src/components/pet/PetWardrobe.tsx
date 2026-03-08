@@ -174,7 +174,7 @@ const PetWardrobe = ({ activePet, loading }: Props) => {
               category={a.category}
               name={a.name}
               petPosition={[0, 0, 0]}
-              petScale={0.012}
+              petScale={1}
             />
           ))}
           <OrbitControls enablePan={false} enableZoom={false} />
