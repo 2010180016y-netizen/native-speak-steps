@@ -3,13 +3,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, ThumbsUp, ThumbsDown, Clock, Flag, Target, CheckCircle2, History, Sparkles } from "lucide-react";
+import { Send, Loader2, ThumbsUp, ThumbsDown, Clock, Flag, Target, CheckCircle2, History, Sparkles, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import ChatSetup, { type Persona, type ChatScenario } from "@/components/chat/ChatSetup";
 import ChatFeedback from "@/components/chat/ChatFeedback";
 import { SCENARIO_STARTERS, SCENARIO_MISSIONS, DEFAULT_MISSIONS, type MiniMission } from "@/lib/chatScenarioData";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "한국어", en: "English", ja: "日本語", zh: "中文",
