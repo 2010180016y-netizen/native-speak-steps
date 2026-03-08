@@ -292,53 +292,39 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-      {/* Room Scene */}
-      <div 
-        className="duo-card relative overflow-hidden mb-4 cursor-pointer select-none"
-        style={{ height: 320, background: "linear-gradient(180deg, hsl(var(--muted)/0.3) 0%, hsl(var(--muted)/0.6) 60%, hsl(var(--muted)/0.9) 100%)" }}
-        onClick={handleTap}
-      >
-        {/* Wall pattern */}
-        <div className="absolute inset-0 opacity-[0.04]" style={{ 
-          backgroundImage: "radial-gradient(circle, hsl(var(--foreground)) 1px, transparent 1px)",
-          backgroundSize: "20px 20px" 
-        }} />
-
-        {/* Floor line */}
-        <div className="absolute bottom-[20%] left-0 right-0 h-[2px] bg-border/30" />
-        <div className="absolute bottom-0 left-0 right-0 h-[20%] bg-muted/50 rounded-b-2xl" />
-
-        {/* Room furniture */}
-        {ROOM_ITEMS.map((item, i) => (
-          <div
-            key={i}
-            className={`absolute ${item.size} opacity-40 select-none`}
-            style={{ left: item.x, top: item.y, transform: "translate(-50%, -50%)" }}
-          >
-            {item.emoji}
+      {/* 3D Room Scene */}
+      <div className="relative mb-4">
+        <Suspense fallback={
+          <div className="w-full rounded-2xl border-2 border-border flex items-center justify-center" style={{ height: 320, background: "hsl(var(--muted))" }}>
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="text-4xl">🐾</motion.div>
           </div>
-        ))}
+        }>
+          <Pet3DRoom
+            petImageUrl={activePet.image_url || activePet.pet_type?.base_image_url || null}
+            petName={activePet.name}
+            petLevel={activePet.level}
+            species={activePet.pet_type?.species || "dog"}
+            equippedAccessories={equippedAccessories}
+            emotion={emotion}
+            petAction={petAction}
+            feeding={feeding.active}
+            onTap={handleTap}
+          />
+        </Suspense>
 
-        {/* Speech bubble */}
+        {/* Speech bubble overlay (on top of 3D canvas) */}
         <AnimatePresence>
           {emotion && (
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.8 }}
-              className="absolute z-20 bg-card border-2 border-border rounded-2xl px-3 py-2 shadow-md"
-              style={{
-                left: `${petPosition.x}%`,
-                top: `${petPosition.y - 22}%`,
-                transform: "translate(-50%, -100%)",
-                maxWidth: "160px",
-              }}
+              className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-card border-2 border-border rounded-2xl px-3 py-2 shadow-md"
+              style={{ maxWidth: "180px" }}
             >
               <p className="text-xs font-bold text-foreground whitespace-nowrap">
                 {emotion.emoji} {emotion.text}
               </p>
-              {/* Bubble tail */}
-              <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-r-2 border-b-2 border-border rotate-45" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -347,32 +333,19 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
         <AnimatePresence>
           {feeding.active && (
             <>
-              <motion.div
-                className="absolute z-30 text-4xl"
-                initial={{ bottom: 20, left: "50%", x: "-50%", opacity: 1, scale: 1.2 }}
-                animate={{
-                  bottom: [20, 100, 160],
-                  scale: [1.2, 1.5, 0.3],
-                  opacity: [1, 1, 0],
-                }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: "easeIn" }}
-              >
-                {feeding.emoji}
-              </motion.div>
               {[...Array(8)].map((_, i) => (
                 <motion.div
                   key={i}
                   className="absolute z-30 text-lg pointer-events-none"
-                  initial={{ top: "45%", left: "50%", opacity: 0, scale: 0 }}
+                  initial={{ top: "50%", left: "50%", opacity: 0, scale: 0 }}
                   animate={{
-                    top: `${15 + Math.random() * 30}%`,
+                    top: `${10 + Math.random() * 40}%`,
                     left: `${15 + Math.random() * 70}%`,
                     opacity: [0, 1, 0],
                     scale: [0, 1.2, 0],
                     rotate: [0, Math.random() * 360],
                   }}
-                  transition={{ duration: 1.2, delay: 0.5 + i * 0.08, ease: "easeOut" }}
+                  transition={{ duration: 1.2, delay: 0.3 + i * 0.08, ease: "easeOut" }}
                 >
                   {["✨", "💕", "⭐", "🎉", "💖", "😋", "🌟", "💫"][i]}
                 </motion.div>
@@ -380,118 +353,6 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
             </>
           )}
         </AnimatePresence>
-
-        {/* Pet character */}
-        <motion.div
-          className="absolute z-10"
-          animate={{
-            left: `${petPosition.x}%`,
-            top: `${petPosition.y}%`,
-          }}
-          transition={{ 
-            duration: petAction === "walking" ? 2 : 0.3,
-            ease: "easeInOut",
-          }}
-          style={{ transform: "translate(-50%, -50%)" }}
-        >
-          {/* Action indicator */}
-          {getActionEmoji() && !emotion && (
-            <motion.div
-              className="absolute -top-4 left-1/2 -translate-x-1/2 text-sm"
-              animate={{ y: [0, -3, 0], opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              {getActionEmoji()}
-            </motion.div>
-          )}
-
-          {/* Pet image */}
-          <motion.div
-            animate={
-              feeding.active
-                ? { scale: [1, 1.1, 0.95, 1.05, 1], rotate: [0, -5, 5, -3, 0], y: [0, -5, 0, -3, 0] }
-                : petAction === "sleeping"
-                ? { y: [0, -2, 0], rotate: [0, 2, 0] }
-                : petAction === "walking"
-                ? { y: [0, -6, 0], rotate: [0, -2, 0, 2, 0] }
-                : petAction === "playing"
-                ? { y: [0, -10, 0], scale: [1, 1.05, 1] }
-                : { y: [0, -6, 0] }
-            }
-            transition={
-              feeding.active
-                ? { duration: 1, ease: "easeInOut", repeat: 1 }
-                : petAction === "sleeping"
-                ? { duration: 3, repeat: Infinity, ease: "easeInOut" }
-                : { duration: 2, repeat: Infinity, ease: "easeInOut" }
-            }
-            style={{ 
-              transform: `scaleX(${facingRight ? 1 : -1})`,
-              width: petSize,
-              height: petSize,
-            }}
-          >
-            {(activePet.image_url || activePet.pet_type?.base_image_url) ? (
-              <img
-                src={activePet.image_url || activePet.pet_type?.base_image_url || ""}
-                alt={activePet.name}
-                className="w-full h-full rounded-3xl object-cover shadow-lg border-2 border-border"
-                draggable={false}
-              />
-            ) : (
-              <div className="w-full h-full rounded-3xl bg-muted flex items-center justify-center text-5xl">
-                {activePet.pet_type?.species === "cat" ? "🐱" : "🐶"}
-              </div>
-            )}
-
-            {/* Equipped accessories overlay */}
-            {equippedAccessories.map((acc, i) => (
-              <div
-                key={i}
-                className="absolute pointer-events-none select-none"
-                style={{
-                  fontSize: petSize * 0.25,
-                  ...(acc.position === "top" ? { top: -4, left: "50%", transform: "translateX(-50%)" } : {}),
-                  ...(acc.position === "face" ? { top: "28%", left: "50%", transform: "translateX(-50%)" } : {}),
-                  ...(acc.position === "neck" ? { bottom: 4, left: "50%", transform: "translateX(-50%)" } : {}),
-                  ...(acc.position === "back" ? { top: -2, right: -6 } : {}),
-                }}
-              >
-                {acc.emoji}
-              </div>
-            ))}
-
-            {/* Eating animation */}
-            <AnimatePresence>
-              {feeding.active && (
-                <motion.div
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-2xl"
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: [0, 1, 1, 0], scale: [0, 1.3, 1, 0] }}
-                  transition={{ duration: 1.5, delay: 0.3 }}
-                >
-                  😋
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Sleeping zzz */}
-            {petAction === "sleeping" && !feeding.active && (
-              <motion.div
-                className="absolute -top-2 -right-2 text-lg"
-                animate={{ opacity: [0.3, 1, 0.3], y: [0, -5, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                💤
-              </motion.div>
-            )}
-          </motion.div>
-        </motion.div>
-
-        {/* Tap hint */}
-        <div className="absolute bottom-2 right-3 text-[10px] font-semibold text-muted-foreground/50">
-          👆 터치해서 쓰다듬기
-        </div>
       </div>
 
       {/* Pet Info Card */}
