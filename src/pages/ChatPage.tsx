@@ -18,12 +18,19 @@ const LANG_NAMES: Record<string, string> = {
   es: "Español", fr: "Français", de: "Deutsch", pt: "Português",
 };
 
+type Correction = {
+  wrong: string;
+  correct: string;
+  explanation: string;
+};
+
 type Message = {
   role: "user" | "assistant";
   content: string;
   responseTimeMs?: number;
   feedbackId?: string;
   rating?: -1 | 1 | null;
+  corrections?: Correction[];
 };
 
 type Phase = "setup" | "chat" | "feedback";
@@ -258,6 +265,7 @@ const ChatPage = () => {
 
       const assistantContent = data?.content || "죄송합니다, 다시 시도해주세요.";
       const responseTimeMs = data?.response_time_ms || 0;
+      const corrections: Correction[] = data?.corrections || [];
 
       const { data: feedbackData } = await supabase.from("ai_feedback").insert({
         user_id: user.id, feature: "chat", response_time_ms: responseTimeMs,
@@ -266,7 +274,7 @@ const ChatPage = () => {
 
       const assistantMsg: Message = {
         role: "assistant", content: assistantContent, responseTimeMs,
-        feedbackId: feedbackData?.id, rating: null,
+        feedbackId: feedbackData?.id, rating: null, corrections,
       };
       const finalMessages = [...newMessages, assistantMsg];
       setMessages(finalMessages);
@@ -467,6 +475,34 @@ const ChatPage = () => {
                     <p className="text-sm font-semibold">{msg.content}</p>
                   )}
                 </div>
+
+                {/* Correction cards */}
+                {msg.role === "assistant" && msg.corrections && msg.corrections.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-[85%] mt-1.5 space-y-1.5"
+                  >
+                    {msg.corrections.map((c, ci) => (
+                      <div
+                        key={ci}
+                        className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-[11px]"
+                      >
+                        <div className="flex items-start gap-1.5">
+                          <span className="text-amber-600 font-bold mt-px">✏️</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="line-through text-destructive/70 font-semibold">{c.wrong}</span>
+                            <span className="mx-1.5 text-muted-foreground">→</span>
+                            <span className="text-primary font-bold">{c.correct}</span>
+                            {c.explanation && (
+                              <p className="text-muted-foreground font-medium mt-0.5">{c.explanation}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
 
                 {msg.role === "assistant" && (
                   <div className="flex items-center gap-2 mt-1 px-1">
