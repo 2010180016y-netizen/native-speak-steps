@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment } from "@react-three/drei";
 
@@ -30,19 +30,31 @@ type Pet3DSceneProps = {
   onSwitchPet?: (petId: string) => void;
 };
 
-/** Camera smoothly follows the pet */
-function CameraFollower({ targetPos }: { targetPos: [number, number, number] }) {
+/** Camera smoothly follows target, with zoom-in override support */
+function CameraFollower({ targetPos, focusOverride }: { 
+  targetPos: [number, number, number]; 
+  focusOverride: [number, number, number] | null;
+}) {
   const { camera } = useThree();
+  const lookTarget = useRef(new THREE.Vector3(0, 0.5, -1));
 
   useFrame((_, delta) => {
-    const tx = targetPos[0] * 0.45;
-    const tz = targetPos[2] * 0.25;
+    const focus = focusOverride || targetPos;
+    const tx = focus[0] * 0.45;
+    const tz = focus[2] * 0.25;
 
-    const desired = new THREE.Vector3(tx, 4, tz + 6);
-    camera.position.lerp(desired, delta * 1.0);
+    // When focusing on an inactive pet, zoom in closer
+    const zoomIn = focusOverride !== null;
+    const camY = zoomIn ? 2.5 : 4;
+    const camZ = zoomIn ? tz + 3.5 : tz + 6;
+    const lerpSpeed = zoomIn ? delta * 2.5 : delta * 1.0;
+
+    const desired = new THREE.Vector3(tx, camY, camZ);
+    camera.position.lerp(desired, lerpSpeed);
 
     const look = new THREE.Vector3(tx, 0.5, tz - 1);
-    camera.lookAt(look);
+    lookTarget.current.lerp(look, lerpSpeed);
+    camera.lookAt(lookTarget.current);
   });
 
   return null;
@@ -134,7 +146,18 @@ export default function Pet3DScene({
   const inactivePets = pets.filter((p) => p.id !== activePet?.id);
 
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
+  const [cameraFocus, setCameraFocus] = useState<[number, number, number] | null>(null);
   const petScale = activePet ? Math.min(0.7 + (activePet.level - 1) * 0.02, 1.2) : 0.7;
+
+  // Handle switching: zoom camera to pet, then switch
+  const handleSwitchPet = useCallback((petId: string, homePos: [number, number, number]) => {
+    setCameraFocus(homePos);
+    setTimeout(() => {
+      onSwitchPet?.(petId);
+      // After switch, reset focus (new active pet will be at [0,0,0])
+      setTimeout(() => setCameraFocus(null), 300);
+    }, 600);
+  }, [onSwitchPet]);
 
   // Wander logic
   useEffect(() => {
@@ -226,7 +249,7 @@ export default function Pet3DScene({
           const homePos = getHomePosForIndex(i);
           const s = Math.min(0.7 + (pet.level - 1) * 0.02, 1.2);
           return (
-            <InactivePetWanderer key={pet.id} homePos={homePos} scale={s} species={pet.species} petTypeName={pet.petTypeName} onClick={() => onSwitchPet?.(pet.id)} />
+            <InactivePetWanderer key={pet.id} homePos={homePos} scale={s} species={pet.species} petTypeName={pet.petTypeName} onClick={() => handleSwitchPet(pet.id, homePos)} />
           );
         })}
 
@@ -243,7 +266,7 @@ export default function Pet3DScene({
         ))}
 
         {/* ─── Camera ─── */}
-        <CameraFollower targetPos={targetPos} />
+        <CameraFollower targetPos={targetPos} focusOverride={cameraFocus} />
 
       </Canvas>
 
