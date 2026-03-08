@@ -288,6 +288,7 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
           petName={activePet.name}
           petLevel={activePet.level}
           species={activePet.pet_type?.species || "dog"}
+          petTypeName={activePet.pet_type?.name}
           equippedAccessories={equippedAccessories}
           emotion={emotion}
           petAction={petAction}

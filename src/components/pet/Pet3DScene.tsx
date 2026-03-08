@@ -206,6 +206,7 @@ export default function Pet3DScene({
             targetPosition={targetPos}
             scale={petScale}
             species={species}
+            petTypeName={petTypeName}
             feeding={feeding}
           />
         </Suspense>
