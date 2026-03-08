@@ -146,7 +146,47 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
     return () => clearInterval(decay);
   }, []);
 
-  const handleTap = useCallback(() => {
+  // Fetch diary
+  const fetchDiary = useCallback(async () => {
+    if (!activePet || !user) return;
+    setDiaryLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pet-diary", {
+        body: {
+          petId: activePet.id,
+          petName: activePet.name,
+          species: activePet.pet_type?.species || "dog",
+        },
+      });
+      if (!error && data?.diary) {
+        setDiary(data.diary);
+      }
+    } catch (e) {
+      console.error("Diary fetch error:", e);
+    }
+    setDiaryLoading(false);
+  }, [activePet, user]);
+
+  // Fetch diary history
+  const fetchDiaryHistory = useCallback(async () => {
+    if (!activePet || !user) return;
+    const { data } = await supabase
+      .from("pet_diaries")
+      .select("content, mood, diary_date")
+      .eq("pet_id", activePet.id)
+      .order("diary_date", { ascending: false })
+      .limit(7);
+    if (data) setDiaryHistory(data);
+  }, [activePet, user]);
+
+  useEffect(() => {
+    if (activePet && user) {
+      fetchDiary();
+      fetchDiaryHistory();
+    }
+  }, [activePet?.id, user]);
+
+
     if (!activePet || feeding.active) return;
     setTapCount((c) => c + 1);
     setHappiness((h) => Math.min(100, h + 5));
