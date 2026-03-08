@@ -95,14 +95,27 @@ const ImportPage = () => {
         setAnalyzingDetail(false);
       }).catch(() => setAnalyzingDetail(false));
 
-      // Generate SRS cards via AI (use cleaned text)
-      setGeneratingCards(true);
+      await detailPromise;
+    } catch (err) {
+      console.error(err);
+      toast.error("분석에 실패했습니다");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  // Generate cards only for unknown items after pre-test
+  const handleGenerateCardsForUnknown = async (unknownWords: string[]) => {
+    if (!user || !profile || unknownWords.length === 0) return;
+    setGeneratingCards(true);
+    try {
       const { data, error: fnError } = await supabase.functions.invoke("generate-cards", {
         body: {
-          text: analysis.cleanedText.slice(0, 5000), // Use cleaned text
+          text: unknownWords.join(", "),
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
           targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
           level: profile.current_level,
+          wordList: unknownWords,
         },
       });
 
@@ -111,15 +124,12 @@ const ImportPage = () => {
       const cards: GeneratedCard[] = data?.cards || [];
       if (cards.length > 0) {
         setGeneratedCards(cards);
-        toast.success(`${cards.length}개 학습 카드가 생성되었어요! 📚`);
+        toast.success(`모르는 단어 기반으로 ${cards.length}개 카드 생성! 📚`);
       }
-
-      await detailPromise;
     } catch (err) {
       console.error(err);
-      toast.error("분석에 실패했습니다");
+      toast.error("카드 생성에 실패했습니다");
     } finally {
-      setAnalyzing(false);
       setGeneratingCards(false);
     }
   };
