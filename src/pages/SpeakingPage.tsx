@@ -216,8 +216,9 @@ const SpeakingPage = () => {
         },
       });
       if (error) throw error;
-      const aiMsg: Message = { role: "assistant", content: data.content };
+      const aiMsg: Message = { role: "assistant", content: data.content, corrections: [] };
       setMessages([aiMsg]);
+      saveMessageToDB("assistant", data.content);
       if (autoSpeak && data.content) {
         setTimeout(() => speak(data.content), 300);
       }
