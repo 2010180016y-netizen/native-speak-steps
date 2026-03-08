@@ -20,3 +20,15 @@ verify_jwt = false
 
 [functions.analyze-text]
 verify_jwt = false
+
+[functions.pet-diary]
+verify_jwt = false
+
+[functions.chat-feedback]
+verify_jwt = false
+
+[functions.weekly-report]
+verify_jwt = false
+
+[functions.personalized-recommendations]
+verify_jwt = false
