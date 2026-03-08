@@ -114,6 +114,9 @@ const DashboardPage = () => {
         </motion.div>
       </div>
 
+      {/* Personalized Recommendations */}
+      <PersonalizedRecommendations />
+
       {/* Pet Widget */}
       <DashboardPetWidget />
 
