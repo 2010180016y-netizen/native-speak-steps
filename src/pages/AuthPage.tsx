@@ -309,6 +309,11 @@ const AuthPage = () => {
           </div>
         </motion.div>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 };

@@ -17,6 +17,7 @@ import ProfilePage from "./pages/ProfilePage";
 import PetPage from "./pages/PetPage";
 import SpeakingPage from "./pages/SpeakingPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
