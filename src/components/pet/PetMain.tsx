@@ -537,8 +537,72 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
           ))}
         </div>
       </div>
+
+      {/* Pet Diary */}
+      <div className="duo-card mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-foreground">📔 {activePet.name}의 일기</h3>
+          {diaryHistory.length > 1 && (
+            <button
+              onClick={() => setShowDiaryHistory(!showDiaryHistory)}
+              className="text-[10px] font-bold text-primary"
+            >
+              {showDiaryHistory ? "접기" : "지난 일기 보기"}
+            </button>
+          )}
+        </div>
+
+        {/* Today's diary */}
+        {diaryLoading ? (
+          <div className="flex items-center gap-2 py-3">
+            <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="text-lg">📝</motion.span>
+            <span className="text-xs text-muted-foreground font-semibold">일기 쓰는 중...</span>
+          </div>
+        ) : diary ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-muted/50 rounded-xl p-3 border border-border"
+          >
+            <div className="flex items-start gap-2">
+              <span className="text-lg mt-0.5">{MOOD_EMOJI[diary.mood] || "📝"}</span>
+              <div>
+                <p className="text-sm font-semibold text-foreground leading-relaxed">{diary.content}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 font-bold">오늘</p>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <p className="text-xs text-muted-foreground font-semibold py-2">오늘은 아직 일기를 안 썼어요</p>
+        )}
+
+        {/* Diary history */}
+        <AnimatePresence>
+          {showDiaryHistory && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mt-3 space-y-2"
+            >
+              {diaryHistory.filter(d => d.diary_date !== diary?.diary_date).map((d, i) => (
+                <div key={i} className="bg-muted/30 rounded-lg p-2.5 border border-border/50">
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm">{MOOD_EMOJI[d.mood] || "📝"}</span>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground/80">{d.content}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 font-bold">{d.diary_date}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
+};
 };
 
 export default PetMain;
