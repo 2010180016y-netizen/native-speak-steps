@@ -1,7 +1,5 @@
-import { useRef, useMemo, useState, useEffect, Suspense, Component, ReactNode } from "react";
-import { Canvas, useFrame, useThree, useLoader } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-import * as THREE from "three";
+import { useRef, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import roomFloorImg from "@/assets/room-floor.jpg";
 import roomWallImg from "@/assets/room-wall.jpg";
 
@@ -19,185 +17,172 @@ type Pet3DRoomProps = {
   onTap: () => void;
 };
 
-// Error boundary
-class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
-  render() { return this.state.hasError ? this.props.fallback : this.props.children; }
-}
-
-function Room() {
-  const floorTex = useLoader(THREE.TextureLoader, roomFloorImg);
-  const wallTex = useLoader(THREE.TextureLoader, roomWallImg);
-
-  useMemo(() => {
-    floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
-    wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
-    wallTex.repeat.set(2, 1);
-  }, [floorTex, wallTex]);
-
-  const s = 8, h = 5;
-
-  return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[s, s]} />
-        <meshStandardMaterial map={floorTex} />
-      </mesh>
-      <mesh position={[0, h / 2, -s / 2]} receiveShadow>
-        <planeGeometry args={[s, h]} />
-        <meshStandardMaterial map={wallTex} />
-      </mesh>
-      <mesh position={[-s / 2, h / 2, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[s, h]} />
-        <meshStandardMaterial map={wallTex} side={THREE.FrontSide} />
-      </mesh>
-      <mesh position={[s / 2, h / 2, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={[s, h]} />
-        <meshStandardMaterial map={wallTex} side={THREE.FrontSide} />
-      </mesh>
-    </group>
-  );
-}
-
-function PetSprite({
-  petImageUrl,
-  petLevel,
-  petAction,
-  feeding,
-  onTap,
-}: Pick<Pet3DRoomProps, "petImageUrl" | "petLevel" | "petAction" | "feeding" | "onTap">) {
-  const meshRef = useRef<THREE.Group>(null);
-  const [targetPos, setTargetPos] = useState(new THREE.Vector3(0, 0, 0));
-  const currentPos = useRef(new THREE.Vector3(0, 0, 0));
+export default function Pet3DRoom({
+  petImageUrl, petName, petLevel, equippedAccessories, emotion, petAction, feeding, onTap,
+}: Pet3DRoomProps) {
+  const [pos, setPos] = useState({ x: 50, y: 62 });
   const [facingRight, setFacingRight] = useState(true);
+  const petSize = Math.min(100 + (petLevel - 1) * 2.5, 160);
 
-  const petTexture = useLoader(THREE.TextureLoader, petImageUrl || "/placeholder.svg");
-  const petSize = 1.2 + (petLevel - 1) * 0.03;
-
+  // Wander
   useEffect(() => {
     if (feeding) return;
-    const wander = () => {
+    const id = setInterval(() => {
       if (petAction === "walking") {
-        const nx = (Math.random() - 0.5) * 5;
-        const nz = (Math.random() - 0.5) * 5;
-        setFacingRight(nx > currentPos.current.x);
-        setTargetPos(new THREE.Vector3(nx, 0, nz));
+        const nx = 15 + Math.random() * 70;
+        const ny = 55 + Math.random() * 20;
+        setFacingRight(nx > pos.x);
+        setPos({ x: nx, y: ny });
       }
-    };
-    const id = setInterval(wander, 3000 + Math.random() * 2000);
+    }, 3000 + Math.random() * 2000);
     return () => clearInterval(id);
   }, [petAction, feeding]);
 
-  useFrame((_, delta) => {
-    if (!meshRef.current) return;
-    const speed = petAction === "walking" ? 1.2 : 0.5;
-    currentPos.current.lerp(targetPos, delta * speed);
-    meshRef.current.position.x = currentPos.current.x;
-    meshRef.current.position.z = currentPos.current.z;
-
-    const t = Date.now() * 0.001;
-    if (petAction === "walking") {
-      meshRef.current.position.y = petSize / 2 + Math.abs(Math.sin(t * 4)) * 0.15;
-    } else if (petAction === "sleeping") {
-      meshRef.current.position.y = petSize / 2 + Math.sin(t * 1.5) * 0.05;
-    } else if (petAction === "playing") {
-      meshRef.current.position.y = petSize / 2 + Math.abs(Math.sin(t * 6)) * 0.25;
-    } else if (feeding) {
-      meshRef.current.position.y = petSize / 2 + Math.sin(t * 8) * 0.1;
-      meshRef.current.rotation.z = Math.sin(t * 6) * 0.1;
-    } else {
-      meshRef.current.position.y = petSize / 2 + Math.sin(t * 2) * 0.06;
-      meshRef.current.rotation.z = 0;
-    }
-  });
+  if (!petImageUrl) return null;
 
   return (
-    <group ref={meshRef} position={[0, petSize / 2, 0]} onClick={(e) => { e.stopPropagation(); onTap(); }}>
-      {/* Pet billboard - always faces camera */}
-      <mesh scale={[facingRight ? petSize : -petSize, petSize, 1]}>
-        <planeGeometry args={[1, 1]} />
-        <meshStandardMaterial map={petTexture} transparent alphaTest={0.1} side={THREE.DoubleSide} />
-      </mesh>
-
-      {/* Ground shadow */}
-      <mesh position={[0, -petSize / 2 + 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[petSize * 0.4, 32]} />
-        <meshStandardMaterial color="#000000" transparent opacity={0.15} />
-      </mesh>
-    </group>
-  );
-}
-
-function CameraSetup() {
-  const { camera } = useThree();
-  useEffect(() => {
-    camera.position.set(0, 5, 6);
-    camera.lookAt(0, 0, 0);
-  }, [camera]);
-  return null;
-}
-
-function Scene(props: Pet3DRoomProps) {
-  return (
-    <>
-      <CameraSetup />
-      <color attach="background" args={["#2d2418"]} />
-      <fog attach="fog" args={["#2d2418", 8, 16]} />
-      <ambientLight intensity={0.4} color="#ffeedd" />
-      <directionalLight position={[3, 6, 3]} intensity={1.2} color="#fff5e0" castShadow />
-      <pointLight position={[-3, 3, 2]} intensity={0.5} color="#ffcc88" />
-      <pointLight position={[2, 2, -2]} intensity={0.3} color="#aaddff" />
-
-      <Suspense fallback={null}>
-        <Room />
-        <PetSprite
-          petImageUrl={props.petImageUrl}
-          petLevel={props.petLevel}
-          petAction={props.petAction}
-          feeding={props.feeding}
-          onTap={props.onTap}
-        />
-      </Suspense>
-
-      <OrbitControls
-        enablePan={false}
-        enableZoom={false}
-        minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 2.5}
-        minAzimuthAngle={-Math.PI / 4}
-        maxAzimuthAngle={Math.PI / 4}
-        target={[0, 0.5, 0]}
-      />
-    </>
-  );
-}
-
-export default function Pet3DRoom(props: Pet3DRoomProps) {
-  if (!props.petImageUrl) return null;
-
-  const fallback = (
     <div
-      className="w-full rounded-2xl overflow-hidden border-2 border-border flex items-center justify-center"
-      style={{ height: 320, background: "hsl(var(--muted))" }}
+      className="w-full rounded-2xl overflow-hidden border-2 border-border shadow-lg cursor-pointer select-none relative"
+      style={{ height: 320, perspective: "800px" }}
+      onClick={onTap}
     >
-      <p className="text-sm text-muted-foreground font-semibold">3D 로딩 실패 — 새로고침해 주세요</p>
-    </div>
-  );
+      {/* CSS 3D Room */}
+      <div className="absolute inset-0" style={{ transformStyle: "preserve-3d", transform: "rotateX(15deg) translateY(-10px)" }}>
+        {/* Back wall */}
+        <div
+          className="absolute inset-x-0 top-0"
+          style={{
+            height: "60%",
+            backgroundImage: `url(${roomWallImg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            transform: "translateZ(-20px)",
+            filter: "brightness(0.85)",
+          }}
+        />
 
-  return (
-    <ErrorBoundary fallback={fallback}>
-      <div
-        className="w-full rounded-2xl overflow-hidden border-2 border-border shadow-lg relative"
-        style={{ height: 320, background: "#1a1510" }}
-      >
-        <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, alpha: false }}>
-          <Scene {...props} />
-        </Canvas>
-        <div className="absolute bottom-2 right-3 text-[10px] font-semibold text-white/40 pointer-events-none">
-          👆 터치해서 쓰다듬기 · 🔄 드래그로 시점 변경
-        </div>
+        {/* Floor */}
+        <div
+          className="absolute inset-x-0 bottom-0"
+          style={{
+            height: "55%",
+            backgroundImage: `url(${roomFloorImg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center top",
+            transform: "rotateX(25deg) translateZ(10px)",
+            transformOrigin: "center top",
+          }}
+        />
       </div>
-    </ErrorBoundary>
+
+      {/* Gradient overlay for depth */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.15) 100%)",
+      }} />
+
+      {/* Vignette */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        boxShadow: "inset 0 0 60px rgba(0,0,0,0.3)",
+        borderRadius: "inherit",
+      }} />
+
+      {/* Speech bubble */}
+      <AnimatePresence>
+        {emotion && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.8 }}
+            className="absolute z-20 bg-card border-2 border-border rounded-2xl px-3 py-2 shadow-md"
+            style={{
+              left: `${pos.x}%`, top: `${pos.y - 24}%`,
+              transform: "translate(-50%, -100%)", maxWidth: "160px",
+            }}
+          >
+            <p className="text-xs font-bold text-foreground whitespace-nowrap">
+              {emotion.emoji} {emotion.text}
+            </p>
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-r-2 border-b-2 border-border rotate-45" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pet character */}
+      <motion.div
+        className="absolute z-10"
+        animate={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+        transition={{ duration: petAction === "walking" ? 2 : 0.3, ease: "easeInOut" }}
+        style={{ transform: "translate(-50%, -50%)" }}
+      >
+        {/* Action indicator */}
+        {petAction === "sleeping" && !feeding && (
+          <motion.div className="absolute -top-4 left-1/2 -translate-x-1/2 text-sm"
+            animate={{ y: [0, -3, 0], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 2, repeat: Infinity }}>💤</motion.div>
+        )}
+        {petAction === "walking" && !emotion && (
+          <motion.div className="absolute -top-4 left-1/2 -translate-x-1/2 text-sm"
+            animate={{ y: [0, -3, 0], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 1.5, repeat: Infinity }}>🐾</motion.div>
+        )}
+
+        <motion.div
+          animate={
+            feeding ? { scale: [1, 1.1, 0.95, 1.05, 1], rotate: [0, -5, 5, -3, 0], y: [0, -5, 0, -3, 0] }
+            : petAction === "sleeping" ? { y: [0, -2, 0], rotate: [0, 2, 0] }
+            : petAction === "walking" ? { y: [0, -8, 0], rotate: [0, -2, 0, 2, 0] }
+            : petAction === "playing" ? { y: [0, -12, 0], scale: [1, 1.05, 1] }
+            : { y: [0, -6, 0] }
+          }
+          transition={
+            feeding ? { duration: 1, ease: "easeInOut", repeat: 1 }
+            : petAction === "sleeping" ? { duration: 3, repeat: Infinity, ease: "easeInOut" }
+            : { duration: 2, repeat: Infinity, ease: "easeInOut" }
+          }
+          style={{ width: petSize, height: petSize, transform: `scaleX(${facingRight ? 1 : -1})` }}
+        >
+          <img
+            src={petImageUrl}
+            alt={petName}
+            className="w-full h-full rounded-3xl object-cover shadow-xl border-2 border-border/50"
+            draggable={false}
+          />
+
+          {/* Shadow */}
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3/4 h-3 rounded-full bg-black/20 blur-sm" />
+
+          {/* Accessories */}
+          {equippedAccessories.map((acc, i) => (
+            <div key={i} className="absolute pointer-events-none select-none"
+              style={{
+                fontSize: petSize * 0.25,
+                ...(acc.position === "top" ? { top: -4, left: "50%", transform: "translateX(-50%)" } : {}),
+                ...(acc.position === "face" ? { top: "28%", left: "50%", transform: "translateX(-50%)" } : {}),
+                ...(acc.position === "neck" ? { bottom: 4, left: "50%", transform: "translateX(-50%)" } : {}),
+                ...(acc.position === "back" ? { top: -2, right: -6 } : {}),
+              }}>
+              {acc.emoji}
+            </div>
+          ))}
+        </motion.div>
+      </motion.div>
+
+      {/* Feeding particles */}
+      <AnimatePresence>
+        {feeding && [...Array(8)].map((_, i) => (
+          <motion.div key={i} className="absolute z-30 text-lg pointer-events-none"
+            initial={{ top: "50%", left: "50%", opacity: 0, scale: 0 }}
+            animate={{ top: `${10 + Math.random() * 40}%`, left: `${15 + Math.random() * 70}%`, opacity: [0, 1, 0], scale: [0, 1.2, 0], rotate: [0, Math.random() * 360] }}
+            transition={{ duration: 1.2, delay: 0.3 + i * 0.08, ease: "easeOut" }}>
+            {["✨", "💕", "⭐", "🎉", "💖", "😋", "🌟", "💫"][i]}
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* Hint */}
+      <div className="absolute bottom-2 right-3 text-[10px] font-semibold text-white/40 pointer-events-none">
+        👆 터치해서 쓰다듬기
+      </div>
+    </div>
   );
 }
