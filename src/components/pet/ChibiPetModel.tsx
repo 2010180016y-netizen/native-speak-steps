@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState, useEffect } from "react";
+import { useRef, useMemo, useState, useEffect, forwardRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -136,7 +136,7 @@ function ChibiEar({ side, config }: { side: "left" | "right"; config: BreedConfi
 }
 
 /** Chibi tail */
-function ChibiTail({ config }: { config: BreedConfig }) {
+const ChibiTail = forwardRef<THREE.Group, { config: BreedConfig }>(function ChibiTail({ config }, ref) {
   const mat = useMemo(() => new THREE.MeshToonMaterial({ color: config.bodyColor }), [config.bodyColor]);
   
   if (config.tailType === "curly") {
@@ -183,7 +183,7 @@ function ChibiTail({ config }: { config: BreedConfig }) {
       </mesh>
     </group>
   );
-}
+});
 
 /** Expression-based eyes */
 function ChibiEyes({ expression, eyeColor, side }: { expression: PetExpression; eyeColor: string; side: "left" | "right" }) {

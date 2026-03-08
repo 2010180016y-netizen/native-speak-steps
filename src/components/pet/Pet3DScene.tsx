@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useCallback, useRef } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef, forwardRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment } from "@react-three/drei";
 
@@ -70,13 +70,13 @@ function LoadingFallback() {
 }
 
 /** Inactive pet that wanders slowly around its home zone */
-function InactivePetWanderer({ homePos, scale, species, petTypeName, onClick }: {
+const InactivePetWanderer = forwardRef<THREE.Group, {
   homePos: [number, number, number];
   scale: number;
   species: string;
   petTypeName?: string;
   onClick?: () => void;
-}) {
+}>(function InactivePetWanderer({ homePos, scale, species, petTypeName, onClick }, ref) {
   const [action, setAction] = useState<"idle" | "walking" | "sleeping">("idle");
   const [target, setTarget] = useState<[number, number, number]>(homePos);
 
@@ -116,7 +116,7 @@ function InactivePetWanderer({ homePos, scale, species, petTypeName, onClick }: 
       />
     </group>
   );
-}
+});
 
 // Generate a stable "home" position for inactive pets so they stay in fixed spots
 function getHomePosForIndex(index: number): [number, number, number] {
