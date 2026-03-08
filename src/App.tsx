@@ -16,6 +16,7 @@ import StatsPage from "./pages/StatsPage";
 import ProfilePage from "./pages/ProfilePage";
 import PetPage from "./pages/PetPage";
 import SpeakingPage from "./pages/SpeakingPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/pet" element={<ProtectedRoute><PetPage /></ProtectedRoute>} />
             <Route path="/speaking" element={<ProtectedRoute><SpeakingPage /></ProtectedRoute>} />
+            <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
