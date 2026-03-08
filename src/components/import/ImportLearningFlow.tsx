@@ -119,9 +119,17 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
       setShowWordAnswer(false);
     } else {
       // Batch complete
-      const knownCount = Array.from(learnedWords.values()).filter(v => v).length + (known ? 1 : 0);
-      toast.success(`단어 학습 완료! ${knownCount}/${currentWordBatch.length}개 알고 있음`);
+      const allLearned = new Map(learnedWords).set(currentWord.word, known);
+      const knownCount = Array.from(allLearned.values()).filter(v => v).length;
+      const unknownItems = Array.from(allLearned.entries()).filter(([_, v]) => !v).map(([k]) => k);
+      
+      toast.success(`사전 테스트 완료! ${knownCount}/${currentWordBatch.length}개 알고 있음`);
       onComplete?.("word", currentWordBatch.length);
+      
+      // Trigger card generation for unknown words
+      if (unknownItems.length > 0 && onUnknownWordsReady) {
+        onUnknownWordsReady(unknownItems);
+      }
       
       // Auto advance to next batch
       if (wordBatchIndex < totalWordBatches - 1) {
@@ -131,9 +139,9 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
           setLearnedWords(new Map());
           setShowWordAnswer(false);
           toast.info(`다음 단어 배치 시작! (${wordBatchIndex + 2}/${totalWordBatches})`);
-        }, 1500);
+        }, 2000);
       } else {
-        toast.success("🎉 모든 단어 학습 완료!");
+        toast.success("🎉 모든 단어 사전 테스트 완료!");
       }
     }
   };
