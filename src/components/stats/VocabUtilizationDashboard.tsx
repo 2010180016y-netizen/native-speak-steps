@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { motion } from "framer-motion";
-import { BookCheck, AlertCircle, CheckCircle2, RefreshCw, TrendingUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { BookCheck, AlertCircle, CheckCircle2, RefreshCw, TrendingUp, Sparkles, Loader2, X } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "sonner";
 
