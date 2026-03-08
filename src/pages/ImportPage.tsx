@@ -3,10 +3,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield } from "lucide-react";
+import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import DialogueRolePlay, { type DialogueLine } from "@/components/dialogue/DialogueRolePlay";
 import AnalysisDashboard, { type TextAnalysis } from "@/components/analysis/AnalysisDashboard";
+import ImportLearningFlow from "@/components/import/ImportLearningFlow";
 import { analyzeTextContent, maskSensitiveData, splitIntoChunks } from "@/lib/textProcessor";
 
 const LANG_NAMES: Record<string, string> = {
