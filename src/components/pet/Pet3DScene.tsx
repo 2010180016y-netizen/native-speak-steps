@@ -143,6 +143,7 @@ export default function Pet3DScene({
   petName,
   petLevel,
   species,
+  petTypeName,
   equippedAccessories,
   emotion,
   petAction,
