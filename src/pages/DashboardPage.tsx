@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { checkAndAwardMilestone } from "@/lib/milestones";
 import { toast } from "sonner";
 import DashboardPetWidget from "@/components/dashboard/DashboardPetWidget";
+import PersonalizedRecommendations from "@/components/dashboard/PersonalizedRecommendations";
 
 const LANG_NAMES: Record<string, string> = {
   ko: "한국어", en: "English", ja: "日本語", zh: "中文",
