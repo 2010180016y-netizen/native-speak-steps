@@ -1,10 +1,9 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserPet, PetItem, UserPoints } from "@/hooks/usePet";
-
-const Pet3DRoom = lazy(() => import("./Pet3DRoom"));
+import Pet3DRoom from "./Pet3DRoom";
 
 type Props = {
   activePet: UserPet | null;
