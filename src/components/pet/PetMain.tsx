@@ -445,7 +445,7 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
               >
                 {acc.emoji}
               </div>
-            ))
+            )}
 
             {/* Eating animation */}
             <AnimatePresence>
