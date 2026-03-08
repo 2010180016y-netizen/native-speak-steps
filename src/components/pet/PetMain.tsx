@@ -13,6 +13,7 @@ type Props = {
   items: PetItem[];
   points: UserPoints | null;
   feedPet: (itemId: string) => Promise<boolean>;
+  switchPet: (petId: string) => Promise<void>;
   loading: boolean;
 };
 
@@ -94,7 +95,7 @@ const MOOD_EMOJI: Record<string, string> = {
   happy: "😊", proud: "🥰", lonely: "🥺", sleepy: "😴", excited: "🤩", neutral: "📝",
 };
 
-const PetMain = ({ activePet, pets, items, points, feedPet, loading }: Props) => {
+const PetMain = ({ activePet, pets, items, points, feedPet, switchPet, loading }: Props) => {
   const { user } = useAuth();
   const [feeding, setFeeding] = useState<FeedingState>({ active: false, emoji: "", itemName: "" });
   const [petAction, setPetAction] = useState<PetAction>("idle");
@@ -335,6 +336,7 @@ const PetMain = ({ activePet, pets, items, points, feedPet, loading }: Props) =>
           feeding={feeding.active}
           expression={deriveExpression(emotion, petAction, feeding.active, hunger, happiness)}
           onTap={handleTap}
+          onSwitchPet={switchPet}
         />
 
         {/* Speech bubble overlay (on top of 3D canvas) */}

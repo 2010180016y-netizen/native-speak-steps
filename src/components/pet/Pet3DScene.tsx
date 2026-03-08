@@ -27,6 +27,7 @@ type Pet3DSceneProps = {
   feeding: boolean;
   expression?: PetExpression;
   onTap: () => void;
+  onSwitchPet?: (petId: string) => void;
 };
 
 /** Camera smoothly follows the pet */
@@ -57,11 +58,12 @@ function LoadingFallback() {
 }
 
 /** Inactive pet that wanders slowly around its home zone */
-function InactivePetWanderer({ homePos, scale, species, petTypeName }: {
+function InactivePetWanderer({ homePos, scale, species, petTypeName, onClick }: {
   homePos: [number, number, number];
   scale: number;
   species: string;
   petTypeName?: string;
+  onClick?: () => void;
 }) {
   const [action, setAction] = useState<"idle" | "walking" | "sleeping">("idle");
   const [target, setTarget] = useState<[number, number, number]>(homePos);
@@ -90,15 +92,17 @@ function InactivePetWanderer({ homePos, scale, species, petTypeName }: {
   }, [homePos]);
 
   return (
-    <ChibiPetModel
-      action={action}
-      position={homePos}
-      targetPosition={target}
-      scale={scale}
-      species={species}
-      petTypeName={petTypeName}
-      feeding={false}
-    />
+    <group onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
+      <ChibiPetModel
+        action={action}
+        position={homePos}
+        targetPosition={target}
+        scale={scale}
+        species={species}
+        petTypeName={petTypeName}
+        feeding={false}
+      />
+    </group>
   );
 }
 
@@ -124,6 +128,7 @@ export default function Pet3DScene({
   feeding,
   expression,
   onTap,
+  onSwitchPet,
 }: Pet3DSceneProps) {
   const activePet = pets.find((p) => p.isActive) || pets[0];
   const inactivePets = pets.filter((p) => p.id !== activePet?.id);
@@ -221,7 +226,7 @@ export default function Pet3DScene({
           const homePos = getHomePosForIndex(i);
           const s = Math.min(0.7 + (pet.level - 1) * 0.02, 1.2);
           return (
-            <InactivePetWanderer key={pet.id} homePos={homePos} scale={s} species={pet.species} petTypeName={pet.petTypeName} />
+            <InactivePetWanderer key={pet.id} homePos={homePos} scale={s} species={pet.species} petTypeName={pet.petTypeName} onClick={() => onSwitchPet?.(pet.id)} />
           );
         })}
 
