@@ -284,8 +284,7 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
       <div className="relative mb-4">
-        <Pet3DRoom
-          petImageUrl={activePet.image_url || activePet.pet_type?.base_image_url || null}
+        <Pet3DScene
           petName={activePet.name}
           petLevel={activePet.level}
           species={activePet.pet_type?.species || "dog"}
