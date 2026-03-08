@@ -10,11 +10,17 @@ import * as THREE from "three";
 
 type PetAction = "idle" | "walking" | "sleeping" | "playing" | "eating";
 
-type Pet3DSceneProps = {
-  petName: string;
-  petLevel: number;
+export type ScenePet = {
+  id: string;
+  name: string;
+  level: number;
   species: string;
   petTypeName?: string;
+  isActive: boolean;
+};
+
+type Pet3DSceneProps = {
+  pets: ScenePet[];
   equippedAccessories: { emoji: string; position: string; name?: string; category?: string }[];
   emotion: { emoji: string; text: string } | null;
   petAction: PetAction;
