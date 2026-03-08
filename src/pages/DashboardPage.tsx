@@ -40,6 +40,14 @@ const DashboardPage = () => {
         cardsToReview: cardsRes.data?.length || 0,
         streak: profile?.streak_days || 0,
       });
+
+      // Check milestone rewards
+      if (profile?.streak_days) {
+        const milestone = await checkAndAwardMilestone(user.id, profile.streak_days);
+        if (milestone) {
+          toast.success(`${milestone.badge} ${milestone.name} 달성! +${milestone.points}P`);
+        }
+      }
     };
     fetchStats();
   }, [user, profile]);
