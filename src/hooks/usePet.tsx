@@ -229,6 +229,11 @@ export const usePet = () => {
 
     if (leveledUp) {
       toast.success(`🎉 레벨 업! Lv.${newLevel}!`);
+      // Check if we hit an image milestone
+      const species = activePet.pet_type?.species || "dog";
+      if (IMAGE_MILESTONES.includes(newLevel)) {
+        generatePetImage(activePet.id, species, activePet.name, newLevel);
+      }
     } else {
       toast.success(`${item.emoji} ${item.name}을(를) 줬어요!`);
     }
