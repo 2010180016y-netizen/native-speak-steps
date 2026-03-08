@@ -13,14 +13,12 @@ export type SpeakingMessage = {
 export type SpeakingPhase = "setup" | "incoming" | "call" | "feedback";
 
 export interface SpeakingFeedbackData {
-  overallScore?: number;
-  grammar?: {
-    score?: number;
-    errors?: Array<{ original: string; corrected: string; explanation?: string }>;
-  };
-  pronunciation?: { score?: number; feedback?: string };
-  vocabulary?: { score?: number; feedback?: string };
-  fluency?: { score?: number; feedback?: string };
+  overallScore: number;
+  grammar: { score: number; errors: { original: string; corrected: string; explanation: string }[] };
+  pronunciation: { score: number; comments: string[] };
+  vocabulary: { score: number; comments: string[]; newWordsUsed: string[] };
+  fluency: { score: number; comments: string[] };
+  tips: string[];
   summary?: string;
   strengths?: string[];
   improvements?: string[];
