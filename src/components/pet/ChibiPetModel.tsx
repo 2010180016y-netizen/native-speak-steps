@@ -185,7 +185,186 @@ function ChibiTail({ config }: { config: BreedConfig }) {
   );
 }
 
-export default function ChibiPetModel({
+/** Expression-based eyes */
+function ChibiEyes({ expression, eyeColor, side }: { expression: PetExpression; eyeColor: string; side: "left" | "right" }) {
+  const xSign = side === "left" ? -1 : 1;
+  const x = xSign * 0.11;
+
+  const whiteMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#ffffff" }), []);
+  const pupilMat = useMemo(() => new THREE.MeshToonMaterial({ color: eyeColor }), [eyeColor]);
+  const highlightMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#ffffff", emissive: "#ffffff", emissiveIntensity: 0.5 }), []);
+  const heartMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#ff4488" }), []);
+  const starMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#ffcc00", emissive: "#ffaa00", emissiveIntensity: 0.3 }), []);
+  const sadMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#5588cc" }), []);
+  const angryMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#cc3333" }), []);
+  const sparkleMat = useMemo(() => new THREE.MeshToonMaterial({ color: "#aa66ff", emissive: "#8844dd", emissiveIntensity: 0.4 }), []);
+
+  if (expression === "heart") {
+    // Heart-shaped eyes: two overlapping spheres forming a heart
+    return (
+      <group position={[x, 0.04, 0.24]}>
+        <mesh material={heartMat} position={[-0.02, 0.015, 0]}>
+          <sphereGeometry args={[0.04, 10, 10]} />
+        </mesh>
+        <mesh material={heartMat} position={[0.02, 0.015, 0]}>
+          <sphereGeometry args={[0.04, 10, 10]} />
+        </mesh>
+        <mesh material={heartMat} position={[0, -0.015, 0]}>
+          <coneGeometry args={[0.045, 0.05, 8]} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (expression === "star") {
+    // Star eyes: bright star shape (approximated with rotated boxes)
+    return (
+      <group position={[x, 0.04, 0.24]}>
+        <mesh material={starMat}>
+          <boxGeometry args={[0.09, 0.03, 0.01]} />
+        </mesh>
+        <mesh material={starMat} rotation={[0, 0, Math.PI / 3]}>
+          <boxGeometry args={[0.09, 0.03, 0.01]} />
+        </mesh>
+        <mesh material={starMat} rotation={[0, 0, -Math.PI / 3]}>
+          <boxGeometry args={[0.09, 0.03, 0.01]} />
+        </mesh>
+        <mesh material={highlightMat} position={[0, 0, 0.01]}>
+          <sphereGeometry args={[0.015, 6, 6]} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (expression === "sad") {
+    // Teary eyes: normal eye + teardrop below
+    return (
+      <group position={[x, 0.04, 0.22]}>
+        <mesh material={whiteMat}>
+          <sphereGeometry args={[0.07, 12, 12]} />
+        </mesh>
+        <mesh material={pupilMat} position={[0, -0.02, 0.04]}>
+          <sphereGeometry args={[0.045, 10, 10]} />
+        </mesh>
+        {/* Teardrop */}
+        <mesh material={sadMat} position={[xSign * 0.03, -0.08, 0.02]}>
+          <sphereGeometry args={[0.02, 8, 8]} />
+        </mesh>
+        <mesh material={sadMat} position={[xSign * 0.03, -0.06, 0.02]}>
+          <coneGeometry args={[0.015, 0.03, 6]} />
+        </mesh>
+        {/* Droopy eyebrow */}
+        <mesh material={pupilMat} position={[0, 0.08, 0.04]} rotation={[0, 0, xSign * 0.3]}>
+          <boxGeometry args={[0.08, 0.015, 0.01]} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (expression === "angry") {
+    // Angry eyes: sharp angled eyebrows, narrow eyes
+    return (
+      <group position={[x, 0.04, 0.22]}>
+        <mesh material={whiteMat} scale={[1, 0.6, 1]}>
+          <sphereGeometry args={[0.07, 12, 12]} />
+        </mesh>
+        <mesh material={angryMat} position={[0, 0, 0.04]}>
+          <sphereGeometry args={[0.045, 10, 10]} />
+        </mesh>
+        {/* Angry eyebrow */}
+        <mesh material={angryMat} position={[0, 0.08, 0.04]} rotation={[0, 0, xSign * -0.4]}>
+          <boxGeometry args={[0.1, 0.02, 0.01]} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (expression === "happy") {
+    // Happy closed eyes: curved line (^_^)
+    return (
+      <group position={[x, 0.04, 0.24]}>
+        <mesh material={pupilMat} rotation={[0, 0, xSign * 0.1]}>
+          <torusGeometry args={[0.04, 0.01, 8, 12, Math.PI]} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (expression === "sleepy") {
+    // Half-closed droopy eyes
+    return (
+      <group position={[x, 0.02, 0.22]}>
+        <mesh material={whiteMat} scale={[1, 0.35, 1]}>
+          <sphereGeometry args={[0.07, 12, 12]} />
+        </mesh>
+        <mesh material={pupilMat} position={[0, -0.01, 0.04]} scale={[1, 0.5, 1]}>
+          <sphereGeometry args={[0.04, 10, 10]} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (expression === "surprised") {
+    // Big round eyes
+    return (
+      <group position={[x, 0.04, 0.22]}>
+        <mesh material={whiteMat}>
+          <sphereGeometry args={[0.09, 14, 14]} />
+        </mesh>
+        <mesh material={pupilMat} position={[0, 0, 0.05]}>
+          <sphereGeometry args={[0.04, 10, 10]} />
+        </mesh>
+        <mesh material={highlightMat} position={[0.025, 0.025, 0.08]}>
+          <sphereGeometry args={[0.025, 6, 6]} />
+        </mesh>
+        <mesh material={highlightMat} position={[-0.015, -0.01, 0.08]}>
+          <sphereGeometry args={[0.012, 6, 6]} />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (expression === "sparkle") {
+    // Sparkly eyes with purple tint
+    return (
+      <group position={[x, 0.04, 0.22]}>
+        <mesh material={whiteMat}>
+          <sphereGeometry args={[0.08, 14, 14]} />
+        </mesh>
+        <mesh material={sparkleMat} position={[0, 0, 0.04]}>
+          <sphereGeometry args={[0.055, 10, 10]} />
+        </mesh>
+        {/* Multiple highlights for sparkle effect */}
+        <mesh material={highlightMat} position={[0.02, 0.025, 0.07]}>
+          <sphereGeometry args={[0.02, 6, 6]} />
+        </mesh>
+        <mesh material={highlightMat} position={[-0.02, 0.0, 0.07]}>
+          <sphereGeometry args={[0.013, 6, 6]} />
+        </mesh>
+        <mesh material={highlightMat} position={[0.005, -0.02, 0.07]}>
+          <sphereGeometry args={[0.008, 6, 6]} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // Normal eyes
+  return (
+    <group position={[x, 0.04, 0.22]}>
+      <mesh material={whiteMat}>
+        <sphereGeometry args={[0.07, 12, 12]} />
+      </mesh>
+      <mesh material={pupilMat} position={[0, 0, 0.04]}>
+        <sphereGeometry args={[0.05, 10, 10]} />
+      </mesh>
+      <mesh material={highlightMat} position={[0.02, 0.02, 0.07]}>
+        <sphereGeometry args={[0.02, 6, 6]} />
+      </mesh>
+    </group>
+  );
+}
+
+
   action,
   position,
   targetPosition,
