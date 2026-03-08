@@ -484,7 +484,19 @@ const SpeakingPage = () => {
   if (phase === "feedback" && feedback) {
     return (
       <AppLayout>
-        <SpeakingFeedback feedback={feedback} onClose={resetToSetup} />
+        <SpeakingFeedback
+          feedback={feedback}
+          onClose={resetToSetup}
+          callInfo={persona && scenario ? {
+            callerName,
+            gender: persona.gender,
+            occupation: persona.occupation,
+            personality: persona.personality,
+            scenarioLabel: scenario.label,
+            scenarioEmoji: scenario.emoji,
+            durationSeconds: callDuration,
+          } : undefined}
+        />
       </AppLayout>
     );
   }
