@@ -28,10 +28,42 @@ type DailyData = {
   syncRate: number;
 };
 
+type TabId = "learning" | "syncgap" | "srshealth" | "vocabutil" | "growthmap" | "activity" | "time" | "performance" | "chat";
+
+type CategoryId = "overview" | "vocabulary" | "activity";
+
+const TAB_GROUPS: { id: CategoryId; label: string; icon: React.ReactNode; tabs: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
+  {
+    id: "overview", label: "개요", icon: <BarChart3 size={14} />,
+    tabs: [
+      { id: "learning", label: "학습", icon: <BarChart3 size={13} /> },
+      { id: "performance", label: "성과", icon: <Target size={13} /> },
+      { id: "chat", label: "회화", icon: <MessagesSquare size={13} /> },
+    ],
+  },
+  {
+    id: "vocabulary", label: "어휘", icon: <BookCheck size={14} />,
+    tabs: [
+      { id: "srshealth", label: "SRS 건강", icon: <Heart size={13} /> },
+      { id: "syncgap", label: "동기화 갭", icon: <Radar size={13} /> },
+      { id: "vocabutil", label: "활용률", icon: <BookCheck size={13} /> },
+      { id: "growthmap", label: "성장맵", icon: <Map size={13} /> },
+    ],
+  },
+  {
+    id: "activity", label: "활동", icon: <Activity size={14} />,
+    tabs: [
+      { id: "activity", label: "활동 로그", icon: <Activity size={13} /> },
+      { id: "time", label: "시간 분석", icon: <Clock size={13} /> },
+    ],
+  },
+];
+
 const StatsPage = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [activeTab, setActiveTab] = useState<"learning" | "syncgap" | "srshealth" | "vocabutil" | "growthmap" | "activity" | "time" | "performance" | "chat">("learning");
+  const [activeTab, setActiveTab] = useState<TabId>("learning");
+  const [activeCategory, setActiveCategory] = useState<CategoryId>("overview");
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
 
