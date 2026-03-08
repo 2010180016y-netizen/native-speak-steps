@@ -64,6 +64,31 @@ const PET_REACTIONS = [
   { emoji: "☺️", text: "헤헤~" },
 ];
 
+// Derive pet expression from current state
+function deriveExpression(
+  emotion: { emoji: string; text: string } | null,
+  petAction: string,
+  feeding: boolean,
+  hunger: number,
+  happiness: number,
+): PetExpression {
+  if (feeding) return "heart";
+  if (emotion) {
+    const e = emotion.emoji;
+    if (["😍", "🥰", "💖", "💕"].includes(e)) return "heart";
+    if (["🤩", "⭐", "🌟", "✨"].includes(e)) return "star";
+    if (["😢", "🥺", "😭", "😔"].includes(e)) return "sad";
+    if (["😆", "🎉", "😋"].includes(e)) return "happy";
+    if (["😊", "☺️", "💤"].includes(e)) return "sparkle";
+  }
+  if (hunger < 20) return "sad";
+  if (happiness < 20) return "sad";
+  if (happiness > 85) return "sparkle";
+  if (petAction === "sleeping") return "sleepy";
+  if (petAction === "playing") return "star";
+  if (petAction === "eating") return "happy";
+  return "normal";
+}
 
 const MOOD_EMOJI: Record<string, string> = {
   happy: "😊", proud: "🥰", lonely: "🥺", sleepy: "😴", excited: "🤩", neutral: "📝",
