@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Eye, EyeOff, Sparkles, Globe, BookOpen, Trophy } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
+import ForgotPasswordModal from "@/components/auth/ForgotPasswordModal";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);

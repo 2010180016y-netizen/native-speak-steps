@@ -79,8 +79,8 @@ const ForgotPasswordModal = ({ isOpen, onClose }: ForgotPasswordModalProps) => {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center py-6"
               >
-                <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+                <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-lg font-bold text-foreground mb-2">
                   이메일을 확인해주세요!
