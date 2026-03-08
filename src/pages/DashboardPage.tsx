@@ -14,6 +14,7 @@ import { useReminder } from "@/hooks/useReminder";
 import WeeklyReportWidget from "@/components/dashboard/WeeklyReportWidget";
 import GoalProgressWidget from "@/components/dashboard/GoalProgressWidget";
 import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
+import DashboardSpeakingWidget from "@/components/dashboard/DashboardSpeakingWidget";
 
 const LANGUAGES = [
   { code: "ko", label: "한국어", flag: "🇰🇷" },
