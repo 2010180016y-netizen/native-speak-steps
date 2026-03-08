@@ -110,24 +110,23 @@ export default function PetModel({
     );
   }, [species, modelPath, animations]);
 
-  // Apply species-based color tint
+  // Apply breed-based color tint
   useEffect(() => {
-    const tint = SPECIES_TINT[species];
+    const tint = BREED_TINT[breed];
     if (!tint) return;
 
-    const color = new THREE.Color(tint);
+    const color = new THREE.Color(tint.color);
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
           const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
-          const strength = species === "golden_retriever" ? 0.7 : 0.35;
-          mat.color.lerp(color, strength);
+          mat.color.lerp(color, tint.strength);
           mesh.material = mat;
         }
       }
     });
-  }, [clonedScene, species]);
+  }, [clonedScene, breed]);
 
   // Switch animations based on action
   useEffect(() => {
