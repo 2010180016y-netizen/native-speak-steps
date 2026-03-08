@@ -221,6 +221,8 @@ const StatsPage = () => {
 
       {activeTab === "syncgap" ? (
         user ? <SyncGapDashboard userId={user.id} /> : null
+      ) : activeTab === "srshealth" ? (
+        user ? <SrsHealthDashboard userId={user.id} /> : null
       ) : activeTab === "activity" ? (
         user ? <ActivityLogDashboard userId={user.id} /> : null
       ) : activeTab === "time" ? (
