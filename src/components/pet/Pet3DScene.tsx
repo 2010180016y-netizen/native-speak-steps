@@ -1,6 +1,6 @@
 import { Suspense, useState, useEffect, useRef } from "react";
-import { Canvas } from "@react-three/fiber";
-import { ContactShadows, OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { ContactShadows } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import PetModel from "./PetModel";
 import Pet3DAccessory from "./Pet3DAccessory";
