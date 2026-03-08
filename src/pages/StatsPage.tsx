@@ -187,6 +187,8 @@ const StatsPage = () => {
         user ? <ActivityLogDashboard userId={user.id} /> : null
       ) : activeTab === "time" ? (
         user ? <TimeBasedDashboard userId={user.id} /> : null
+      ) : activeTab === "performance" ? (
+        user ? <PerformanceDashboard userId={user.id} /> : null
       ) : (
         <>
           {/* View toggle */}
