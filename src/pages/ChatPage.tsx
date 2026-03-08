@@ -18,12 +18,19 @@ const LANG_NAMES: Record<string, string> = {
   es: "Español", fr: "Français", de: "Deutsch", pt: "Português",
 };
 
+type Correction = {
+  wrong: string;
+  correct: string;
+  explanation: string;
+};
+
 type Message = {
   role: "user" | "assistant";
   content: string;
   responseTimeMs?: number;
   feedbackId?: string;
   rating?: -1 | 1 | null;
+  corrections?: Correction[];
 };
 
 type Phase = "setup" | "chat" | "feedback";
