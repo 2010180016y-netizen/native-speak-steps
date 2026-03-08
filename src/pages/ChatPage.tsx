@@ -468,25 +468,39 @@ const ChatPage = () => {
                   )}
                 </div>
 
-                {msg.role === "assistant" && msg.feedbackId && (
+                {msg.role === "assistant" && (
                   <div className="flex items-center gap-2 mt-1 px-1">
+                    {/* TTS button */}
+                    <button
+                      onClick={() => handleTTS(msg.content, i)}
+                      className={`p-1 rounded-md transition-colors ${
+                        isSpeaking && playingIndex === i ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      title="음성으로 듣기"
+                    >
+                      {isSpeaking && playingIndex === i ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                    </button>
                     {msg.responseTimeMs != null && (
                       <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground font-semibold">
                         <Clock size={10} />{(msg.responseTimeMs / 1000).toFixed(1)}s
                       </span>
                     )}
-                    <button
-                      onClick={() => handleRating(i, 1)}
-                      className={`p-1 rounded-md transition-colors ${
-                        msg.rating === 1 ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    ><ThumbsUp size={12} /></button>
-                    <button
-                      onClick={() => handleRating(i, -1)}
-                      className={`p-1 rounded-md transition-colors ${
-                        msg.rating === -1 ? "bg-destructive/20 text-destructive" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    ><ThumbsDown size={12} /></button>
+                    {msg.feedbackId && (
+                      <>
+                        <button
+                          onClick={() => handleRating(i, 1)}
+                          className={`p-1 rounded-md transition-colors ${
+                            msg.rating === 1 ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        ><ThumbsUp size={12} /></button>
+                        <button
+                          onClick={() => handleRating(i, -1)}
+                          className={`p-1 rounded-md transition-colors ${
+                            msg.rating === -1 ? "bg-destructive/20 text-destructive" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        ><ThumbsDown size={12} /></button>
+                      </>
+                    )}
                   </div>
                 )}
               </motion.div>
