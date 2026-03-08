@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Eye, EyeOff, Sparkles, Globe, BookOpen, Trophy } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
+import ForgotPasswordModal from "@/components/auth/ForgotPasswordModal";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,6 +14,7 @@ const AuthPage = () => {
   const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
@@ -230,6 +232,15 @@ const AuthPage = () => {
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-primary font-medium hover:underline mt-1"
+                    >
+                      비밀번호를 잊으셨나요?
+                    </button>
+                  )}
                 </div>
 
                 <motion.button
@@ -298,6 +309,11 @@ const AuthPage = () => {
           </div>
         </motion.div>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </div>
   );
 };
