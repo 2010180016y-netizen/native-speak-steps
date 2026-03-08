@@ -15,6 +15,7 @@ import CardsPage from "./pages/CardsPage";
 import StatsPage from "./pages/StatsPage";
 import ProfilePage from "./pages/ProfilePage";
 import PetPage from "./pages/PetPage";
+import SpeakingPage from "./pages/SpeakingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
