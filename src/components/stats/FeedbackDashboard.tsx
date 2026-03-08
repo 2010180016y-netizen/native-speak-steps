@@ -207,7 +207,7 @@ const FeedbackDashboard = ({ userId }: Props) => {
                 <div key={e.name} className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
                   <span className="text-xs font-bold text-foreground truncate">{e.name}</span>
-                  <span className="text-xs text-muted-foreground font-semibold ml-auto">{e.value}건</span>
+                  <span className="text-xs text-muted-foreground font-semibold ml-auto">{e.value as number}건</span>
                 </div>
               ))}
             </div>
