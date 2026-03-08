@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import { lovable } from "@/integrations/lovable/index";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
