@@ -3,10 +3,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield } from "lucide-react";
+import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import DialogueRolePlay, { type DialogueLine } from "@/components/dialogue/DialogueRolePlay";
 import AnalysisDashboard, { type TextAnalysis } from "@/components/analysis/AnalysisDashboard";
+import ImportLearningFlow from "@/components/import/ImportLearningFlow";
 import { analyzeTextContent, maskSensitiveData, splitIntoChunks } from "@/lib/textProcessor";
 
 const LANG_NAMES: Record<string, string> = {
@@ -356,11 +357,24 @@ const ImportPage = () => {
       )}
 
       {detailedAnalysis && result && (
-        <AnalysisDashboard
-          analysis={detailedAnalysis}
-          wordCount={result.wordCount}
-          uniqueWords={result.uniqueWords}
-        />
+        <>
+          <AnalysisDashboard
+            analysis={detailedAnalysis}
+            wordCount={result.wordCount}
+            uniqueWords={result.uniqueWords}
+          />
+          
+          {/* Learning Flow with Tabs */}
+          {(detailedAnalysis.wordFrequency?.length > 0 || detailedAnalysis.sentenceStructures?.length > 0) && (
+            <ImportLearningFlow
+              wordFrequency={detailedAnalysis.wordFrequency || []}
+              sentenceStructures={detailedAnalysis.sentenceStructures || []}
+              onComplete={(type, count) => {
+                toast.success(`${type === "word" ? "단어" : "문장구조"} ${count}개 학습 완료!`);
+              }}
+            />
+          )}
+        </>
       )}
 
       {/* Basic result (shown only if no detailed analysis yet) */}
