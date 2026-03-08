@@ -212,6 +212,7 @@ export default function Pet3DScene({
             species={activePet.species}
             petTypeName={activePet.petTypeName}
             feeding={feeding}
+            expression={expression}
           />
         )}
 
