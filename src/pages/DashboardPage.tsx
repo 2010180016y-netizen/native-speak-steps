@@ -115,8 +115,8 @@ const DashboardPage = () => {
 
   return (
     <AppLayout>
-      <motion.div variants={container} initial="hidden" animate="show" className="space-y-4">
-        {/* Header */}
+      <motion.div variants={container} initial="hidden" animate="show" className="space-y-5">
+        {/* ── Header ── */}
         <motion.div variants={item} className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-extrabold text-foreground">
@@ -203,7 +203,9 @@ const DashboardPage = () => {
           )}
         </AnimatePresence>
 
-        {/* Sync Progress - Hero Card */}
+        {/* ═══ Section 1: 현재 상태 ═══ */}
+
+        {/* Sync Progress Hero */}
         <motion.div variants={item} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/20 p-5">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative">
@@ -229,12 +231,9 @@ const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats + Goal in a row */}
         <motion.div variants={item} className="grid grid-cols-2 gap-3">
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="bg-card rounded-2xl p-4 border border-border flex items-center gap-3 shadow-sm"
-          >
+          <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl p-4 border border-border flex items-center gap-3 shadow-sm">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
               <Zap className="text-primary" size={22} />
             </div>
@@ -243,11 +242,7 @@ const DashboardPage = () => {
               <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">총 XP</div>
             </div>
           </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="bg-card rounded-2xl p-4 border border-border flex items-center gap-3 shadow-sm"
-          >
+          <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl p-4 border border-border flex items-center gap-3 shadow-sm">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-duo-blue/20 to-duo-blue/5 flex items-center justify-center">
               <BookOpen className="text-duo-blue" size={22} />
             </div>
@@ -258,13 +253,27 @@ const DashboardPage = () => {
           </motion.div>
         </motion.div>
 
-        {/* Pet Widget */}
+        {/* Goal Progress */}
         <motion.div variants={item}>
-          <DashboardPetWidget />
+          <GoalProgressWidget />
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* ═══ Section 2: 빠른 학습 ═══ */}
+        <motion.div variants={item}>
+          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest mb--1">빠른 학습</p>
+        </motion.div>
+
         <motion.div variants={item} className="space-y-2.5">
+          {stats.cardsToReview > 0 && (
+            <QuickActionCard
+              to="/cards"
+              icon={<BookOpen size={22} />}
+              gradient="from-secondary to-duo-orange"
+              title="복습하기"
+              desc={`${stats.cardsToReview}개 카드가 기다리고 있어요`}
+              highlight
+            />
+          )}
           <QuickActionCard
             to="/import"
             icon={<Upload size={22} />}
@@ -279,44 +288,16 @@ const DashboardPage = () => {
             title="회화 연습하기"
             desc="AI와 대화하며 실력을 키우세요"
           />
-          {stats.cardsToReview > 0 && (
-            <QuickActionCard
-              to="/cards"
-              icon={<BookOpen size={22} />}
-              gradient="from-secondary to-duo-orange"
-              title="복습하기"
-              desc={`${stats.cardsToReview}개 카드가 기다리고 있어요`}
-              highlight
-            />
-          )}
         </motion.div>
 
-        {/* Goal Progress */}
+        {/* ═══ Section 3: 내 펫 ═══ */}
         <motion.div variants={item}>
-          <GoalProgressWidget />
+          <DashboardPetWidget />
         </motion.div>
 
-        {/* Weekly Report */}
+        {/* ═══ Section 4: 학습 인사이트 ═══ */}
         <motion.div variants={item}>
-          <WeeklyReportWidget />
-        </motion.div>
-
-        {/* Stats & Leaderboard links */}
-        <motion.div variants={item} className="space-y-2.5">
-          <QuickActionCard
-            to="/leaderboard"
-            icon={<Trophy size={22} />}
-            gradient="from-primary/80 to-primary"
-            title="리더보드"
-            desc="다른 학습자들과 순위를 비교해 보세요"
-          />
-          <QuickActionCard
-            to="/stats"
-            icon={<BarChart3 size={22} />}
-            gradient="from-duo-purple to-duo-blue"
-            title="학습 통계"
-            desc="일별/주별 학습량과 동기화율 차트"
-          />
+          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest">학습 인사이트</p>
         </motion.div>
 
         {/* Vocab Growth Map */}
@@ -326,10 +307,52 @@ const DashboardPage = () => {
           </motion.div>
         )}
 
+        {/* Weekly Report */}
+        <motion.div variants={item}>
+          <WeeklyReportWidget />
+        </motion.div>
+
         {/* Personalized Recommendations */}
         <motion.div variants={item}>
           <PersonalizedRecommendations />
         </motion.div>
+
+        {/* ═══ Section 5: 더 알아보기 ═══ */}
+        <motion.div variants={item}>
+          <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest">더 알아보기</p>
+        </motion.div>
+
+        <motion.div variants={item} className="grid grid-cols-2 gap-2.5">
+          <Link to="/leaderboard">
+            <motion.div
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-card rounded-2xl p-4 border border-border shadow-sm text-center"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/80 to-primary mx-auto flex items-center justify-center text-white mb-2">
+                <Trophy size={22} />
+              </div>
+              <div className="font-bold text-foreground text-sm">리더보드</div>
+              <div className="text-[10px] text-muted-foreground font-semibold">순위 확인</div>
+            </motion.div>
+          </Link>
+          <Link to="/stats">
+            <motion.div
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-card rounded-2xl p-4 border border-border shadow-sm text-center"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-duo-purple to-duo-blue mx-auto flex items-center justify-center text-white mb-2">
+                <BarChart3 size={22} />
+              </div>
+              <div className="font-bold text-foreground text-sm">학습 통계</div>
+              <div className="text-[10px] text-muted-foreground font-semibold">상세 분석</div>
+            </motion.div>
+          </Link>
+        </motion.div>
+
+        {/* Bottom spacer */}
+        <div className="h-2" />
       </motion.div>
     </AppLayout>
   );
