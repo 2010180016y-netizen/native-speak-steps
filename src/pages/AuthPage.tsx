@@ -232,6 +232,15 @@ const AuthPage = () => {
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-primary font-medium hover:underline mt-1"
+                    >
+                      비밀번호를 잊으셨나요?
+                    </button>
+                  )}
                 </div>
 
                 <motion.button
