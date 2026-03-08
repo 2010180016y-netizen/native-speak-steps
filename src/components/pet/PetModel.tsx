@@ -92,10 +92,12 @@ export default function PetModel({
   targetPosition,
   scale = 1,
   species,
+  petTypeName,
   feeding,
 }: PetModelProps) {
   const groupRef = useRef<THREE.Group>(null!);
-  const modelPath = SPECIES_MODEL[species] || SPECIES_MODEL.dog;
+  const breed = getBreedKey(species, petTypeName);
+  const modelPath = BREED_MODEL[breed] || BREED_MODEL.dog;
   const { scene, animations } = useGLTF(modelPath);
   const clonedScene = useMemo(() => scene.clone(true), [scene]);
   const { actions, mixer } = useAnimations(animations, groupRef);
