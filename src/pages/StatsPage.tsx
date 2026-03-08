@@ -182,6 +182,14 @@ const StatsPage = () => {
         >
           <Target size={14} /> 성과
         </button>
+        <button
+          onClick={() => setActiveTab("feedback")}
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "feedback" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <MessageCircle size={14} /> 피드백
+        </button>
       </div>
 
       {activeTab === "activity" ? (
