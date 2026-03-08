@@ -49,9 +49,14 @@ const PetAdopt = ({ petTypes, points, pets, adoptPet, onAdopted }: Props) => {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
       {selectedType ? (
         <div className="duo-card text-center">
-          <div className="text-6xl mb-3">
-            {SPECIES_EMOJI[petTypes.find((t) => t.id === selectedType)?.species || "dog"]}
-          </div>
+          {(() => {
+            const pt = petTypes.find((t) => t.id === selectedType);
+            return pt?.base_image_url ? (
+              <img src={pt.base_image_url} alt={pt.name} className="w-24 h-24 mx-auto rounded-2xl object-cover mb-3" />
+            ) : (
+              <div className="text-6xl mb-3">{SPECIES_EMOJI[pt?.species || "dog"]}</div>
+            );
+          })()}
           <h3 className="font-bold text-foreground mb-1">
             {petTypes.find((t) => t.id === selectedType)?.name}
           </h3>
