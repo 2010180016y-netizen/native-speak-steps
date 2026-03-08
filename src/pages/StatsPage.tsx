@@ -12,7 +12,7 @@ import { ko } from "date-fns/locale";
 import ActivityLogDashboard from "@/components/stats/ActivityLogDashboard";
 import TimeBasedDashboard from "@/components/stats/TimeBasedDashboard";
 import PerformanceDashboard from "@/components/stats/PerformanceDashboard";
-import FeedbackDashboard from "@/components/stats/FeedbackDashboard";
+// FeedbackDashboard removed
 import ChatScoreDashboard from "@/components/stats/ChatScoreDashboard";
 import SyncGapDashboard from "@/components/stats/SyncGapDashboard";
 import SrsHealthDashboard from "@/components/stats/SrsHealthDashboard";
