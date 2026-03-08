@@ -34,6 +34,8 @@ Rules:
 - Be encouraging and fun, like Duolingo!
 - Use emoji occasionally`;
 
+    const startTime = Date.now();
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -49,33 +51,38 @@ Rules:
       }),
     });
 
+    const responseTimeMs = Date.now() - startTime;
+
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limits exceeded" }), {
+        return new Response(JSON.stringify({ error: "Rate limits exceeded", response_time_ms: responseTimeMs, error_type: "rate_limit" }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required" }), {
+        return new Response(JSON.stringify({ error: "Payment required", response_time_ms: responseTimeMs, error_type: "payment_required" }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+      return new Response(JSON.stringify({ error: "AI gateway error", response_time_ms: responseTimeMs, error_type: "gateway_error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 
-    return new Response(JSON.stringify({ content }), {
+    return new Response(JSON.stringify({ content, response_time_ms: responseTimeMs }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("chat error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error", error_type: "server_error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

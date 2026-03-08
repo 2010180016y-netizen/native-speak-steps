@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Activity, Clock, Target } from "lucide-react";
+import { BarChart3, TrendingUp, Activity, Clock, Target, MessageCircle } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -12,6 +12,7 @@ import { ko } from "date-fns/locale";
 import ActivityLogDashboard from "@/components/stats/ActivityLogDashboard";
 import TimeBasedDashboard from "@/components/stats/TimeBasedDashboard";
 import PerformanceDashboard from "@/components/stats/PerformanceDashboard";
+import FeedbackDashboard from "@/components/stats/FeedbackDashboard";
 
 type DailyData = {
   date: string;
@@ -25,7 +26,7 @@ type DailyData = {
 const StatsPage = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [activeTab, setActiveTab] = useState<"learning" | "activity" | "time" | "performance">("learning");
+  const [activeTab, setActiveTab] = useState<"learning" | "activity" | "time" | "performance" | "feedback">("learning");
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -181,6 +182,14 @@ const StatsPage = () => {
         >
           <Target size={14} /> 성과
         </button>
+        <button
+          onClick={() => setActiveTab("feedback")}
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "feedback" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <MessageCircle size={14} /> 피드백
+        </button>
       </div>
 
       {activeTab === "activity" ? (
@@ -189,6 +198,8 @@ const StatsPage = () => {
         user ? <TimeBasedDashboard userId={user.id} /> : null
       ) : activeTab === "performance" ? (
         user ? <PerformanceDashboard userId={user.id} /> : null
+      ) : activeTab === "feedback" ? (
+        user ? <FeedbackDashboard userId={user.id} /> : null
       ) : (
         <>
           {/* View toggle */}
