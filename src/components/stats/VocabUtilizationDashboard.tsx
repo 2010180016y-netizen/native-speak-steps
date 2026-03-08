@@ -108,6 +108,7 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
     setSelectedWord(word);
     setExamples("");
     setExampleLoading(true);
+    setAddedCards(false);
     try {
       const { data, error } = await supabase.functions.invoke("generate-examples", {
         body: { target_text: word.target_text, native_text: word.native_text },
