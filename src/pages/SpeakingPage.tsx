@@ -44,6 +44,8 @@ const SpeakingPage = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [profile, setProfile] = useState<{ target_language: string; native_language: string; current_level: string } | null>(null);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [feedback, setFeedback] = useState<any>(null);
+  const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const targetLang = LANG_MAP[profile?.target_language || "en"] || "en-US";
