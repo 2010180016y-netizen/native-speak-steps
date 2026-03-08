@@ -20,11 +20,13 @@ const DashboardPetWidget = () => {
   const { user, profile } = useAuth();
   const [pet, setPet] = useState<PetWidgetData | null>(null);
   const [points, setPoints] = useState(0);
+  const [needsFeeding, setNeedsFeeding] = useState(false);
+  const [lastFedHoursAgo, setLastFedHoursAgo] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
-      const [petRes, pointsRes] = await Promise.all([
+    const fetchData = async () => {
+      const [petRes, pointsRes, feedingRes] = await Promise.all([
         supabase
           .from("user_pets")
           .select("name, level, experience, exp_to_next_level, image_url, pet_type_id")
@@ -36,10 +38,16 @@ const DashboardPetWidget = () => {
           .select("balance")
           .eq("user_id", user.id)
           .maybeSingle(),
+        supabase
+          .from("pet_feeding_log")
+          .select("created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       if (petRes.data) {
-        // Get species from pet_types
         const { data: typeData } = await supabase
           .from("pet_types")
           .select("species")
@@ -49,10 +57,21 @@ const DashboardPetWidget = () => {
           ...(petRes.data as any),
           species: (typeData as any)?.species || "dog",
         });
+
+        // Check feeding status
+        if (feedingRes.data) {
+          const lastFed = new Date((feedingRes.data as any).created_at);
+          const hoursAgo = (Date.now() - lastFed.getTime()) / (1000 * 60 * 60);
+          setLastFedHoursAgo(Math.round(hoursAgo));
+          setNeedsFeeding(hoursAgo >= 4); // 4시간 이상 안 먹었으면 알림
+        } else {
+          setNeedsFeeding(true);
+          setLastFedHoursAgo(null);
+        }
       }
       setPoints((pointsRes.data as any)?.balance || 0);
     };
-    fetch();
+    fetchData();
   }, [user]);
 
   const streak = profile?.streak_days || 0;
@@ -103,7 +122,22 @@ const DashboardPetWidget = () => {
                 </div>
               </>
             ) : (
-              <p className="font-bold text-foreground text-sm mb-1">펫을 입양해 보세요! 🐾</p>
+              <div>
+                <p className="font-bold text-foreground text-sm mb-1">펫을 입양해 보세요! 🐾</p>
+              </div>
+            )}
+
+            {/* Feeding reminder */}
+            {pet && needsFeeding && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-destructive/10 rounded-lg px-2 py-1 mb-1.5"
+              >
+                <p className="text-[10px] font-bold text-destructive">
+                  🍽️ {pet.name}이(가) 배고파해요! {lastFedHoursAgo != null ? `(${lastFedHoursAgo}시간 전 마지막 식사)` : "아직 밥을 못 먹었어요"}
+                </p>
+              </motion.div>
             )}
 
             {/* Milestone info */}
