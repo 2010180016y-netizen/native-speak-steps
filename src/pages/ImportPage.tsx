@@ -328,7 +328,7 @@ const ImportPage = () => {
       </motion.div>
 
       {/* Detected speakers */}
-      {result && result.speakers.length > 0 && (
+      {result && result.speakers && result.speakers.length > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 10 }} 
           animate={{ opacity: 1, y: 0 }} 
