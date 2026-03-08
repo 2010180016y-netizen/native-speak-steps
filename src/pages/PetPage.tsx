@@ -6,8 +6,9 @@ import PetMain from "@/components/pet/PetMain";
 import PetShop from "@/components/pet/PetShop";
 import PetAdopt from "@/components/pet/PetAdopt";
 import PetCollection from "@/components/pet/PetCollection";
+import PetWardrobe from "@/components/pet/PetWardrobe";
 
-type Tab = "pet" | "shop" | "adopt" | "collection";
+type Tab = "pet" | "shop" | "wardrobe" | "collection" | "adopt";
 
 const PetPage = () => {
   const petData = usePet();
@@ -16,6 +17,7 @@ const PetPage = () => {
   const tabs: { key: Tab; label: string; emoji: string }[] = [
     { key: "pet", label: "내 펫", emoji: "🐾" },
     { key: "shop", label: "상점", emoji: "🛒" },
+    { key: "wardrobe", label: "옷장", emoji: "👗" },
     { key: "collection", label: "도감", emoji: "📚" },
     { key: "adopt", label: "입양", emoji: "🏠" },
   ];
@@ -38,12 +40,12 @@ const PetPage = () => {
       </motion.div>
 
       {/* Tab bar */}
-      <div className="flex gap-1.5 mb-5 bg-muted rounded-2xl p-1">
+      <div className="flex gap-1 mb-5 bg-muted rounded-2xl p-1">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all ${
+            className={`flex-1 py-2 rounded-xl font-bold text-[10px] transition-all ${
               tab === t.key
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground"
@@ -57,6 +59,7 @@ const PetPage = () => {
       <AnimatePresence mode="wait">
         {tab === "pet" && <PetMain key="pet" {...petData} />}
         {tab === "shop" && <PetShop key="shop" {...petData} />}
+        {tab === "wardrobe" && <PetWardrobe key="wardrobe" activePet={petData.activePet} loading={petData.loading} />}
         {tab === "adopt" && <PetAdopt key="adopt" {...petData} onAdopted={() => setTab("pet")} />}
         {tab === "collection" && <PetCollection key="collection" {...petData} />}
       </AnimatePresence>
