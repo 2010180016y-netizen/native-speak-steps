@@ -31,7 +31,7 @@ const SPECIES_TINT: Record<string, string | null> = {
   dog: null, // Husky stays as-is
   corgi: "#f0a030",
   shiba: null, // Shiba has its own model
-  golden_retriever: "#daa520",
+  golden_retriever: "#c8922a",
   cat: "#888888",
   munchkin: "#c0a070",
   russian_blue: "#7090a0",
