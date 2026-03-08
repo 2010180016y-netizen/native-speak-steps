@@ -2,3 +2,6 @@ project_id = "wdkqzqcmqblzqglwjyqv"
 
 [functions.chat]
 verify_jwt = false
+
+[functions.generate-cards]
+verify_jwt = false
