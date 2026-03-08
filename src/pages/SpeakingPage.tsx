@@ -428,7 +428,15 @@ const SpeakingPage = () => {
     return (
       <AppLayout>
         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-          <h1 className="text-2xl font-extrabold text-foreground mb-1">스피킹 연습 📞</h1>
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="text-2xl font-extrabold text-foreground">스피킹 연습 📞</h1>
+            <Link
+              to="/speaking-history"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 border-border text-muted-foreground text-xs font-bold hover:border-primary/40 hover:text-foreground transition-colors"
+            >
+              <History size={14} /> 기록
+            </Link>
+          </div>
           <p className="text-sm text-muted-foreground font-semibold mb-5">
             페르소나를 설정하면 전화가 걸려와요!
           </p>
