@@ -72,6 +72,8 @@ const ProfilePage = () => {
           </div>
         </div>
 
+        <GoalSettings />
+
         <ReminderSettings />
 
         <button

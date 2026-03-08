@@ -118,6 +118,9 @@ const DashboardPage = () => {
         </motion.div>
       </div>
 
+      {/* Goal Progress */}
+      <GoalProgressWidget />
+
       {/* Weekly Report */}
       <WeeklyReportWidget />
 
