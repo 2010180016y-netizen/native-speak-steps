@@ -40,6 +40,7 @@ const TAB_GROUPS: { id: CategoryId; label: string; icon: React.ReactNode; tabs: 
       { id: "learning", label: "학습", icon: <BarChart3 size={13} /> },
       { id: "performance", label: "성과", icon: <Target size={13} /> },
       { id: "chat", label: "회화", icon: <MessagesSquare size={13} /> },
+      { id: "speaking", label: "스피킹", icon: <Phone size={13} /> },
     ],
   },
   {
