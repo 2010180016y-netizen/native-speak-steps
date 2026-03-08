@@ -63,13 +63,19 @@ serve(async (req) => {
       es: "Spanish", fr: "French", de: "German", pt: "Portuguese",
     };
 
-    const prompt = `You are a language learning advisor for the LangSync app. Generate exactly 4 personalized learning recommendations in JSON format.
+    const prompt = `You are a language learning advisor for the LangSync app. LangSync's core concept is: "You only need to learn what you actually use in your native language." Users import their real native language content (texts, articles, conversations) and the app extracts vocabulary and sentence patterns from that content for efficient learning.
+
+Generate exactly 4 personalized learning recommendations in JSON format.
+
+IMPORTANT RULES:
+- NEVER suggest generic language tips like "basic pronunciation practice", "start a streak", "daily challenge", or "grammar drills"
+- Every recommendation MUST relate to the user's actual imported content, SRS review cards, or conversation practice using their real vocabulary
+- Focus on: reviewing weak cards, importing more native content, practicing learned words in conversation, analyzing usage patterns
 
 User profile:
 - Native language: ${langNames[profile?.native_language] || profile?.native_language}
 - Target language: ${langNames[profile?.target_language] || profile?.target_language}
 - Level: ${profile?.current_level}
-- Streak: ${profile?.streak_days} days
 - Total XP: ${profile?.total_xp}
 
 Learning metrics (last 14 days):
@@ -79,8 +85,6 @@ Learning metrics (last 14 days):
 - Most used activity: ${mostUsedActivity}
 - Least used activity: ${leastUsedActivity}
 - Recent completions: ${completions.length}
-
-Generate recommendations that are specific to their level, language pair, and learning patterns. Each recommendation should have an actionable suggestion.
 
 Respond in Korean (한국어).`;
 
@@ -155,10 +159,10 @@ Respond in Korean (한국어).`;
     } else {
       // Fallback defaults
       recommendations = [
-        { title: "복습 카드 확인", description: "오늘 복습할 카드가 있습니다.", category: "review", priority: "high", action_path: "/cards" },
-        { title: "회화 연습", description: "AI와 대화하며 실력을 키워보세요.", category: "speaking", priority: "medium", action_path: "/chat" },
-        { title: "새 단어 학습", description: "모국어 텍스트를 분석해 새 단어를 추가하세요.", category: "vocabulary", priority: "medium", action_path: "/import" },
-        { title: "스피킹 도전", description: "발음 연습으로 말하기 실력을 높여보세요.", category: "challenge", priority: "low", action_path: "/speaking" },
+        { title: "복습 카드 확인", description: "오늘 복습할 카드가 있습니다. 잊기 전에 확인하세요.", category: "review", priority: "high", action_path: "/cards" },
+        { title: "내 텍스트로 단어 추가", description: "모국어 텍스트를 가져와 새로운 표현을 추출하세요.", category: "vocabulary", priority: "medium", action_path: "/import" },
+        { title: "배운 표현으로 대화하기", description: "학습한 단어를 실제 대화에서 활용해보세요.", category: "speaking", priority: "medium", action_path: "/chat" },
+        { title: "약한 카드 집중 복습", description: "어려운 카드를 집중적으로 복습해 실력을 다지세요.", category: "review", priority: "low", action_path: "/cards" },
       ];
     }
 
