@@ -55,6 +55,52 @@ function LoadingFallback() {
   );
 }
 
+/** Inactive pet that wanders slowly around its home zone */
+function InactivePetWanderer({ homePos, scale, species, petTypeName }: {
+  homePos: [number, number, number];
+  scale: number;
+  species: string;
+  petTypeName?: string;
+}) {
+  const [action, setAction] = useState<"idle" | "walking" | "sleeping">("idle");
+  const [target, setTarget] = useState<[number, number, number]>(homePos);
+
+  useEffect(() => {
+    const tick = () => {
+      const r = Math.random();
+      if (r < 0.35) {
+        setAction("walking");
+        setTarget([
+          homePos[0] + (Math.random() - 0.5) * 2,
+          0,
+          homePos[2] + (Math.random() - 0.5) * 2,
+        ]);
+      } else if (r < 0.55) {
+        setAction("sleeping");
+        setTarget(homePos);
+      } else {
+        setAction("idle");
+        setTarget(homePos);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 3000 + Math.random() * 3000);
+    return () => clearInterval(id);
+  }, [homePos]);
+
+  return (
+    <ChibiPetModel
+      action={action}
+      position={homePos}
+      targetPosition={target}
+      scale={scale}
+      species={species}
+      petTypeName={petTypeName}
+      feeding={false}
+    />
+  );
+}
+
 // Generate a stable "home" position for inactive pets so they stay in fixed spots
 function getHomePosForIndex(index: number): [number, number, number] {
   const spots: [number, number, number][] = [
