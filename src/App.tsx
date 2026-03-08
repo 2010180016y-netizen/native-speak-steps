@@ -42,6 +42,7 @@ const App = () => (
             <Route path="/pet" element={<ProtectedRoute><PetPage /></ProtectedRoute>} />
             <Route path="/speaking" element={<ProtectedRoute><SpeakingPage /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
