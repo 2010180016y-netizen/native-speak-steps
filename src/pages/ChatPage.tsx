@@ -283,6 +283,26 @@ const ChatPage = () => {
         user_id: user.id, role: "assistant", content: assistantContent, session_id: sessionId,
       });
 
+      // Auto-save corrections as SRS cards
+      if (corrections.length > 0) {
+        const cardsToInsert = corrections.map((c) => ({
+          user_id: user.id,
+          native_text: `${c.wrong} → ${c.correct}`,
+          target_text: c.correct,
+          context: `💬 채팅 교정: ${c.explanation || ""}\n원문: ${c.wrong}`,
+          difficulty: 1,
+          ease_factor: 2.5,
+          interval_days: 1,
+          review_count: 0,
+          next_review_at: new Date().toISOString(),
+        }));
+
+        const { error: srsError } = await supabase.from("srs_cards").insert(cardsToInsert);
+        if (!srsError) {
+          toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
+        }
+      }
+
       // Check missions after each exchange
       checkMissions(finalMessages);
     } catch (err: any) {
