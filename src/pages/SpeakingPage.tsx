@@ -74,6 +74,7 @@ const SpeakingPage = () => {
   // Persona & scenario
   const [persona, setPersona] = useState<Persona | null>(null);
   const [scenario, setScenario] = useState<ChatScenario | null>(null);
+  const [callerName, setCallerName] = useState<string>("");
 
   // Setup step
   const [setupStep, setSetupStep] = useState<1 | 2>(1);
