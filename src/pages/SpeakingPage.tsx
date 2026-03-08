@@ -125,9 +125,11 @@ const SpeakingPage = () => {
 
   const saveMessageToDB = useCallback(async (role: string, content: string) => {
     if (!user) return;
-    await supabase.from("chat_messages").insert({
-      user_id: user.id, role, content, session_id: speakingSessionId,
-    }).throwOnError().catch(() => {});
+    try {
+      await supabase.from("chat_messages").insert({
+        user_id: user.id, role, content, session_id: speakingSessionId,
+      });
+    } catch { /* silent */ }
   }, [user, speakingSessionId]);
 
   const saveCorrectionCards = useCallback(async (corrections: Correction[]) => {
