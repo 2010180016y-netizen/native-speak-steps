@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment } from "@react-three/drei";
 
 import { motion, AnimatePresence } from "framer-motion";
-import ChibiPetModel from "./ChibiPetModel";
+import ChibiPetModel, { type PetExpression } from "./ChibiPetModel";
 import Pet3DAccessory from "./Pet3DAccessory";
 import Room from "./Pet3DRoom";
 import * as THREE from "three";
@@ -25,6 +25,7 @@ type Pet3DSceneProps = {
   emotion: { emoji: string; text: string } | null;
   petAction: PetAction;
   feeding: boolean;
+  expression?: PetExpression;
   onTap: () => void;
 };
 
@@ -121,6 +122,7 @@ export default function Pet3DScene({
   emotion,
   petAction,
   feeding,
+  expression,
   onTap,
 }: Pet3DSceneProps) {
   const activePet = pets.find((p) => p.isActive) || pets[0];
@@ -210,6 +212,7 @@ export default function Pet3DScene({
             species={activePet.species}
             petTypeName={activePet.petTypeName}
             feeding={feeding}
+            expression={expression}
           />
         )}
 
