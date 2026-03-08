@@ -170,6 +170,14 @@ const StatsPage = () => {
           <Radar size={14} /> 동기화
         </button>
         <button
+          onClick={() => setActiveTab("srshealth")}
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "srshealth" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <Heart size={14} /> SRS
+        </button>
+        <button
           onClick={() => setActiveTab("activity")}
           className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "activity" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
