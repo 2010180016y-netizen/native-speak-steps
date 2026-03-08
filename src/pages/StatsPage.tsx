@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Activity, Clock, Target, MessagesSquare, Radar, Heart } from "lucide-react";
+import { BarChart3, TrendingUp, Activity, Clock, Target, MessagesSquare, Radar, Heart, BookCheck } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -16,6 +16,7 @@ import PerformanceDashboard from "@/components/stats/PerformanceDashboard";
 import ChatScoreDashboard from "@/components/stats/ChatScoreDashboard";
 import SyncGapDashboard from "@/components/stats/SyncGapDashboard";
 import SrsHealthDashboard from "@/components/stats/SrsHealthDashboard";
+import VocabUtilizationDashboard from "@/components/stats/VocabUtilizationDashboard";
 
 type DailyData = {
   date: string;
@@ -29,7 +30,7 @@ type DailyData = {
 const StatsPage = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [activeTab, setActiveTab] = useState<"learning" | "syncgap" | "srshealth" | "activity" | "time" | "performance" | "chat">("learning");
+  const [activeTab, setActiveTab] = useState<"learning" | "syncgap" | "srshealth" | "vocabutil" | "activity" | "time" | "performance" | "chat">("learning");
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -178,6 +179,14 @@ const StatsPage = () => {
           <Heart size={14} /> SRS
         </button>
         <button
+          onClick={() => setActiveTab("vocabutil")}
+          className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "vocabutil" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <BookCheck size={14} /> 활용
+        </button>
+        <button
           onClick={() => setActiveTab("activity")}
           className={`flex-shrink-0 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "activity" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
@@ -215,6 +224,8 @@ const StatsPage = () => {
         user ? <SyncGapDashboard userId={user.id} /> : null
       ) : activeTab === "srshealth" ? (
         user ? <SrsHealthDashboard userId={user.id} /> : null
+      ) : activeTab === "vocabutil" ? (
+        user ? <VocabUtilizationDashboard userId={user.id} /> : null
       ) : activeTab === "activity" ? (
         user ? <ActivityLogDashboard userId={user.id} /> : null
       ) : activeTab === "time" ? (
