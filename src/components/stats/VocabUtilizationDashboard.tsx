@@ -427,13 +427,31 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
                           <div className="space-y-1">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-[10px] font-bold text-primary">✨ AI 예문</span>
-                              <button onClick={() => { setSelectedWord(null); setExamples(""); }} className="p-0.5">
+                              <button onClick={() => { setSelectedWord(null); setExamples(""); setAddedCards(false); }} className="p-0.5">
                                 <X size={12} className="text-muted-foreground" />
                               </button>
                             </div>
                             <p className="text-xs text-foreground font-medium whitespace-pre-line leading-relaxed">
                               {examples}
                             </p>
+                            {/* Add to SRS button */}
+                            <button
+                              onClick={addExamplesAsCards}
+                              disabled={addingCards || addedCards}
+                              className={`w-full mt-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                addedCards
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+                              } disabled:opacity-70`}
+                            >
+                              {addedCards ? (
+                                <><Check size={14} /> SRS 카드에 추가됨</>
+                              ) : addingCards ? (
+                                <><Loader2 size={14} className="animate-spin" /> 추가 중...</>
+                              ) : (
+                                <><Plus size={14} /> SRS 카드로 추가</>
+                              )}
+                            </button>
                           </div>
                         )}
                       </div>
