@@ -430,6 +430,23 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
               </div>
             )}
 
+            {/* Equipped accessories overlay */}
+            {equippedAccessories.map((acc, i) => (
+              <div
+                key={i}
+                className="absolute pointer-events-none select-none"
+                style={{
+                  fontSize: petSize * 0.25,
+                  ...(acc.position === "top" ? { top: -4, left: "50%", transform: "translateX(-50%)" } : {}),
+                  ...(acc.position === "face" ? { top: "28%", left: "50%", transform: "translateX(-50%)" } : {}),
+                  ...(acc.position === "neck" ? { bottom: 4, left: "50%", transform: "translateX(-50%)" } : {}),
+                  ...(acc.position === "back" ? { top: -2, right: -6 } : {}),
+                }}
+              >
+                {acc.emoji}
+              </div>
+            ))
+
             {/* Eating animation */}
             <AnimatePresence>
               {feeding.active && (
