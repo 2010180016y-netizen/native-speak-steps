@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserPet, PetItem, UserPoints } from "@/hooks/usePet";
-import Pet3DRoom from "./Pet3DRoom";
+import Pet3DScene from "./Pet3DScene";
 
 type Props = {
   activePet: UserPet | null;
@@ -86,7 +86,7 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
   const [showDiaryHistory, setShowDiaryHistory] = useState(false);
 
   // Equipped accessories
-  const [equippedAccessories, setEquippedAccessories] = useState<{ emoji: string; position: string }[]>([]);
+  const [equippedAccessories, setEquippedAccessories] = useState<{ emoji: string; position: string; name?: string; category?: string }[]>([]);
 
   // Pet size based on level
   const petLevel = activePet?.level || 1;
@@ -207,9 +207,9 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
       const ids = userAcc.map((ua: any) => ua.accessory_id);
       const { data: accs } = await supabase
         .from("pet_accessories")
-        .select("emoji, position")
+        .select("emoji, position, name, category")
         .in("id", ids);
-      setEquippedAccessories((accs as { emoji: string; position: string }[]) || []);
+      setEquippedAccessories((accs as { emoji: string; position: string; name?: string; category?: string }[]) || []);
     };
     fetchEquipped();
   }, [activePet?.id, user]);
@@ -284,8 +284,7 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
       <div className="relative mb-4">
-        <Pet3DRoom
-          petImageUrl={activePet.image_url || activePet.pet_type?.base_image_url || null}
+        <Pet3DScene
           petName={activePet.name}
           petLevel={activePet.level}
           species={activePet.pet_type?.species || "dog"}

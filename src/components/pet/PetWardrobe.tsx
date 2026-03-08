@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, ContactShadows } from "@react-three/drei";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { UserPet } from "@/hooks/usePet";
+import PetModel from "./PetModel";
+import Pet3DAccessory from "./Pet3DAccessory";
 
 type Accessory = {
   id: string;
@@ -138,47 +142,49 @@ const PetWardrobe = ({ activePet, loading }: Props) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-      {/* Preview */}
-      <div className="duo-card mb-4 flex flex-col items-center py-6">
-        <div className="relative" style={{ width: 140, height: 140 }}>
-          {(activePet.image_url || activePet.pet_type?.base_image_url) ? (
-            <img
-              src={activePet.image_url || activePet.pet_type?.base_image_url || ""}
-              alt={activePet.name}
-              className="w-full h-full rounded-3xl object-cover shadow-lg border-2 border-border"
+      {/* 3D Preview */}
+      <div className="duo-card mb-4 overflow-hidden" style={{ height: 220 }}>
+        <Canvas
+          shadows
+          camera={{ position: [0, 3, 5], fov: 40 }}
+          gl={{ antialias: true, alpha: false }}
+          style={{ background: "linear-gradient(180deg, #87CEEB 0%, #E0F0FF 100%)", borderRadius: "0.75rem" }}
+        >
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[3, 5, 3]} intensity={1} castShadow />
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+            <planeGeometry args={[6, 6]} />
+            <meshStandardMaterial color="#c4956a" roughness={0.8} />
+          </mesh>
+          <ContactShadows position={[0, 0, 0]} opacity={0.4} scale={6} blur={2} />
+          <Suspense fallback={null}>
+            <PetModel
+              action="idle"
+              position={[0, 0, 0]}
+              targetPosition={[0, 0, 0]}
+              scale={0.012}
+              species={activePet.pet_type?.species || "dog"}
+              feeding={false}
             />
-          ) : (
-            <div className="w-full h-full rounded-3xl bg-muted flex items-center justify-center text-5xl">
-              {activePet.pet_type?.species === "cat" ? "🐱" : "🐶"}
-            </div>
-          )}
-
-          {/* Accessory overlays */}
-          {equippedAccessories.map((a) => (
-            <div
-              key={a.id}
-              className="absolute text-3xl pointer-events-none select-none"
-              style={{
-                ...(a.position === "top" ? { top: -10, left: "50%", transform: "translateX(-50%)" } : {}),
-                ...(a.position === "face" ? { top: "30%", left: "50%", transform: "translateX(-50%)" } : {}),
-                ...(a.position === "neck" ? { bottom: 10, left: "50%", transform: "translateX(-50%)" } : {}),
-                ...(a.position === "back" ? { top: -5, right: -10 } : {}),
-              }}
-            >
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                {a.emoji}
-              </motion.span>
-            </div>
+          </Suspense>
+          {equippedAccessories.map((a, i) => (
+            <Pet3DAccessory
+              key={i}
+              position={a.position}
+              category={a.category}
+              name={a.name}
+              petPosition={[0, 0, 0]}
+              petScale={0.012}
+            />
           ))}
+          <OrbitControls enablePan={false} enableZoom={false} />
+        </Canvas>
+        <div className="text-center -mt-8 relative z-10">
+          <p className="text-sm font-extrabold text-foreground">{activePet.name}</p>
+          <p className="text-[10px] text-muted-foreground font-bold">
+            착용 중: {equippedAccessories.length > 0 ? equippedAccessories.map((a) => a.name).join(", ") : "없음"}
+          </p>
         </div>
-        <p className="text-sm font-extrabold text-foreground mt-3">{activePet.name}</p>
-        <p className="text-[10px] text-muted-foreground font-bold">
-          착용 중: {equippedAccessories.length > 0 ? equippedAccessories.map((a) => a.emoji).join(" ") : "없음"}
-        </p>
       </div>
 
       {/* Category tabs */}
