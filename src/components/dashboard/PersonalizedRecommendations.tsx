@@ -52,7 +52,7 @@ const PersonalizedRecommendations = () => {
         // Set fallback recommendations
         setRecommendations([
           { title: "복습 카드 확인하기", description: "오늘 복습할 카드를 확인해보세요.", category: "review", priority: "high", action_path: "/cards" },
-          { title: "회화 연습하기", description: "AI와 대화하며 실력을 키워보세요.", category: "speaking", priority: "medium", action_path: "/chat" },
+          { title: "내 텍스트로 단어 추가", description: "모국어 텍스트에서 새 표현을 추출하세요.", category: "vocabulary", priority: "medium", action_path: "/import" },
         ]);
       } else {
         toast.error("추천을 새로고침하지 못했습니다");
