@@ -12,6 +12,7 @@ import DashboardPage from "./pages/DashboardPage";
 import ImportPage from "./pages/ImportPage";
 import ChatPage from "./pages/ChatPage";
 import CardsPage from "./pages/CardsPage";
+import StatsPage from "./pages/StatsPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
