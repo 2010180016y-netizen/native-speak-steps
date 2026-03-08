@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Volume2, VolumeX, RotateCcw, ArrowLeft } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, RotateCcw, ArrowLeft, Square } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import SpeakingFeedback from "@/components/speaking/SpeakingFeedback";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -43,6 +44,8 @@ const SpeakingPage = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [profile, setProfile] = useState<{ target_language: string; native_language: string; current_level: string } | null>(null);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [feedback, setFeedback] = useState<any>(null);
+  const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const targetLang = LANG_MAP[profile?.target_language || "en"] || "en-US";
@@ -108,6 +111,7 @@ const SpeakingPage = () => {
   const startScenario = useCallback(async (scenarioId: string) => {
     setScenario(scenarioId);
     setMessages([]);
+    setFeedback(null);
     setIsAiLoading(true);
 
     try {
@@ -135,6 +139,38 @@ const SpeakingPage = () => {
       setIsAiLoading(false);
     }
   }, [profile, autoSpeak, speak]);
+
+  const endConversation = useCallback(async () => {
+    if (messages.length < 2) {
+      toast.error("대화를 좀 더 진행한 후 피드백을 받아보세요");
+      return;
+    }
+    stopSpeaking();
+    setIsFeedbackLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("speaking-feedback", {
+        body: {
+          messages,
+          targetLanguage: profile?.target_language || "en",
+          nativeLanguage: profile?.native_language || "ko",
+          level: profile?.current_level || "beginner",
+        },
+      });
+
+      if (error) throw error;
+      if (data.feedback) {
+        setFeedback(data.feedback);
+      } else {
+        toast.error("피드백을 생성할 수 없어요");
+      }
+    } catch (e: any) {
+      console.error("Feedback error:", e);
+      toast.error(e?.message || "피드백 생성에 실패했어요");
+    } finally {
+      setIsFeedbackLoading(false);
+    }
+  }, [messages, profile, stopSpeaking]);
 
   const handleMicClick = () => {
     if (isSpeaking) stopSpeaking();
@@ -187,6 +223,22 @@ const SpeakingPage = () => {
     );
   }
 
+  // Feedback screen
+  if (feedback) {
+    return (
+      <AppLayout>
+        <SpeakingFeedback
+          feedback={feedback}
+          onClose={() => {
+            setFeedback(null);
+            setScenario(null);
+            setMessages([]);
+          }}
+        />
+      </AppLayout>
+    );
+  }
+
   // Conversation screen
   const currentScenario = SCENARIOS.find((s) => s.id === scenario)!;
 
@@ -217,8 +269,37 @@ const SpeakingPage = () => {
           >
             <RotateCcw size={18} />
           </button>
+          <button
+            onClick={endConversation}
+            disabled={isFeedbackLoading || messages.length < 2}
+            className="p-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-40"
+          >
+            <Square size={18} />
+          </button>
         </div>
       </div>
+
+      {/* Feedback loading overlay */}
+      {isFeedbackLoading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="duo-card p-6 text-center mb-4"
+        >
+          <div className="flex justify-center gap-1.5 mb-3">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-2.5 h-2.5 rounded-full bg-primary"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+              />
+            ))}
+          </div>
+          <p className="text-sm font-bold text-foreground">피드백을 분석하고 있어요... 📝</p>
+          <p className="text-[11px] text-muted-foreground font-semibold mt-1">잠시만 기다려주세요</p>
+        </motion.div>
+      )}
 
       {/* Messages */}
       <div className="space-y-3 mb-28 min-h-[40vh]">
@@ -296,7 +377,7 @@ const SpeakingPage = () => {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={handleMicClick}
-              disabled={isAiLoading || !isSupported}
+              disabled={isAiLoading || !isSupported || isFeedbackLoading}
               className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all disabled:opacity-40 ${
                 isListening
                   ? "bg-destructive text-destructive-foreground"
@@ -313,7 +394,7 @@ const SpeakingPage = () => {
             </motion.button>
           </div>
 
-          {!isListening && !isAiLoading && (
+          {!isListening && !isAiLoading && !isFeedbackLoading && (
             <p className="text-center text-[11px] font-semibold text-muted-foreground mt-2">
               마이크 버튼을 눌러 말해보세요
             </p>

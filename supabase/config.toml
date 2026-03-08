@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.generate-pet-image]
 verify_jwt = false
+
+[functions.speaking]
+verify_jwt = false
+
+[functions.speaking-feedback]
+verify_jwt = false
