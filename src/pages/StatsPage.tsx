@@ -146,28 +146,38 @@ const StatsPage = () => {
         </p>
       </motion.div>
 
-      {/* Tab toggle: Learning vs Activity */}
+      {/* Tab toggle */}
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setActiveTab("learning")}
-          className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "learning" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
-          <BarChart3 size={16} /> 학습 분석
+          <BarChart3 size={14} /> 학습
         </button>
         <button
           onClick={() => setActiveTab("activity")}
-          className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
             activeTab === "activity" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
-          <Activity size={16} /> 활동 로그
+          <Activity size={14} /> 활동
+        </button>
+        <button
+          onClick={() => setActiveTab("time")}
+          className={`flex-1 py-2 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 ${
+            activeTab === "time" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          <Clock size={14} /> 시간
         </button>
       </div>
 
       {activeTab === "activity" ? (
         user ? <ActivityLogDashboard userId={user.id} /> : null
+      ) : activeTab === "time" ? (
+        user ? <TimeBasedDashboard userId={user.id} /> : null
       ) : (
         <>
           {/* View toggle */}
