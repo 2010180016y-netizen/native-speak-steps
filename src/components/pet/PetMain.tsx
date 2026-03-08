@@ -70,7 +70,7 @@ const MOOD_EMOJI: Record<string, string> = {
   happy: "😊", proud: "🥰", lonely: "🥺", sleepy: "😴", excited: "🤩", neutral: "📝",
 };
 
-const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
+const PetMain = ({ activePet, pets, items, points, feedPet, loading }: Props) => {
   const { user } = useAuth();
   const [feeding, setFeeding] = useState<FeedingState>({ active: false, emoji: "", itemName: "" });
   const [petAction, setPetAction] = useState<PetAction>("idle");
