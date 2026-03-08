@@ -27,6 +27,7 @@ type Pet3DSceneProps = {
   feeding: boolean;
   expression?: PetExpression;
   onTap: () => void;
+  onSwitchPet?: (petId: string) => void;
 };
 
 /** Camera smoothly follows the pet */
