@@ -128,6 +128,7 @@ export default function Pet3DScene({
   feeding,
   expression,
   onTap,
+  onSwitchPet,
 }: Pet3DSceneProps) {
   const activePet = pets.find((p) => p.isActive) || pets[0];
   const inactivePets = pets.filter((p) => p.id !== activePet?.id);
