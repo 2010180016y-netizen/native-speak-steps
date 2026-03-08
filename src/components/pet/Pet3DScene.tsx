@@ -259,14 +259,7 @@ export default function Pet3DScene({
           />
         ))}
 
-        <OrbitControls
-          enablePan={false}
-          enableZoom={false}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 2.5}
-          minAzimuthAngle={-Math.PI / 6}
-          maxAzimuthAngle={Math.PI / 6}
-        />
+        <CameraFollower targetPos={targetPos} />
       </Canvas>
 
       {/* Speech bubble */}
