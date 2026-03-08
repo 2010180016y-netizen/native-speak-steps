@@ -183,7 +183,7 @@ const ChibiTail = forwardRef<THREE.Group, { config: BreedConfig }>(function Chib
       </mesh>
     </group>
   );
-}
+});
 
 /** Expression-based eyes */
 function ChibiEyes({ expression, eyeColor, side }: { expression: PetExpression; eyeColor: string; side: "left" | "right" }) {

@@ -116,7 +116,7 @@ const InactivePetWanderer = forwardRef<THREE.Group, {
       />
     </group>
   );
-}
+});
 
 // Generate a stable "home" position for inactive pets so they stay in fixed spots
 function getHomePosForIndex(index: number): [number, number, number] {
