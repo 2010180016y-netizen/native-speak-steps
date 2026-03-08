@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Volume2, VolumeX, RotateCcw, ArrowLeft, Square, Phone, PhoneOff, User } from "lucide-react";
+import { Mic, MicOff, Volume2, VolumeX, RotateCcw, ArrowLeft, Square, Phone, PhoneOff, User, Target, CheckCircle2, Lightbulb, History } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import SpeakingFeedback from "@/components/speaking/SpeakingFeedback";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
+import { SPEAKING_MISSIONS, SPEAKING_HINTS, type SpeakingMission } from "@/lib/speakingScenarioData";
 
 type Correction = { wrong: string; correct: string; explanation: string };
 type Message = { role: "user" | "assistant"; content: string; corrections?: Correction[] };
@@ -84,9 +86,17 @@ const SpeakingPage = () => {
   const [occupation, setOccupation] = useState<string | null>(null);
   const [personality, setPersonality] = useState<string | null>(null);
 
+  // Mission state
+  const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
+  const [lastFailedText, setLastFailedText] = useState<string | null>(null);
+
   const targetLang = LANG_MAP[profile?.target_language || "en"] || "en-US";
   const { isListening, transcript, interimTranscript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(targetLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(targetLang);
+
+  // Current missions & hints
+  const missions: SpeakingMission[] = scenario ? SPEAKING_MISSIONS[scenario.id] || SPEAKING_MISSIONS.free : [];
+  const levelHints = SPEAKING_HINTS[profile?.target_language || "en"]?.[profile?.current_level || "beginner"] || [];
 
   useEffect(() => {
     if (!user) return;
@@ -151,14 +161,51 @@ const SpeakingPage = () => {
     }
   }, [user]);
 
+  // Mission checking
+  const checkMissions = useCallback((allMessages: Message[]) => {
+    if (!scenario) return;
+    const userMessages = allMessages.filter((m) => m.role === "user");
+    const questionCount = userMessages.filter((m) => m.content.includes("?")).length;
+
+    const newCompleted = new Set(completedMissions);
+    let xpGained = 0;
+
+    for (const mission of missions) {
+      if (newCompleted.has(mission.id)) continue;
+      let done = false;
+      if (mission.checkType === "message_count" && userMessages.length >= mission.threshold) done = true;
+      if (mission.checkType === "question_count" && questionCount >= mission.threshold) done = true;
+      if (mission.checkType === "duration" && callDuration >= mission.threshold) done = true;
+
+      if (done) {
+        newCompleted.add(mission.id);
+        xpGained += mission.xpReward;
+      }
+    }
+
+    if (newCompleted.size > completedMissions.size) {
+      setCompletedMissions(newCompleted);
+      const newlyDone = [...newCompleted].filter((id) => !completedMissions.has(id));
+      for (const id of newlyDone) {
+        const m = missions.find((mi) => mi.id === id);
+        if (m) toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
+      }
+      if (xpGained > 0 && user) {
+        supabase.from("profiles").select("total_xp").eq("user_id", user.id).single().then(({ data }) => {
+          if (data) supabase.from("profiles").update({ total_xp: data.total_xp + xpGained }).eq("user_id", user.id);
+        });
+      }
+    }
+  }, [scenario, missions, completedMissions, callDuration, user]);
+
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isAiLoading) return;
+    setLastFailedText(null);
     const userMsg: Message = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setIsAiLoading(true);
 
-    // Save user message to DB
     saveMessageToDB("user", text);
 
     try {
@@ -176,26 +223,36 @@ const SpeakingPage = () => {
       if (error) throw error;
       const corrections: Correction[] = data.corrections || [];
       const aiMsg: Message = { role: "assistant", content: data.content, corrections };
-      setMessages((prev) => [...prev, aiMsg]);
+      const finalMessages = [...newMessages, aiMsg];
+      setMessages(finalMessages);
 
-      // Save assistant message to DB
       saveMessageToDB("assistant", data.content);
 
-      // Auto-save corrections as SRS cards
       if (corrections.length > 0) {
         saveCorrectionCards(corrections);
       }
+
+      // Check missions
+      checkMissions(finalMessages);
 
       if (autoSpeak && data.content) {
         setTimeout(() => speak(data.content), 300);
       }
     } catch (e: any) {
       console.error("Speaking error:", e);
-      toast.error(e?.message || "AI 응답에 실패했어요");
+      setLastFailedText(text);
+      // Remove the failed user message
+      setMessages(messages);
+      toast.error(
+        e?.message || "AI 응답에 실패했어요. 다시 시도해 주세요.",
+        {
+          action: { label: "재시도", onClick: () => sendMessage(text) },
+        }
+      );
     } finally {
       setIsAiLoading(false);
     }
-  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName]);
+  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions]);
 
   const startCall = useCallback(async () => {
     setPhase("call");
@@ -359,6 +416,8 @@ const SpeakingPage = () => {
     setPersona(null);
     setScenario(null);
     setCallerName("");
+    setCompletedMissions(new Set());
+    setLastFailedText(null);
     stopSpeaking();
   };
 
@@ -369,7 +428,15 @@ const SpeakingPage = () => {
     return (
       <AppLayout>
         <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-          <h1 className="text-2xl font-extrabold text-foreground mb-1">스피킹 연습 📞</h1>
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="text-2xl font-extrabold text-foreground">스피킹 연습 📞</h1>
+            <Link
+              to="/speaking-history"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 border-border text-muted-foreground text-xs font-bold hover:border-primary/40 hover:text-foreground transition-colors"
+            >
+              <History size={14} /> 기록
+            </Link>
+          </div>
           <p className="text-sm text-muted-foreground font-semibold mb-5">
             페르소나를 설정하면 전화가 걸려와요!
           </p>
@@ -615,6 +682,67 @@ const SpeakingPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Mini Missions Bar */}
+      {missions.length > 0 && !isFeedbackLoading && (
+        <motion.div
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="mb-3 bg-card rounded-2xl border border-border p-3 shadow-sm"
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <Target size={14} className="text-primary" />
+            <span className="text-[11px] font-extrabold text-foreground">통화 미션</span>
+            <span className="text-[10px] font-bold text-primary ml-auto">
+              {completedMissions.size}/{missions.length}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {missions.map((mission) => {
+              const done = completedMissions.has(mission.id);
+              return (
+                <div
+                  key={mission.id}
+                  className={`flex items-center gap-2 text-[11px] rounded-lg px-2.5 py-1.5 transition-colors ${done ? "bg-primary/10" : "bg-muted/50"}`}
+                >
+                  {done ? (
+                    <CheckCircle2 size={13} className="text-primary flex-shrink-0" />
+                  ) : (
+                    <div className="w-[13px] h-[13px] rounded-full border-2 border-muted-foreground/30 flex-shrink-0" />
+                  )}
+                  <span className={`font-bold flex-1 ${done ? "text-primary line-through" : "text-foreground"}`}>
+                    {mission.title}
+                  </span>
+                  <span className={`text-[10px] font-bold ${done ? "text-primary" : "text-muted-foreground"}`}>
+                    +{mission.xpReward}XP
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Level-based Hints */}
+      {levelHints.length > 0 && messages.length <= 2 && !isFeedbackLoading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-3 bg-card rounded-2xl border border-dashed border-primary/30 p-3 shadow-sm"
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <Lightbulb size={14} className="text-primary" />
+            <span className="text-[11px] font-extrabold text-foreground">이렇게 말해보세요</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {levelHints.slice(0, 4).map((hint, i) => (
+              <span key={i} className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                {hint}
+              </span>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Feedback loading */}
       {isFeedbackLoading && (

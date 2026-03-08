@@ -17,6 +17,7 @@ import StatsPage from "./pages/StatsPage";
 import ProfilePage from "./pages/ProfilePage";
 import PetPage from "./pages/PetPage";
 import SpeakingPage from "./pages/SpeakingPage";
+import SpeakingHistoryPage from "./pages/SpeakingHistoryPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/pet" element={<ProtectedRoute><PetPage /></ProtectedRoute>} />
             <Route path="/speaking" element={<ProtectedRoute><SpeakingPage /></ProtectedRoute>} />
+            <Route path="/speaking-history" element={<ProtectedRoute><SpeakingHistoryPage /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFound />} />
