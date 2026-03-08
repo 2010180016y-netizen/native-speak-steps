@@ -207,9 +207,9 @@ const PetMain = ({ activePet, items, points, feedPet, loading }: Props) => {
       const ids = userAcc.map((ua: any) => ua.accessory_id);
       const { data: accs } = await supabase
         .from("pet_accessories")
-        .select("emoji, position")
+        .select("emoji, position, name, category")
         .in("id", ids);
-      setEquippedAccessories((accs as { emoji: string; position: string }[]) || []);
+      setEquippedAccessories((accs as { emoji: string; position: string; name?: string; category?: string }[]) || []);
     };
     fetchEquipped();
   }, [activePet?.id, user]);
