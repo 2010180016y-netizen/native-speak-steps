@@ -220,42 +220,11 @@ const DashboardPage = () => {
         </motion.div>
       </div>
 
-      {/* Goal Progress */}
-      <GoalProgressWidget />
-
-      {/* Weekly Report */}
-      <WeeklyReportWidget />
-
-      {/* Personalized Recommendations */}
-      <PersonalizedRecommendations />
-
       {/* Pet Widget */}
       <DashboardPetWidget />
 
-      {/* Stats & Leaderboard links */}
-      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.28 }} className="space-y-3 mb-4">
-        <Link to="/leaderboard" className="duo-card flex items-center gap-4 p-4 cursor-pointer hover:scale-[1.01] transition-transform">
-          <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
-            <Trophy className="text-primary" size={24} />
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-foreground">리더보드</div>
-            <div className="text-xs text-muted-foreground font-semibold">다른 학습자들과 순위를 비교해 보세요</div>
-          </div>
-        </Link>
-        <Link to="/stats" className="duo-card flex items-center gap-4 p-4 cursor-pointer hover:scale-[1.01] transition-transform">
-          <div className="w-12 h-12 rounded-2xl bg-duo-purple/20 flex items-center justify-center">
-            <BarChart3 className="text-duo-purple" size={24} />
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-foreground">학습 통계</div>
-            <div className="text-xs text-muted-foreground font-semibold">일별/주별 학습량과 동기화율 차트</div>
-          </div>
-        </Link>
-      </motion.div>
-
       {/* Quick Actions */}
-      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="space-y-3">
+      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className="space-y-3 mb-4">
         <Link to="/import" className="duo-card flex items-center gap-4 p-4 cursor-pointer hover:scale-[1.01] transition-transform">
           <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center">
             <Upload className="text-primary-foreground" size={24} />
@@ -288,6 +257,37 @@ const DashboardPage = () => {
           </Link>
         )}
       </motion.div>
+
+      {/* Goal Progress */}
+      <GoalProgressWidget />
+
+      {/* Weekly Report */}
+      <WeeklyReportWidget />
+
+      {/* Stats & Leaderboard links */}
+      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.28 }} className="space-y-3 mb-4">
+        <Link to="/leaderboard" className="duo-card flex items-center gap-4 p-4 cursor-pointer hover:scale-[1.01] transition-transform">
+          <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+            <Trophy className="text-primary" size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="font-bold text-foreground">리더보드</div>
+            <div className="text-xs text-muted-foreground font-semibold">다른 학습자들과 순위를 비교해 보세요</div>
+          </div>
+        </Link>
+        <Link to="/stats" className="duo-card flex items-center gap-4 p-4 cursor-pointer hover:scale-[1.01] transition-transform">
+          <div className="w-12 h-12 rounded-2xl bg-duo-purple/20 flex items-center justify-center">
+            <BarChart3 className="text-duo-purple" size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="font-bold text-foreground">학습 통계</div>
+            <div className="text-xs text-muted-foreground font-semibold">일별/주별 학습량과 동기화율 차트</div>
+          </div>
+        </Link>
+      </motion.div>
+
+      {/* Personalized Recommendations */}
+      <PersonalizedRecommendations />
     </AppLayout>
   );
 };
