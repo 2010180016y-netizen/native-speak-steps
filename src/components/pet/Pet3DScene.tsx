@@ -58,11 +58,12 @@ function LoadingFallback() {
 }
 
 /** Inactive pet that wanders slowly around its home zone */
-function InactivePetWanderer({ homePos, scale, species, petTypeName }: {
+function InactivePetWanderer({ homePos, scale, species, petTypeName, onClick }: {
   homePos: [number, number, number];
   scale: number;
   species: string;
   petTypeName?: string;
+  onClick?: () => void;
 }) {
   const [action, setAction] = useState<"idle" | "walking" | "sleeping">("idle");
   const [target, setTarget] = useState<[number, number, number]>(homePos);
@@ -91,15 +92,17 @@ function InactivePetWanderer({ homePos, scale, species, petTypeName }: {
   }, [homePos]);
 
   return (
-    <ChibiPetModel
-      action={action}
-      position={homePos}
-      targetPosition={target}
-      scale={scale}
-      species={species}
-      petTypeName={petTypeName}
-      feeding={false}
-    />
+    <group onClick={(e) => { e.stopPropagation(); onClick?.(); }} style={{ cursor: "pointer" }}>
+      <ChibiPetModel
+        action={action}
+        position={homePos}
+        targetPosition={target}
+        scale={scale}
+        species={species}
+        petTypeName={petTypeName}
+        feeding={false}
+      />
+    </group>
   );
 }
 
