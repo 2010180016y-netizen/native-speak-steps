@@ -153,19 +153,28 @@ export default function Pet3DScene({
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
   const petScale = Math.min(0.01 + (petLevel - 1) * 0.0005, 0.018);
 
-  // Wander logic
+  // Wander logic — walk to a new random spot every 2-3.5s
   useEffect(() => {
     if (feeding) return;
+
     const wander = () => {
       if (petAction === "walking") {
-        setTargetPos([-3 + Math.random() * 6, 0, -3 + Math.random() * 6]);
+        // Wider range across the room for more visible movement
+        setTargetPos([
+          -3.5 + Math.random() * 7,   // x: -3.5 ~ 3.5
+          0,
+          -3.5 + Math.random() * 5.5,  // z: -3.5 ~ 2
+        ]);
       } else if (petAction === "sleeping") {
         setTargetPos([-2.5, 0, -2]);
       } else if (petAction === "eating") {
         setTargetPos([2.5, 0, -3]);
       }
     };
-    const id = setInterval(wander, 3000 + Math.random() * 2000);
+
+    // Trigger immediately so pet starts moving right away
+    wander();
+    const id = setInterval(wander, 2000 + Math.random() * 1500);
     return () => clearInterval(id);
   }, [petAction, feeding]);
 

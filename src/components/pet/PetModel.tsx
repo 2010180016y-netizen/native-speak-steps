@@ -157,19 +157,20 @@ export default function PetModel({
     if (!groupRef.current) return;
     const group = groupRef.current;
 
-    // Lerp position
-    group.position.x += (targetPosition[0] - group.position.x) * delta * 1.5;
-    group.position.z += (targetPosition[2] - group.position.z) * delta * 1.5;
+    // Slower lerp so the pet visibly traverses the room
+    const moveSpeed = action === "walking" ? 0.8 : 1.5;
+    group.position.x += (targetPosition[0] - group.position.x) * delta * moveSpeed;
+    group.position.z += (targetPosition[2] - group.position.z) * delta * moveSpeed;
 
     // Face movement direction
     const dx = targetPosition[0] - group.position.x;
     const dz = targetPosition[2] - group.position.z;
-    if (Math.abs(dx) > 0.01 || Math.abs(dz) > 0.01) {
+    if (Math.abs(dx) > 0.02 || Math.abs(dz) > 0.02) {
       const targetAngle = Math.atan2(dx, dz);
       let diff = targetAngle - group.rotation.y;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      group.rotation.y += diff * delta * 3;
+      group.rotation.y += diff * delta * 4;
     }
 
     // Feeding bounce
