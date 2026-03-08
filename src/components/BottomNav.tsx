@@ -1,11 +1,11 @@
 import { useLocation, Link } from "react-router-dom";
-import { Home, Upload, MessageCircle, BookOpen, User } from "lucide-react";
+import { Home, Upload, MessageCircle, BarChart3, User } from "lucide-react";
 
 const NAV_ITEMS = [
   { path: "/dashboard", icon: Home, label: "홈" },
   { path: "/import", icon: Upload, label: "분석" },
   { path: "/chat", icon: MessageCircle, label: "연습" },
-  { path: "/cards", icon: BookOpen, label: "카드" },
+  { path: "/stats", icon: BarChart3, label: "통계" },
   { path: "/profile", icon: User, label: "프로필" },
 ];
 

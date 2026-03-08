@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
-import { Flame, Zap, BookOpen, MessageCircle, Upload } from "lucide-react";
+import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const LANG_NAMES: Record<string, string> = {
@@ -101,6 +101,19 @@ const DashboardPage = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Stats link */}
+      <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.28 }}>
+        <Link to="/stats" className="duo-card flex items-center gap-4 p-4 mb-4 cursor-pointer hover:scale-[1.01] transition-transform">
+          <div className="w-12 h-12 rounded-2xl bg-duo-purple/20 flex items-center justify-center">
+            <BarChart3 className="text-duo-purple" size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="font-bold text-foreground">학습 통계 보기</div>
+            <div className="text-xs text-muted-foreground font-semibold">일별/주별 학습량과 동기화율 차트</div>
+          </div>
+        </Link>
+      </motion.div>
 
       {/* Quick Actions */}
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="space-y-3">
