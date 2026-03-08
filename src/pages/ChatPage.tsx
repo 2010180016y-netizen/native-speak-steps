@@ -37,6 +37,12 @@ interface SavedSession {
   messages: Message[];
 }
 
+// Map language codes to BCP-47 for speech APIs
+const SPEECH_LANG_MAP: Record<string, string> = {
+  ko: "ko-KR", en: "en-US", ja: "ja-JP", zh: "zh-CN",
+  es: "es-ES", fr: "fr-FR", de: "de-DE", pt: "pt-BR",
+};
+
 const ChatPage = () => {
   const { user, profile } = useAuth();
   const [phase, setPhase] = useState<Phase>("setup");
@@ -48,7 +54,37 @@ const ChatPage = () => {
   const [scenario, setScenario] = useState<ChatScenario | null>(null);
   const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
   const [restoringSession, setRestoringSession] = useState(true);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const speechLang = SPEECH_LANG_MAP[profile?.target_language || "en"] || "en-US";
+  const { isListening, transcript, interimTranscript, isSupported: sttSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(speechLang);
+  const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(speechLang);
+
+  // When STT transcript is finalized, append to input
+  useEffect(() => {
+    if (transcript) {
+      setInput((prev) => (prev ? prev + " " + transcript : transcript));
+      resetTranscript();
+    }
+  }, [transcript, resetTranscript]);
+
+  const handleTTS = (text: string, index: number) => {
+    if (isSpeaking && playingIndex === index) {
+      stopSpeaking();
+      setPlayingIndex(null);
+    } else {
+      // Strip markdown for cleaner TTS
+      const clean = text.replace(/[*_~`#>\[\]()!]/g, "").replace(/\n+/g, " ").trim();
+      speak(clean);
+      setPlayingIndex(index);
+    }
+  };
+
+  // Reset playing index when speech ends
+  useEffect(() => {
+    if (!isSpeaking) setPlayingIndex(null);
+  }, [isSpeaking]);
 
   // Get missions for current scenario
   const missions: MiniMission[] = scenario
