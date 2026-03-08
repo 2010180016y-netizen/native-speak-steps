@@ -11,6 +11,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import DashboardPage from "./pages/DashboardPage";
 import ImportPage from "./pages/ImportPage";
 import ChatPage from "./pages/ChatPage";
+import ChatHistoryPage from "./pages/ChatHistoryPage";
 import CardsPage from "./pages/CardsPage";
 import StatsPage from "./pages/StatsPage";
 import ProfilePage from "./pages/ProfilePage";
