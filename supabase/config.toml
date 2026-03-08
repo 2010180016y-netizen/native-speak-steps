@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-cards]
 verify_jwt = false
+
+[functions.generate-pet-image]
+verify_jwt = false
