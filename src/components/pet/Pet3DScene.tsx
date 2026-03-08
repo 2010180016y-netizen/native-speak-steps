@@ -1,9 +1,9 @@
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment } from "@react-three/drei";
 
 import { motion, AnimatePresence } from "framer-motion";
-import PetModel from "./PetModel";
+import ChibiPetModel from "./ChibiPetModel";
 import Pet3DAccessory from "./Pet3DAccessory";
 import Room from "./Pet3DRoom";
 import * as THREE from "three";
@@ -55,6 +55,52 @@ function LoadingFallback() {
   );
 }
 
+/** Inactive pet that wanders slowly around its home zone */
+function InactivePetWanderer({ homePos, scale, species, petTypeName }: {
+  homePos: [number, number, number];
+  scale: number;
+  species: string;
+  petTypeName?: string;
+}) {
+  const [action, setAction] = useState<"idle" | "walking" | "sleeping">("idle");
+  const [target, setTarget] = useState<[number, number, number]>(homePos);
+
+  useEffect(() => {
+    const tick = () => {
+      const r = Math.random();
+      if (r < 0.35) {
+        setAction("walking");
+        setTarget([
+          homePos[0] + (Math.random() - 0.5) * 2,
+          0,
+          homePos[2] + (Math.random() - 0.5) * 2,
+        ]);
+      } else if (r < 0.55) {
+        setAction("sleeping");
+        setTarget(homePos);
+      } else {
+        setAction("idle");
+        setTarget(homePos);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 3000 + Math.random() * 3000);
+    return () => clearInterval(id);
+  }, [homePos]);
+
+  return (
+    <ChibiPetModel
+      action={action}
+      position={homePos}
+      targetPosition={target}
+      scale={scale}
+      species={species}
+      petTypeName={petTypeName}
+      feeding={false}
+    />
+  );
+}
+
 // Generate a stable "home" position for inactive pets so they stay in fixed spots
 function getHomePosForIndex(index: number): [number, number, number] {
   const spots: [number, number, number][] = [
@@ -81,7 +127,7 @@ export default function Pet3DScene({
   const inactivePets = pets.filter((p) => p.id !== activePet?.id);
 
   const [targetPos, setTargetPos] = useState<[number, number, number]>([0, 0, 0]);
-  const petScale = activePet ? Math.min(0.01 + (activePet.level - 1) * 0.0005, 0.018) : 0.01;
+  const petScale = activePet ? Math.min(0.7 + (activePet.level - 1) * 0.02, 1.2) : 0.7;
 
   // Wander logic
   useEffect(() => {
@@ -156,35 +202,23 @@ export default function Pet3DScene({
 
         {/* ─── Active Pet ─── */}
         {activePet && (
-          <Suspense fallback={<LoadingFallback />}>
-            <PetModel
-              action={petAction}
-              position={[0, 0, 0]}
-              targetPosition={targetPos}
-              scale={petScale}
-              species={activePet.species}
-              petTypeName={activePet.petTypeName}
-              feeding={feeding}
-            />
-          </Suspense>
+          <ChibiPetModel
+            action={petAction}
+            position={[0, 0, 0]}
+            targetPosition={targetPos}
+            scale={petScale}
+            species={activePet.species}
+            petTypeName={activePet.petTypeName}
+            feeding={feeding}
+          />
         )}
 
-        {/* ─── Inactive Pets (idle in fixed spots) ─── */}
+        {/* ─── Inactive Pets (wander in their own zones) ─── */}
         {inactivePets.map((pet, i) => {
           const homePos = getHomePosForIndex(i);
-          const s = Math.min(0.01 + (pet.level - 1) * 0.0005, 0.018);
+          const s = Math.min(0.7 + (pet.level - 1) * 0.02, 1.2);
           return (
-            <Suspense key={pet.id} fallback={<LoadingFallback />}>
-              <PetModel
-                action="idle"
-                position={homePos}
-                targetPosition={homePos}
-                scale={s}
-                species={pet.species}
-                petTypeName={pet.petTypeName}
-                feeding={false}
-              />
-            </Suspense>
+            <InactivePetWanderer key={pet.id} homePos={homePos} scale={s} species={pet.species} petTypeName={pet.petTypeName} />
           );
         })}
 
