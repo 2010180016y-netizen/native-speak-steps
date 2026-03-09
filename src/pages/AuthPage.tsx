@@ -192,100 +192,178 @@ const AuthPage = () => {
             </div>
 
             <div className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <AnimatePresence mode="wait">
-                  {!isLogin && (
+              <AnimatePresence mode="wait">
+                {verificationSent ? (
+                  <motion.div
+                    key="verification"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="text-center py-6"
+                  >
                     <motion.div
-                      key="name"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center"
                     >
-                      <label className="block text-sm font-bold text-muted-foreground mb-2">
-                        닉네임
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="멋진 닉네임을 입력하세요"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        className="w-full px-4 py-3.5 rounded-xl border-2 border-border bg-background text-foreground font-medium placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/20 focus:outline-none transition-all"
-                        required={!isLogin}
-                      />
+                      <Mail className="w-10 h-10 text-primary" />
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                    
+                    <h3 className="text-xl font-bold text-foreground mb-2">
+                      이메일을 확인해주세요
+                    </h3>
+                    <p className="text-muted-foreground mb-2">
+                      <span className="font-semibold text-foreground">{signedUpEmail}</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      인증 링크가 포함된 이메일을 보냈습니다.<br />
+                      이메일을 확인하고 링크를 클릭해주세요.
+                    </p>
 
-                <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-2">
-                    이메일
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="example@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-xl border-2 border-border bg-background text-foreground font-medium placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/20 focus:outline-none transition-all"
-                    required
-                  />
-                </div>
+                    <div className="space-y-3">
+                      <motion.button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resending}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full py-3 rounded-xl border-2 border-primary text-primary font-bold hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                      >
+                        {resending ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          >
+                            <RefreshCw className="w-5 h-5" />
+                          </motion.div>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-5 h-5" />
+                            인증 메일 재발송
+                          </>
+                        )}
+                      </motion.button>
 
-                <div>
-                  <label className="block text-sm font-bold text-muted-foreground mb-2">
-                    비밀번호
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="6자 이상 입력하세요"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3.5 rounded-xl border-2 border-border bg-background text-foreground font-medium placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/20 focus:outline-none transition-all pr-12"
-                      required
-                      minLength={6}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                  {isLogin && (
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-primary font-medium hover:underline mt-1"
-                    >
-                      비밀번호를 잊으셨나요?
-                    </button>
-                  )}
-                </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVerificationSent(false);
+                          setIsLogin(true);
+                        }}
+                        className="w-full py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        로그인 화면으로 돌아가기
+                      </button>
+                    </div>
 
-                <motion.button
-                  type="submit"
-                  disabled={submitting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-bold text-lg shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  {submitting ? (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    >
-                      ⏳
-                    </motion.div>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      {isLogin ? "학습 시작하기" : "무료로 시작하기"}
-                    </>
-                  )}
-                </motion.button>
-              </form>
+                    <p className="text-xs text-muted-foreground mt-6">
+                      메일이 보이지 않으면 스팸함을 확인해주세요
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="form"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <AnimatePresence mode="wait">
+                        {!isLogin && (
+                          <motion.div
+                            key="name"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <label className="block text-sm font-bold text-muted-foreground mb-2">
+                              닉네임
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="멋진 닉네임을 입력하세요"
+                              value={displayName}
+                              onChange={(e) => setDisplayName(e.target.value)}
+                              className="w-full px-4 py-3.5 rounded-xl border-2 border-border bg-background text-foreground font-medium placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/20 focus:outline-none transition-all"
+                              required={!isLogin}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div>
+                        <label className="block text-sm font-bold text-muted-foreground mb-2">
+                          이메일
+                        </label>
+                        <input
+                          type="email"
+                          placeholder="example@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full px-4 py-3.5 rounded-xl border-2 border-border bg-background text-foreground font-medium placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/20 focus:outline-none transition-all"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-bold text-muted-foreground mb-2">
+                          비밀번호
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="6자 이상 입력하세요"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-4 py-3.5 rounded-xl border-2 border-border bg-background text-foreground font-medium placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/20 focus:outline-none transition-all pr-12"
+                            required
+                            minLength={6}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </button>
+                        </div>
+                        {isLogin && (
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotPassword(true)}
+                            className="text-sm text-primary font-medium hover:underline mt-1"
+                          >
+                            비밀번호를 잊으셨나요?
+                          </button>
+                        )}
+                      </div>
+
+                      <motion.button
+                        type="submit"
+                        disabled={submitting}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-bold text-lg shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                      >
+                        {submitting ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          >
+                            ⏳
+                          </motion.div>
+                        ) : (
+                          <>
+                            <Sparkles className="w-5 h-5" />
+                            {isLogin ? "학습 시작하기" : "무료로 시작하기"}
+                          </>
+                        )}
+                      </motion.button>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Divider */}
               <div className="relative my-6">
