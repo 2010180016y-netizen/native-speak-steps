@@ -3,8 +3,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Eye, EyeOff, Sparkles, Globe, BookOpen, Trophy } from "lucide-react";
+import { Eye, EyeOff, Sparkles, Globe, BookOpen, Trophy, Mail, RefreshCw } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import ForgotPasswordModal from "@/components/auth/ForgotPasswordModal";
 
 const AuthPage = () => {
@@ -15,6 +16,9 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [signedUpEmail, setSignedUpEmail] = useState("");
+  const [resending, setResending] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
@@ -22,6 +26,22 @@ const AuthPage = () => {
     navigate("/dashboard", { replace: true });
     return null;
   }
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: signedUpEmail,
+      });
+      if (error) throw error;
+      toast.success("인증 메일을 다시 보냈습니다 📧");
+    } catch (err: any) {
+      toast.error(err.message || "메일 발송에 실패했습니다");
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +53,8 @@ const AuthPage = () => {
         navigate("/dashboard");
       } else {
         await signUp(email, password, displayName);
-        toast.success("회원가입 완료! 이메일을 확인해주세요 📧");
+        setSignedUpEmail(email);
+        setVerificationSent(true);
       }
     } catch (err: any) {
       toast.error(err.message || "오류가 발생했습니다");
