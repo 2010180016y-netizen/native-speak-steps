@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { path: "/chat", icon: MessageCircle, label: "채팅" },
   { path: "/speaking", icon: Mic, label: "스피킹" },
   { path: "/pet", icon: PawPrint, label: "펫" },
+  { path: "/profile", icon: User, label: "프로필" },
 ];
 
 const BottomNav = () => {
