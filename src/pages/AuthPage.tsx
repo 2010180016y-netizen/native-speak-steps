@@ -164,7 +164,7 @@ const AuthPage = () => {
               Lang<span className="text-primary">Sync</span>
             </h1>
             <p className="text-sm text-muted-foreground mt-1.5 font-medium">
-              모국어만큼 쓰고, 그만큼 배우는 언어 학습
+              내가 쓰는 모국어만큼만 외국어를 배우자
             </p>
           </div>
 
