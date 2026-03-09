@@ -156,13 +156,16 @@ const AuthPage = () => {
             <motion.div
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
-              className="text-6xl mb-3"
+              className="text-5xl mb-2"
             >
               🌍
             </motion.div>
             <h1 className="text-3xl font-black text-foreground">
               Lang<span className="text-primary">Sync</span>
             </h1>
+            <p className="text-sm text-muted-foreground mt-1.5 font-medium">
+              모국어만큼 쓰고, 그만큼 배우는 언어 학습
+            </p>
           </div>
 
           {/* Auth Card */}
