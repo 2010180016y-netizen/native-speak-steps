@@ -7,6 +7,7 @@ import { Eye, EyeOff, Sparkles, Globe, BookOpen, Trophy, Mail, RefreshCw } from 
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import ForgotPasswordModal from "@/components/auth/ForgotPasswordModal";
+import { DISPLAY_NAME_MAX_LENGTH, getDisplayNameError } from "@/lib/displayName";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -45,6 +46,13 @@ const AuthPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLogin) {
+      const nameError = getDisplayNameError(displayName);
+      if (nameError) {
+        toast.error(nameError);
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       if (isLogin) {
@@ -52,7 +60,7 @@ const AuthPage = () => {
         toast.success("환영합니다! 🎉");
         navigate("/dashboard");
       } else {
-        await signUp(email, password, displayName);
+        await signUp(email, password, displayName.trim());
         setSignedUpEmail(email);
         setVerificationSent(true);
       }
@@ -288,6 +296,7 @@ const AuthPage = () => {
                               placeholder="멋진 닉네임을 입력하세요"
                               value={displayName}
                               onChange={(e) => setDisplayName(e.target.value)}
+                              maxLength={DISPLAY_NAME_MAX_LENGTH}
                               className="w-full px-4 py-3.5 rounded-xl border-2 border-border bg-background text-foreground font-medium placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/20 focus:outline-none transition-all"
                               required={!isLogin}
                             />

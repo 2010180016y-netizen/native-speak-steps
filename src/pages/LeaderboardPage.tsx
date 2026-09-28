@@ -5,15 +5,9 @@ import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import { Trophy, Flame, Zap, Crown, Medal, Award, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import type { Database } from "@/integrations/supabase/types";
 
-interface LeaderboardEntry {
-  user_id: string;
-  display_name: string;
-  total_xp: number;
-  streak_days: number;
-  current_level: string;
-  avatar_url: string | null;
-}
+type LeaderboardEntry = Database["public"]["Functions"]["get_leaderboard"]["Returns"][number];
 
 const LEVEL_SHORT: Record<string, string> = {
   beginner: "A1",
@@ -41,11 +35,11 @@ const LeaderboardPage = () => {
 
       const [leaderboardRes, rankRes] = await Promise.all([
         supabase.rpc("get_leaderboard", { limit_count: 50 }),
-        user ? supabase.rpc("get_user_rank", { target_user_id: user.id }) : Promise.resolve({ data: null }),
+        user ? supabase.rpc("get_my_rank") : Promise.resolve({ data: null }),
       ]);
 
       if (leaderboardRes.data) {
-        setEntries(leaderboardRes.data as LeaderboardEntry[]);
+        setEntries(leaderboardRes.data);
       }
       if (rankRes.data !== null) {
         setMyRank(rankRes.data as number);
@@ -60,7 +54,7 @@ const LeaderboardPage = () => {
     ? [...entries].sort((a, b) => b.streak_days - a.streak_days)
     : entries; // already sorted by XP
 
-  const myEntry = entries.find(e => e.user_id === user?.id);
+  const myEntry = entries.find(e => e.is_me);
 
   return (
     <AppLayout>
@@ -136,13 +130,13 @@ const LeaderboardPage = () => {
         <div className="space-y-2">
           {sorted.map((entry, idx) => {
             const rank = idx + 1;
-            const isMe = entry.user_id === user?.id;
+            const isMe = entry.is_me;
             const rankStyle = RANK_STYLES[rank];
             const RankIcon = rankStyle?.icon;
 
             return (
               <motion.div
-                key={entry.user_id}
+                key={entry.rank}
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: idx * 0.03 }}

@@ -713,15 +713,15 @@ export type Database = {
       get_leaderboard: {
         Args: { limit_count?: number }
         Returns: {
-          avatar_url: string
           current_level: string
           display_name: string
+          is_me: boolean
+          rank: number
           streak_days: number
           total_xp: number
-          user_id: string
         }[]
       }
-      get_user_rank: { Args: { target_user_id: string }; Returns: number }
+      get_my_rank: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never
