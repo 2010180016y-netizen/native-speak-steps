@@ -43,8 +43,6 @@ export type UserPoints = {
   balance: number;
 };
 
-const LEVEL_THRESHOLDS = Array.from({ length: 30 }, (_, i) => Math.round(100 * Math.pow(1.2, i)));
-
 export const usePet = () => {
   const { user } = useAuth();
   const [pets, setPets] = useState<UserPet[]>([]);
@@ -77,17 +75,8 @@ export const usePet = () => {
     setPets(userPets);
     setActivePet(userPets.find((p) => p.is_active) || userPets[0] || null);
 
-    if (pointsRes.data) {
-      setPoints(pointsRes.data as UserPoints);
-    } else {
-      // Create points record
-      const { data } = await supabase
-        .from("user_points")
-        .insert({ user_id: user.id, balance: 50 })
-        .select()
-        .single();
-      if (data) setPoints(data as UserPoints);
-    }
+    // The points row is created server-side at signup.
+    setPoints((pointsRes.data as UserPoints) ?? null);
 
     setLoading(false);
   }, [user]);
@@ -106,38 +95,8 @@ export const usePet = () => {
       return false;
     }
 
-    // Deduct points
-    if (petType.unlock_cost > 0) {
-      await supabase
-        .from("user_points")
-        .update({ balance: points.balance - petType.unlock_cost })
-        .eq("id", points.id);
-
-      await supabase.from("point_transactions").insert({
-        user_id: user.id,
-        amount: -petType.unlock_cost,
-        type: "pet_unlock",
-        description: `${petType.name} 입양`,
-      });
-    }
-
-    // Deactivate other pets
-    if (pets.length > 0) {
-      await supabase
-        .from("user_pets")
-        .update({ is_active: false })
-        .eq("user_id", user.id);
-    }
-
-    const { data: newPetData, error } = await supabase.from("user_pets").insert({
-      user_id: user.id,
-      pet_type_id: petTypeId,
-      name,
-      is_active: true,
-      exp_to_next_level: LEVEL_THRESHOLDS[0],
-    }).select().single();
-
-    if (error || !newPetData) {
+    const { data: newPetId, error } = await supabase.rpc("adopt_pet", { p_pet_type_id: petTypeId, p_name: name });
+    if (error || !newPetId) {
       toast.error("입양에 실패했어요");
       return false;
     }
@@ -145,21 +104,20 @@ export const usePet = () => {
     toast.success(`${name}이(가) 가족이 되었어요! 🎉`);
     
     // Generate initial pet image
-    generatePetImage((newPetData as any).id, petType.species, name, 1);
+    generatePetImage(newPetId, 1);
     
     await fetchAll();
     return true;
   };
 
-  const generatePetImage = async (petId: string, species: string, petName: string, level: number) => {
-    // Only generate at milestone levels
-    const milestoneLevel = IMAGE_MILESTONES.filter((m) => m <= level).pop() || 1;
-    if (!IMAGE_MILESTONES.includes(level) && level !== 1) return;
+  const generatePetImage = async (petId: string, level: number) => {
+    // Only generate at milestone levels; the server picks the stage from the pet's stored level.
+    if (!IMAGE_MILESTONES.includes(level)) return;
 
     try {
       toast.info("🎨 펫 이미지를 생성하고 있어요...");
       const { data, error } = await supabase.functions.invoke("generate-pet-image", {
-        body: { petId, species, petName, level: milestoneLevel },
+        body: { petId },
       });
 
       if (error) {
@@ -186,54 +144,16 @@ export const usePet = () => {
       return false;
     }
 
-    // Deduct points
-    await supabase
-      .from("user_points")
-      .update({ balance: points.balance - item.price })
-      .eq("id", points.id);
-
-    await supabase.from("point_transactions").insert({
-      user_id: user.id,
-      amount: -item.price,
-      type: "feed",
-      description: `${item.name} 구매`,
-    });
-
-    // Add experience
-    let newExp = activePet.experience + item.exp_reward;
-    let newLevel = activePet.level;
-    let newExpToNext = activePet.exp_to_next_level;
-    let leveledUp = false;
-
-    while (newExp >= newExpToNext && newLevel < 30) {
-      newExp -= newExpToNext;
-      newLevel++;
-      newExpToNext = LEVEL_THRESHOLDS[newLevel - 1] || 99999;
-      leveledUp = true;
+    const { data, error } = await supabase.rpc("feed_pet", { p_pet_id: activePet.id, p_item_id: itemId });
+    if (error || !data) {
+      toast.error("먹이 주기에 실패했어요");
+      return false;
     }
-
-    await supabase
-      .from("user_pets")
-      .update({
-        experience: newExp,
-        level: newLevel,
-        exp_to_next_level: newExpToNext,
-      })
-      .eq("id", activePet.id);
-
-    await supabase.from("pet_feeding_log").insert({
-      user_id: user.id,
-      pet_id: activePet.id,
-      item_id: itemId,
-    });
+    const { level: newLevel, leveled_up: leveledUp } = data as { level: number; leveled_up: boolean };
 
     if (leveledUp) {
       toast.success(`🎉 레벨 업! Lv.${newLevel}!`);
-      // Check if we hit an image milestone
-      const species = activePet.pet_type?.species || "dog";
-      if (IMAGE_MILESTONES.includes(newLevel)) {
-        generatePetImage(activePet.id, species, activePet.name, newLevel);
-      }
+      generatePetImage(activePet.id, newLevel);
     } else {
       toast.success(`${item.emoji} ${item.name}을(를) 줬어요!`);
     }

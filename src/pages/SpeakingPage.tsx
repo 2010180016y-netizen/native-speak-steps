@@ -8,14 +8,16 @@ import SpeakingIncoming from "@/components/speaking/SpeakingIncoming";
 import SpeakingCall from "@/components/speaking/SpeakingCall";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { toast } from "sonner";
 import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
 import { SPEAKING_MISSIONS, SPEAKING_HINTS, type SpeakingMission } from "@/lib/speakingScenarioData";
-import { SPEECH_LANG_MAP, getRandomName, PET_LEVEL_THRESHOLDS } from "@/lib/constants";
+import { SPEECH_LANG_MAP, getRandomName } from "@/lib/constants";
 import type { SpeakingMessage, Correction, SpeakingPhase, SpeakingFeedbackData } from "@/lib/speakingTypes";
 
 const SpeakingPage = () => {
   const { user } = useAuth();
+  const recordActivity = useRecordActivity();
   const [phase, setPhase] = useState<SpeakingPhase>("setup");
   const [messages, setMessages] = useState<SpeakingMessage[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -88,29 +90,25 @@ const SpeakingPage = () => {
     const userMessages = allMessages.filter((m) => m.role === "user");
     const questionCount = userMessages.filter((m) => m.content.includes("?")).length;
     const newCompleted = new Set(completedMissions);
-    let xpGained = 0;
     for (const mission of missions) {
       if (newCompleted.has(mission.id)) continue;
       let done = false;
       if (mission.checkType === "message_count" && userMessages.length >= mission.threshold) done = true;
       if (mission.checkType === "question_count" && questionCount >= mission.threshold) done = true;
       if (mission.checkType === "duration" && callDuration >= mission.threshold) done = true;
-      if (done) { newCompleted.add(mission.id); xpGained += mission.xpReward; }
+      if (done) newCompleted.add(mission.id);
     }
     if (newCompleted.size > completedMissions.size) {
       setCompletedMissions(newCompleted);
       const newlyDone = [...newCompleted].filter((id) => !completedMissions.has(id));
       for (const id of newlyDone) {
         const m = missions.find((mi) => mi.id === id);
-        if (m) toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
-      }
-      if (xpGained > 0 && user) {
-        supabase.from("profiles").select("total_xp").eq("user_id", user.id).single().then(({ data }) => {
-          if (data) supabase.from("profiles").update({ total_xp: data.total_xp + xpGained }).eq("user_id", user.id);
-        });
+        if (!m) continue;
+        toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
+        void recordActivity("speaking_mission", `speaking_mission:${speakingSessionId}:${m.id}`, m.xpReward);
       }
     }
-  }, [scenario, missions, completedMissions, callDuration, user]);
+  }, [scenario, missions, completedMissions, callDuration, recordActivity, speakingSessionId]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isAiLoading) return;
@@ -137,6 +135,7 @@ const SpeakingPage = () => {
       setMessages(finalMessages);
       saveMessageToDB("assistant", data.content);
       if (corrections.length > 0) saveCorrectionCards(corrections);
+      void recordActivity("chat_message", `speaking_message:${speakingSessionId}:${newMessages.filter((m) => m.role === "user").length}`);
       checkMissions(finalMessages);
       if (autoSpeak && data.content) setTimeout(() => speak(data.content), 300);
     } catch (e: unknown) {
@@ -148,7 +147,7 @@ const SpeakingPage = () => {
     } finally {
       setIsAiLoading(false);
     }
-  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions]);
+  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions, recordActivity, speakingSessionId]);
 
   const startCall = useCallback(async () => {
     setPhase("call");
@@ -189,31 +188,8 @@ const SpeakingPage = () => {
       if (data.feedback) {
         setFeedback(data.feedback as SpeakingFeedbackData);
         if (user) {
-          const userMsgCount = messages.filter((m) => m.role === "user").length;
           const score = data.feedback.overallScore || 50;
-          const pointsEarned = Math.max(5, Math.round(userMsgCount * 3 * (score / 100)));
-          const petXpEarned = Math.max(3, Math.round(userMsgCount * 2 * (score / 100)));
-
-          const { data: pointsData } = await supabase.from("user_points").select("*").eq("user_id", user.id).maybeSingle();
-          if (pointsData) {
-            await supabase.from("user_points").update({ balance: pointsData.balance + pointsEarned }).eq("id", pointsData.id);
-          } else {
-            await supabase.from("user_points").insert({ user_id: user.id, balance: pointsEarned });
-          }
-          await supabase.from("point_transactions").insert({ user_id: user.id, amount: pointsEarned, type: "speaking", description: `스피킹 연습 완료 (점수: ${score})` });
-
-          const { data: petData } = await supabase.from("user_pets").select("*").eq("user_id", user.id).eq("is_active", true).maybeSingle();
-          if (petData) {
-            let newExp = petData.experience + petXpEarned;
-            let newLevel = petData.level;
-            let newExpToNext = petData.exp_to_next_level;
-            while (newExp >= newExpToNext && newLevel < 30) {
-              newExp -= newExpToNext;
-              newLevel++;
-              newExpToNext = PET_LEVEL_THRESHOLDS[newLevel - 1] || 99999;
-            }
-            await supabase.from("user_pets").update({ experience: newExp, level: newLevel, exp_to_next_level: newExpToNext }).eq("id", petData.id);
-          }
+          const reward = await recordActivity("speaking_session", `speaking_session:${speakingSessionId}`, score);
 
           await supabase.from("lesson_completions").insert({
             user_id: user.id, lesson_type: "speaking", score, duration_seconds: callDuration,
@@ -232,7 +208,7 @@ const SpeakingPage = () => {
             }));
             await supabase.from("srs_cards").insert(feedbackCards);
           }
-          toast.success(`🎉 ${pointsEarned}P 획득! 펫 경험치 +${petXpEarned}`);
+          if (reward?.applied) toast.success(`🎉 스피킹 완료! +${reward.xp} XP`);
         }
       } else {
         toast.error("피드백을 생성할 수 없어요");

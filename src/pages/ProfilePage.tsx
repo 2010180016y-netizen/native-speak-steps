@@ -7,6 +7,7 @@ import ReminderSettings from "@/components/profile/ReminderSettings";
 import GoalSettings from "@/components/profile/GoalSettings";
 import DisplayNameSettings from "@/components/profile/DisplayNameSettings";
 import { LANG_NAMES, LEVEL_NAMES } from "@/lib/constants";
+import { getEffectiveStreak } from "@/lib/streak";
 
 const ProfilePage = () => {
   const { profile, signOut } = useAuth();
@@ -47,7 +48,7 @@ const ProfilePage = () => {
         <div className="grid grid-cols-3 gap-3">
           <div className="duo-card text-center">
             <Flame className="text-duo-orange mx-auto mb-1" size={24} />
-            <div className="text-lg font-extrabold text-foreground">{profile.streak_days}</div>
+            <div className="text-lg font-extrabold text-foreground">{getEffectiveStreak(profile)}</div>
             <div className="text-[10px] text-muted-foreground font-bold">연속</div>
           </div>
           <div className="duo-card text-center">

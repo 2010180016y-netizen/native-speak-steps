@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { aiHandler, callModel, HttpError, json, MODELS, z } from "../_shared/ai.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const schema = z.object({ petId: z.string().uuid() });
 
 const IMAGE_MILESTONES = [1, 5, 10, 15, 20, 25, 30];
 
@@ -18,158 +14,48 @@ const STAGE_DESCRIPTIONS: Record<number, string> = {
   30: "a legendary champion, glowing aura, perfect form, mythical presence",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+Deno.serve(aiHandler("generate-pet-image", schema, async ({ petId }, ctx) => {
+  // Name, species and level come from the caller's own pet row, not from the request.
+  const { data: pet } = await ctx.supabase
+    .from("user_pets")
+    .select("id, name, level, pet_types(species)")
+    .eq("id", petId)
+    .eq("user_id", ctx.userId)
+    .maybeSingle();
+  if (!pet) throw new HttpError(404, "펫을 찾을 수 없어요.", "not_found");
 
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  const milestoneLevel = IMAGE_MILESTONES.filter((m) => m <= pet.level).pop() || 1;
+  const stageDesc = STAGE_DESCRIPTIONS[milestoneLevel] || "an adorable";
+  const petType = Array.isArray(pet.pet_types) ? pet.pet_types[0] : pet.pet_types;
+  const speciesName = petType?.species === "cat" ? "cat" : "dog";
+  const breedHint = pet.name ? ` named ${pet.name}` : "";
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+  const prompt = `A realistic high-quality photograph of ${stageDesc.replace("puppy/kitten", speciesName === "cat" ? "kitten" : "puppy")}${breedHint}. The ${speciesName} is looking at the camera with a happy expression, sitting in a cozy home environment. Professional pet photography style, soft natural lighting, shallow depth of field, warm tones. Clean simple background. The ${speciesName} should look realistic and lifelike, not cartoon or illustration. Growth stage level ${milestoneLevel} of 30.`;
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  const { data } = await callModel(ctx, {
+    model: MODELS.image,
+    messages: [{ role: "user", content: prompt }],
+    modalities: ["image", "text"],
+  });
 
-    const userId = claimsData.claims.sub;
-    const { petId, species, petName, level } = await req.json();
+  const imageDataUrl: string | undefined = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+  if (!imageDataUrl) throw new HttpError(502, "이미지를 생성하지 못했어요.", "gateway_error");
 
-    if (!petId || !species || !level) {
-      return new Response(JSON.stringify({ error: "Missing petId, species, or level" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, "");
+  const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+  const filePath = `${ctx.userId}/${pet.id}/level-${milestoneLevel}.png`;
 
-    // Find the appropriate milestone level for the image
-    const milestoneLevel = IMAGE_MILESTONES.filter((m) => m <= level).pop() || 1;
-    const stageDesc = STAGE_DESCRIPTIONS[milestoneLevel] || "an adorable";
+  const { error: uploadError } = await ctx.admin.storage
+    .from("pet-images")
+    .upload(filePath, imageBytes, { contentType: "image/png", upsert: true });
+  if (uploadError) throw new Error(`upload failed: ${uploadError.message}`);
 
-    const speciesName = species === "cat" ? "cat" : "dog";
-    const breedHint = petName ? ` named ${petName}` : "";
+  const { data: publicUrl } = ctx.admin.storage.from("pet-images").getPublicUrl(filePath);
+  await ctx.admin
+    .from("user_pets")
+    .update({ image_url: publicUrl.publicUrl })
+    .eq("id", pet.id)
+    .eq("user_id", ctx.userId);
 
-    const prompt = `A realistic high-quality photograph of ${stageDesc.replace("puppy/kitten", speciesName === "cat" ? "kitten" : "puppy")}${breedHint}. The ${speciesName} is looking at the camera with a happy expression, sitting in a cozy home environment. Professional pet photography style, soft natural lighting, shallow depth of field, warm tones. Clean simple background. The ${speciesName} should look realistic and lifelike, not cartoon or illustration. Growth stage level ${milestoneLevel} of 30.`;
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI key not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    console.log(`Generating pet image for ${speciesName} at level ${milestoneLevel}`);
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
-
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited, try again later" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify({ error: "Failed to generate image" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const aiData = await aiResponse.json();
-    const imageBase64Url = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-    if (!imageBase64Url) {
-      console.error("No image in AI response");
-      return new Response(JSON.stringify({ error: "No image generated" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Extract base64 data and upload to storage
-    const base64Data = imageBase64Url.replace(/^data:image\/\w+;base64,/, "");
-    const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-
-    const filePath = `${userId}/${petId}/level-${milestoneLevel}.png`;
-
-    // Use service role client for storage upload
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { error: uploadError } = await adminClient.storage
-      .from("pet-images")
-      .upload(filePath, imageBytes, {
-        contentType: "image/png",
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      return new Response(JSON.stringify({ error: "Failed to upload image" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: publicUrl } = adminClient.storage.from("pet-images").getPublicUrl(filePath);
-
-    // Update pet record with new image
-    await adminClient
-      .from("user_pets")
-      .update({ image_url: publicUrl.publicUrl })
-      .eq("id", petId)
-      .eq("user_id", userId);
-
-    console.log(`Pet image generated and saved: ${publicUrl.publicUrl}`);
-
-    return new Response(
-      JSON.stringify({ image_url: publicUrl.publicUrl, milestone_level: milestoneLevel }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (e) {
-    console.error("generate-pet-image error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-});
+  return json({ image_url: publicUrl.publicUrl, milestone_level: milestoneLevel });
+}));

@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
-
+// Streak milestones. Points are awarded server-side by record_activity (SEC-4);
+// this list only provides the badge and name shown to the user.
 const MILESTONES = [
   { days: 1, points: 10, badge: "🌱", name: "첫 걸음" },
   { days: 3, points: 30, badge: "🔥", name: "불꽃 시작" },
@@ -11,49 +11,3 @@ const MILESTONES = [
 ];
 
 export const MILESTONE_LIST = MILESTONES;
-
-export const checkAndAwardMilestone = async (userId: string, streakDays: number) => {
-  // Find applicable milestones
-  const applicable = MILESTONES.filter((m) => m.days === streakDays);
-  if (applicable.length === 0) return null;
-
-  const milestone = applicable[0];
-
-  // Check if already awarded
-  const { data: existing } = await supabase
-    .from("point_transactions")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("type", "milestone")
-    .eq("description", `${milestone.days}일 연속 학습: ${milestone.name}`)
-    .maybeSingle();
-
-  if (existing) return null;
-
-  // Award points
-  const { data: pointsData } = await supabase
-    .from("user_points")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (pointsData) {
-    await supabase
-      .from("user_points")
-      .update({ balance: (pointsData as any).balance + milestone.points })
-      .eq("id", (pointsData as any).id);
-  } else {
-    await supabase
-      .from("user_points")
-      .insert({ user_id: userId, balance: milestone.points });
-  }
-
-  await supabase.from("point_transactions").insert({
-    user_id: userId,
-    amount: milestone.points,
-    type: "milestone",
-    description: `${milestone.days}일 연속 학습: ${milestone.name}`,
-  });
-
-  return milestone;
-};

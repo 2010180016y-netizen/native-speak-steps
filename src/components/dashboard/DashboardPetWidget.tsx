@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MILESTONE_LIST } from "@/lib/milestones";
+import { getEffectiveStreak } from "@/lib/streak";
 
 type PetWidgetData = {
   name: string;
@@ -74,7 +75,7 @@ const DashboardPetWidget = () => {
     fetchData();
   }, [user]);
 
-  const streak = profile?.streak_days || 0;
+  const streak = profile ? getEffectiveStreak(profile) : 0;
   const nextMilestone = MILESTONE_LIST.find((m) => m.days > streak);
   const daysToNext = nextMilestone ? nextMilestone.days - streak : null;
 

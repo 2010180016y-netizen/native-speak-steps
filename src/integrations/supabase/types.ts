@@ -467,12 +467,14 @@ export type Database = {
           current_level: string
           display_name: string | null
           id: string
+          last_active_date: string | null
           native_language: string
           onboarding_completed: boolean
           reminder_enabled: boolean
           reminder_time: string
           streak_days: number
           target_language: string
+          timezone: string
           total_xp: number
           updated_at: string
           user_id: string
@@ -483,12 +485,14 @@ export type Database = {
           current_level?: string
           display_name?: string | null
           id?: string
+          last_active_date?: string | null
           native_language?: string
           onboarding_completed?: boolean
           reminder_enabled?: boolean
           reminder_time?: string
           streak_days?: number
           target_language?: string
+          timezone?: string
           total_xp?: number
           updated_at?: string
           user_id: string
@@ -499,12 +503,14 @@ export type Database = {
           current_level?: string
           display_name?: string | null
           id?: string
+          last_active_date?: string | null
           native_language?: string
           onboarding_completed?: boolean
           reminder_enabled?: boolean
           reminder_time?: string
           streak_days?: number
           target_language?: string
+          timezone?: string
           total_xp?: number
           updated_at?: string
           user_id?: string
@@ -722,6 +728,17 @@ export type Database = {
         }[]
       }
       get_my_rank: { Args: never; Returns: number }
+      adopt_pet: { Args: { p_name: string; p_pet_type_id: string }; Returns: string }
+      feed_pet: { Args: { p_item_id: string; p_pet_id: string }; Returns: Json }
+      record_activity: {
+        Args: {
+          p_idempotency_key: string
+          p_kind: string
+          p_timezone?: string
+          p_units?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

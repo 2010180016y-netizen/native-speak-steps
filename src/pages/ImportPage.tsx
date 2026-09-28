@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +24,7 @@ type GeneratedCard = {
 
 const ImportPage = () => {
   const { user, profile } = useAuth();
+  const recordActivity = useRecordActivity();
   const [text, setText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [generatingCards, setGeneratingCards] = useState(false);
@@ -38,6 +40,7 @@ const ImportPage = () => {
   const [dialogueSpeakers, setDialogueSpeakers] = useState<string[]>([]);
   const [dialogueLines, setDialogueLines] = useState<DialogueLine[]>([]);
   const [showRolePlay, setShowRolePlay] = useState(false);
+  const [rolePlayId, setRolePlayId] = useState("");
 
   // Load previous analysis on mount
   useEffect(() => {
@@ -87,14 +90,15 @@ const ImportPage = () => {
       });
 
       // Save import with masked text for privacy
-      const { error } = await supabase.from("language_imports").insert({
+      const { data: savedImport, error } = await supabase.from("language_imports").insert({
         user_id: user.id,
         source_type: "text",
         content: analysis.maskedText,
         word_count: analysis.wordCount,
         unique_words: analysis.uniqueWords,
-      });
+      }).select("id").single();
       if (error) throw error;
+      void recordActivity("import_analyzed", `import:${savedImport.id}`, analysis.wordCount);
 
       toast.success(`${analysis.wordCount}개 단어 분석 완료! 🎉`);
 
@@ -121,9 +125,7 @@ const ImportPage = () => {
         // Save analysis result to latest import
         supabase.from("language_imports")
           .update({ analysis_result: aiData })
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
+          .eq("id", savedImport.id)
           .then(() => {});
       }
       setAnalyzingDetail(false);
@@ -190,6 +192,7 @@ const ImportPage = () => {
 
       setDialogueSpeakers(data.speakers);
       setDialogueLines(data.lines);
+      setRolePlayId(crypto.randomUUID());
       setShowRolePlay(true);
       toast.success(`${data.speakers.length}명의 화자, ${data.lines.length}개 대사를 분리했어요! 🎭`);
     } catch (e: any) {
@@ -216,6 +219,7 @@ const ImportPage = () => {
 
       setCardsSaved(true);
       toast.success("카드가 저장되었어요! 복습 탭에서 확인하세요 ✅");
+      void recordActivity("cards_saved", `cards_saved:${crypto.randomUUID()}`, cardsToInsert.length);
     } catch {
       toast.error("카드 저장에 실패했습니다");
     }
@@ -229,66 +233,9 @@ const ImportPage = () => {
     reader.readAsText(file);
   };
 
-  const handleRolePlayComplete = async (completedCount: number, totalCount: number) => {
-    if (!user) return;
-    const ratio = completedCount / totalCount;
-    const pointsEarned = Math.max(5, Math.round(completedCount * 2 * ratio));
-    const petXpEarned = Math.max(3, Math.round(completedCount * 1.5 * ratio));
-
-    try {
-      const { data: pointsData } = await supabase
-        .from("user_points")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (pointsData) {
-        await supabase
-          .from("user_points")
-          .update({ balance: (pointsData as any).balance + pointsEarned })
-          .eq("id", (pointsData as any).id);
-      } else {
-        await supabase
-          .from("user_points")
-          .insert({ user_id: user.id, balance: pointsEarned });
-      }
-
-      await supabase.from("point_transactions").insert({
-        user_id: user.id,
-        amount: pointsEarned,
-        type: "roleplay",
-        description: `역할 분리 연습 완료 (${completedCount}/${totalCount})`,
-      });
-
-      const { data: petData } = await supabase
-        .from("user_pets")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (petData) {
-        const LEVEL_THRESHOLDS = Array.from({ length: 30 }, (_, i) => Math.round(100 * Math.pow(1.2, i)));
-        let newExp = (petData as any).experience + petXpEarned;
-        let newLevel = (petData as any).level;
-        let newExpToNext = (petData as any).exp_to_next_level;
-
-        while (newExp >= newExpToNext && newLevel < 30) {
-          newExp -= newExpToNext;
-          newLevel++;
-          newExpToNext = LEVEL_THRESHOLDS[newLevel - 1] || 99999;
-        }
-
-        await supabase
-          .from("user_pets")
-          .update({ experience: newExp, level: newLevel, exp_to_next_level: newExpToNext })
-          .eq("id", (petData as any).id);
-      }
-
-      toast.success(`🎉 ${pointsEarned}P 획득! 펫 경험치 +${petXpEarned}`);
-    } catch (e) {
-      console.error("Reward error:", e);
-    }
+  const handleRolePlayComplete = async (completedCount: number) => {
+    const reward = await recordActivity("roleplay_complete", `roleplay:${rolePlayId}`, completedCount);
+    if (reward?.applied) toast.success(`🎉 역할극 완료! +${reward.xp} XP`);
   };
 
   // Role play view

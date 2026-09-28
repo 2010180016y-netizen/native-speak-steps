@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
@@ -18,6 +19,7 @@ import { CHAT_SESSION_KEY } from "@/lib/chatTypes";
 
 const ChatPage = () => {
   const { user, profile } = useAuth();
+  const recordActivity = useRecordActivity();
   const [phase, setPhase] = useState<ChatPhase>("setup");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -89,7 +91,6 @@ const ChatPage = () => {
       const questionCount = userMessages.filter((m) => m.content.includes("?")).length;
 
       const newCompleted = new Set(completedMissions);
-      let xpGained = 0;
 
       for (const mission of missions) {
         if (newCompleted.has(mission.id)) continue;
@@ -100,7 +101,7 @@ const ChatPage = () => {
           const matchCount = mission.checkKeywords.filter((kw) => allUserText.includes(kw.toLowerCase())).length;
           if (matchCount >= 2) completed = true;
         }
-        if (completed) { newCompleted.add(mission.id); xpGained += mission.xpReward; }
+        if (completed) newCompleted.add(mission.id);
       }
 
       if (newCompleted.size > completedMissions.size) {
@@ -108,24 +109,14 @@ const ChatPage = () => {
         const newlyCompleted = [...newCompleted].filter((id) => !completedMissions.has(id));
         for (const id of newlyCompleted) {
           const m = missions.find((mi) => mi.id === id);
-          if (m) toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
+          if (!m) continue;
+          toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
+          void recordActivity("chat_mission", `chat_mission:${sessionId}:${m.id}`, m.xpReward);
         }
-        if (xpGained > 0 && user) awardXP(xpGained);
       }
     },
-    [scenario, missions, completedMissions, user]
+    [scenario, missions, completedMissions, recordActivity, sessionId]
   );
-
-  const awardXP = async (xp: number) => {
-    if (!user || !profile) return;
-    try {
-      await supabase.from("profiles").update({ total_xp: profile.total_xp + xp }).eq("user_id", user.id);
-      await supabase.from("learning_stats").upsert(
-        { user_id: user.id, date: new Date().toISOString().split("T")[0], xp_earned: xp },
-        { onConflict: "user_id,date" }
-      );
-    } catch { /* silent */ }
-  };
 
   // ── Handlers ──
   const handleStart = (p: Persona, s: ChatScenario) => {
@@ -229,6 +220,7 @@ const ChatPage = () => {
         if (!srsError) toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
       }
 
+      void recordActivity("chat_message", `chat_message:${sessionId}:${newMessages.filter((m) => m.role === "user").length}`);
       checkMissions(finalMessages);
     } catch (err: any) {
       await supabase.from("ai_feedback").insert({

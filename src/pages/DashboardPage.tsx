@@ -6,7 +6,7 @@ import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3, Trophy, ChevronDown, Check, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import { checkAndAwardMilestone } from "@/lib/milestones";
+import { getEffectiveStreak } from "@/lib/streak";
 import { toast } from "sonner";
 import DashboardPetWidget from "@/components/dashboard/DashboardPetWidget";
 import PersonalizedRecommendations from "@/components/dashboard/PersonalizedRecommendations";
@@ -84,15 +84,8 @@ const DashboardPage = () => {
         nativeWords,
         targetWords: Math.round(nativeWords * 0.7),
         cardsToReview: cardsRes.data?.length || 0,
-        streak: profile?.streak_days || 0,
+        streak: profile ? getEffectiveStreak(profile) : 0,
       });
-
-      if (profile?.streak_days) {
-        const milestone = await checkAndAwardMilestone(user.id, profile.streak_days);
-        if (milestone) {
-          toast.success(`${milestone.badge} ${milestone.name} 달성! +${milestone.points}P`);
-        }
-      }
     };
     fetchStats();
   }, [user, profile]);

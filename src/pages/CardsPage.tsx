@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
@@ -39,6 +40,7 @@ const getSourceColor = (source: "chat" | "analysis") =>
 
 const CardsPage = () => {
   const { user } = useAuth();
+  const recordActivity = useRecordActivity();
   const [allCards, setAllCards] = useState<Card[]>([]);
   const [allCardsForList, setAllCardsForList] = useState<Card[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -122,7 +124,7 @@ const CardsPage = () => {
     const nextReview = new Date();
     nextReview.setDate(nextReview.getDate() + interval);
 
-    await supabase
+    const { error } = await supabase
       .from("srs_cards")
       .update({
         ease_factor: ef,
@@ -132,6 +134,11 @@ const CardsPage = () => {
         difficulty: quality,
       })
       .eq("id", currentCard.id);
+    if (error) {
+      toast.error("복습 결과를 저장하지 못했어요");
+    } else {
+      void recordActivity("card_review", `card_review:${currentCard.id}:${currentCard.review_count}`);
+    }
 
     setTimeout(() => {
       setFlipped(false);
