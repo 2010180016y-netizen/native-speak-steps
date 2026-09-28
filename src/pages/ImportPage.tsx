@@ -6,6 +6,7 @@ import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield, Plus, History } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import DialogueRolePlay, { type DialogueLine } from "@/components/dialogue/DialogueRolePlay";
 import AnalysisDashboard, { type TextAnalysis } from "@/components/analysis/AnalysisDashboard";
 import ImportLearningFlow from "@/components/import/ImportLearningFlow";
@@ -23,7 +24,7 @@ type GeneratedCard = {
 };
 
 const ImportPage = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const recordActivity = useRecordActivity();
   const [text, setText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
@@ -73,6 +74,16 @@ const ImportPage = () => {
     loadPreviousAnalysis();
   }, [user]);
 
+  const hasAiConsent = Boolean(profile?.ai_processing_consent_at);
+
+  const handleAiConsent = async () => {
+    try {
+      await updateProfile({ ai_processing_consent_at: new Date().toISOString() });
+    } catch {
+      toast.error("동의 저장에 실패했어요. 다시 시도해주세요.");
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!text.trim() || !user || !profile) return;
     setAnalyzing(true);
@@ -93,7 +104,6 @@ const ImportPage = () => {
       const { data: savedImport, error } = await supabase.from("language_imports").insert({
         user_id: user.id,
         source_type: "text",
-        content: analysis.maskedText,
         word_count: analysis.wordCount,
         unique_words: analysis.uniqueWords,
       }).select("id").single();
@@ -274,8 +284,22 @@ const ImportPage = () => {
         {/* Privacy notice */}
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <Shield size={14} className="text-primary" />
-          <span>전화번호, 이메일 등 민감한 정보는 자동으로 마스킹됩니다</span>
+          <span>전화번호, 이메일 등은 자동으로 가려지고, 입력한 원문은 저장되지 않아요</span>
         </div>
+
+        {!hasAiConsent && (
+          <div className="duo-card mt-4 text-sm">
+            <p className="font-bold text-foreground mb-1">AI 분석 동의가 필요해요</p>
+            <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+              입력한 텍스트는 분석을 위해 AI 처리업체(Google Gemini, Lovable AI 게이트웨이 경유)로 전송되며 국외(미국 등)에서 처리될 수 있어요.
+              원문은 저장하지 않고 분석 결과만 저장해요. 다른 사람의 대화가 포함되어 있다면 그 사람의 동의를 받은 내용만 입력해 주세요.{" "}
+              <Link to="/privacy" className="text-primary underline">개인정보처리방침</Link>
+            </p>
+            <button onClick={handleAiConsent} className="duo-btn-primary w-full text-sm">
+              동의하고 계속하기
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-3 mt-4">
           <label className="flex-1 duo-card flex items-center justify-center gap-2 p-3 cursor-pointer hover:scale-[1.01] transition-transform">
@@ -288,7 +312,7 @@ const ImportPage = () => {
         <div className="mt-4">
           <button
             onClick={handleAnalyze}
-            disabled={!text.trim() || analyzing}
+            disabled={!hasAiConsent || !text.trim() || analyzing}
             className="duo-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
             {analyzing ? (
@@ -302,7 +326,7 @@ const ImportPage = () => {
           
           <button
             onClick={handleSplitDialogue}
-            disabled={!text.trim() || splittingDialogue}
+            disabled={!hasAiConsent || !text.trim() || splittingDialogue}
             className="duo-btn-secondary w-full mt-3 flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
             {splittingDialogue ? (

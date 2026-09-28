@@ -50,6 +50,36 @@ export type Database = {
         }
         Relationships: []
       }
+      client_errors: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          stack: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_feedback_results: {
         Row: {
           avg_words_per_message: number
@@ -134,7 +164,6 @@ export type Database = {
       language_imports: {
         Row: {
           analysis_result: Json | null
-          content: string
           created_at: string
           id: string
           source_type: string
@@ -144,7 +173,6 @@ export type Database = {
         }
         Insert: {
           analysis_result?: Json | null
-          content: string
           created_at?: string
           id?: string
           source_type?: string
@@ -154,7 +182,6 @@ export type Database = {
         }
         Update: {
           analysis_result?: Json | null
-          content?: string
           created_at?: string
           id?: string
           source_type?: string
@@ -462,6 +489,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_processing_consent_at: string | null
           avatar_url: string | null
           created_at: string
           current_level: string
@@ -480,6 +508,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_processing_consent_at?: string | null
           avatar_url?: string | null
           created_at?: string
           current_level?: string
@@ -498,6 +527,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_processing_consent_at?: string | null
           avatar_url?: string | null
           created_at?: string
           current_level?: string

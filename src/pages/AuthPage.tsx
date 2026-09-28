@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Eye, EyeOff, Sparkles, Globe, BookOpen, Trophy, Mail, RefreshCw } from "lucide-react";
@@ -415,8 +415,8 @@ const AuthPage = () => {
 
                   {/* Footer Text */}
                   <p className="text-center text-xs text-muted-foreground mt-6">
-                    계속하면 <span className="text-primary font-medium">이용약관</span> 및{" "}
-                    <span className="text-primary font-medium">개인정보처리방침</span>에 동의하게 됩니다.
+                    계속하면 <Link to="/terms" className="text-primary font-medium underline">이용약관</Link> 및{" "}
+                    <Link to="/privacy" className="text-primary font-medium underline">개인정보처리방침</Link>에 동의하게 됩니다.
                   </p>
                 </>
               )}

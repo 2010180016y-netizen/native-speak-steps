@@ -2,10 +2,11 @@ import { useAuth } from "@/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import { LogOut, Flame, Zap, BookOpen } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ReminderSettings from "@/components/profile/ReminderSettings";
 import GoalSettings from "@/components/profile/GoalSettings";
 import DisplayNameSettings from "@/components/profile/DisplayNameSettings";
+import DeleteAccount from "@/components/profile/DeleteAccount";
 import { LANG_NAMES, LEVEL_NAMES } from "@/lib/constants";
 import { getEffectiveStreak } from "@/lib/streak";
 
@@ -76,6 +77,13 @@ const ProfilePage = () => {
           <LogOut size={18} className="text-destructive" />
           <span className="font-bold text-destructive">로그아웃</span>
         </button>
+
+        <div className="flex justify-center gap-4 text-xs text-muted-foreground font-semibold">
+          <Link to="/terms" className="hover:text-foreground">이용약관</Link>
+          <Link to="/privacy" className="hover:text-foreground">개인정보처리방침</Link>
+        </div>
+
+        <DeleteAccount />
       </motion.div>
     </AppLayout>
   );

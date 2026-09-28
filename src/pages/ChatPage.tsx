@@ -151,7 +151,7 @@ const ChatPage = () => {
       stopSpeaking();
       setPlayingIndex(null);
     } else {
-      const clean = text.replace(/[*_~`#>\[\]()!]/g, "").replace(/\n+/g, " ").trim();
+      const clean = text.replace(/[*_~`#>[\]()!]/g, "").replace(/\n+/g, " ").trim();
       speak(clean);
       setPlayingIndex(index);
     }

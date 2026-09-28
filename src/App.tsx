@@ -21,6 +21,7 @@ import SpeakingHistoryPage from "./pages/SpeakingHistoryPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
+import LegalPage from "./pages/LegalPage";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { FEATURES } from "@/lib/features";
 
@@ -62,6 +63,8 @@ const App = () => (
             <Route path="/speaking-history" element={<ProtectedRoute><SpeakingHistoryPage /></ProtectedRoute>} />
             <Route path="/leaderboard" element={FEATURES.leaderboard ? <ProtectedRoute><LeaderboardPage /></ProtectedRoute> : <Navigate to="/dashboard" replace />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+            <Route path="/terms" element={<LegalPage doc="terms" />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </ErrorBoundary>
