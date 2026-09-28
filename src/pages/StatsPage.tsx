@@ -19,6 +19,7 @@ import SrsHealthDashboard from "@/components/stats/SrsHealthDashboard";
 import VocabUtilizationDashboard from "@/components/stats/VocabUtilizationDashboard";
 import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
 import SpeakingScoreDashboard from "@/components/stats/SpeakingScoreDashboard";
+import { FEATURES } from "@/lib/features";
 
 type DailyData = {
   date: string;
@@ -61,11 +62,20 @@ const TAB_GROUPS: { id: CategoryId; label: string; icon: React.ReactNode; tabs: 
   },
 ];
 
+// D1: unless extendedStats is on, only the core-loop views stay visible.
+const CORE_STATS_TABS: TabId[] = ["srshealth", "activity"];
+const VISIBLE_TAB_GROUPS = TAB_GROUPS
+  .map((group) => ({
+    ...group,
+    tabs: group.tabs.filter((tab) => FEATURES.extendedStats || CORE_STATS_TABS.includes(tab.id)),
+  }))
+  .filter((group) => group.tabs.length > 0);
+
 const StatsPage = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [activeTab, setActiveTab] = useState<TabId>("learning");
-  const [activeCategory, setActiveCategory] = useState<CategoryId>("overview");
+  const [activeTab, setActiveTab] = useState<TabId>(VISIBLE_TAB_GROUPS[0].tabs[0].id);
+  const [activeCategory, setActiveCategory] = useState<CategoryId>(VISIBLE_TAB_GROUPS[0].id);
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -189,7 +199,7 @@ const StatsPage = () => {
 
       {/* Category tabs */}
       <div className="flex gap-2 mb-3">
-        {TAB_GROUPS.map((group) => (
+        {VISIBLE_TAB_GROUPS.map((group) => (
           <button
             key={group.id}
             onClick={() => {
@@ -209,7 +219,7 @@ const StatsPage = () => {
 
       {/* Sub-tabs */}
       {(() => {
-        const group = TAB_GROUPS.find((g) => g.id === activeCategory)!;
+        const group = VISIBLE_TAB_GROUPS.find((g) => g.id === activeCategory)!;
         return group.tabs.length > 1 ? (
           <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
             {group.tabs.map((tab) => (

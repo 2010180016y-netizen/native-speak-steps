@@ -17,6 +17,7 @@ import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
 import DashboardSpeakingWidget from "@/components/dashboard/DashboardSpeakingWidget";
 
 import { LANGUAGES, LANG_NAMES } from "@/lib/constants";
+import { FEATURES } from "@/lib/features";
 
 // Stagger animation variants
 const container = {
@@ -278,9 +279,11 @@ const DashboardPage = () => {
         </motion.div>
 
         {/* ═══ Section 3: 내 펫 ═══ */}
-        <motion.div variants={item}>
-          <DashboardPetWidget />
-        </motion.div>
+        {FEATURES.pets && (
+          <motion.div variants={item}>
+            <DashboardPetWidget />
+          </motion.div>
+        )}
 
         {/* ═══ Section 4: 학습 인사이트 ═══ */}
         <motion.div variants={item}>
@@ -300,34 +303,40 @@ const DashboardPage = () => {
         )}
 
         {/* Weekly Report */}
-        <motion.div variants={item}>
-          <WeeklyReportWidget />
-        </motion.div>
+        {FEATURES.aiWeeklyReport && (
+          <motion.div variants={item}>
+            <WeeklyReportWidget />
+          </motion.div>
+        )}
 
         {/* Personalized Recommendations */}
-        <motion.div variants={item}>
-          <PersonalizedRecommendations />
-        </motion.div>
+        {FEATURES.aiRecommendations && (
+          <motion.div variants={item}>
+            <PersonalizedRecommendations />
+          </motion.div>
+        )}
 
         {/* ═══ Section 5: 더 알아보기 ═══ */}
         <motion.div variants={item}>
           <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest">더 알아보기</p>
         </motion.div>
 
-        <motion.div variants={item} className="grid grid-cols-2 gap-2.5">
-          <Link to="/leaderboard">
-            <motion.div
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.98 }}
-              className="bg-card rounded-2xl p-4 border border-border shadow-sm text-center"
-            >
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/80 to-primary mx-auto flex items-center justify-center text-white mb-2">
-                <Trophy size={22} />
-              </div>
-              <div className="font-bold text-foreground text-sm">리더보드</div>
-              <div className="text-[10px] text-muted-foreground font-semibold">순위 확인</div>
-            </motion.div>
-          </Link>
+        <motion.div variants={item} className={`grid gap-2.5 ${FEATURES.leaderboard ? "grid-cols-2" : "grid-cols-1"}`}>
+          {FEATURES.leaderboard && (
+            <Link to="/leaderboard">
+              <motion.div
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+                className="bg-card rounded-2xl p-4 border border-border shadow-sm text-center"
+              >
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/80 to-primary mx-auto flex items-center justify-center text-white mb-2">
+                  <Trophy size={22} />
+                </div>
+                <div className="font-bold text-foreground text-sm">리더보드</div>
+                <div className="text-[10px] text-muted-foreground font-semibold">순위 확인</div>
+              </motion.div>
+            </Link>
+          )}
           <Link to="/stats">
             <motion.div
               whileHover={{ scale: 1.02, y: -1 }}

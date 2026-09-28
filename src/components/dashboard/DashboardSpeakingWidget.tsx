@@ -44,7 +44,7 @@ const DashboardSpeakingWidget = () => {
   };
 
   return (
-    <Link to="/stats">
+    <Link to="/speaking-history">
       <motion.div
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
