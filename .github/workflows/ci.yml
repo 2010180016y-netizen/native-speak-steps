@@ -30,3 +30,21 @@ jobs:
           deno-version: v2.x
       # The root package.json would otherwise make Deno expect npm packages in node_modules.
       - run: deno check --no-lock --node-modules-dir=none supabase/functions/*/index.ts
+
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/test-db.sh
