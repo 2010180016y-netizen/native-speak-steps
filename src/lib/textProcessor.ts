@@ -150,14 +150,43 @@ function stripParticle(word: string): string {
   return word;
 }
 
+// Firefox before 125 has no Intl.Segmenter, yet Vite's default build target still includes it.
+// The fallback follows what Segmenter does for the text this app sees. A word is a run of Latin
+// letters, digits and "_" (joined by an inner ' or .), a Hangul run, a kana run or one Han
+// character. A sentence ends at ! ? ！ ？ 。, and at . before a space or the end unless a
+// lowercase letter follows, or right before a CJK letter; a closing quote stays with it.
+// ponytail: no dictionary, so Han characters count one by one and kana in runs where Segmenter
+// finds real Japanese and Chinese words; rare joins such as "1,000kg" also differ.
+const hasSegmenter = () => typeof Intl.Segmenter === "function";
+
+const CJK = "\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Hangul}";
+const WORD_CHAR = `(?:(?![${CJK}ー])[\\p{L}\\p{M}\\p{N}_])`;
+const FALLBACK_WORD = new RegExp(
+  `\\p{Script=Han}|\\p{Script=Hiragana}+|[\\p{Script=Katakana}ー]+|\\p{Script=Hangul}+|${WORD_CHAR}+(?:['’.]${WORD_CHAR}+)*`,
+  "gu",
+);
+const CLOSERS = `["'”’」』)\\]]*`;
+const FALLBACK_SENTENCE = new RegExp(
+  `.+?(?:[!?！？。]+${CLOSERS}|\\.+${CLOSERS}(?:(?=\\s|$)(?!\\s*\\p{Ll})|(?=[${CJK}]))|$)`,
+  "gu",
+);
+
 /** Lowercased words of `text` as Intl.Segmenter splits them for `locale`; numbers and punctuation dropped. */
 function wordTokens(text: string, locale: string): string[] {
-  const tokens: string[] = [];
-  for (const { segment, isWordLike } of new Intl.Segmenter(locale, { granularity: "word" }).segment(text)) {
-    const token = segment.toLowerCase();
-    if (isWordLike && /\p{L}/u.test(token)) tokens.push(token);
-  }
-  return tokens;
+  const words = hasSegmenter()
+    ? Array.from(new Intl.Segmenter(locale, { granularity: "word" }).segment(text))
+        .filter(({ isWordLike }) => isWordLike)
+        .map(({ segment }) => segment)
+    : (text.match(FALLBACK_WORD) ?? []);
+  return words.map((word) => word.toLowerCase()).filter((word) => /\p{L}/u.test(word));
+}
+
+/** Number of sentences in `text`: pieces that contain a letter. */
+function countSentences(text: string, locale: string): number {
+  const sentences = hasSegmenter()
+    ? Array.from(new Intl.Segmenter(locale, { granularity: "sentence" }).segment(text), ({ segment }) => segment)
+    : text.split(/[\r\n\u2028\u2029]+/).flatMap((line) => line.match(FALLBACK_SENTENCE) ?? []);
+  return sentences.filter((sentence) => /\p{L}/u.test(sentence)).length;
 }
 
 /** The words `text` is counted as in word frequencies: its tokens with Korean particles stripped. */
@@ -179,8 +208,7 @@ export function computeTextStats(text: string, locale: string, excludeWords: str
 
   const wordCounts = countOf(words);
   const bigrams = tokens.slice(1).map((token, i) => `${tokens[i]} ${token}`);
-  const sentences = [...new Intl.Segmenter(locale, { granularity: "sentence" }).segment(text)]
-    .filter(({ segment }) => /\p{L}/u.test(segment)).length;
+  const sentences = countSentences(text, locale);
   const percent = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 1000) / 10 : 0);
 
   return {

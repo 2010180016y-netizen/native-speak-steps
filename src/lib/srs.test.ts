@@ -75,6 +75,19 @@ describe("syncCoverage", () => {
     });
   });
 
+  it("works without Intl.Segmenter (Firefox before 125)", () => {
+    const nativeSegmenter = Intl.Segmenter;
+    const setSegmenter = (value: typeof Intl.Segmenter | undefined) =>
+      Object.defineProperty(Intl, "Segmenter", { value, configurable: true, writable: true });
+    setSegmenter(undefined);
+    try {
+      const cards = [{ native_text: "커피 한 잔 주세요", interval_days: MASTERED_INTERVAL_DAYS }];
+      expect(syncCoverage(imports, cards, "ko")).toEqual({ total: 3, covered: 1, percent: 33 });
+    } finally {
+      setSegmenter(nativeSegmenter);
+    }
+  });
+
   it("limits to the top N words across imports", () => {
     expect(syncCoverage(imports, [], "ko", 2).total).toBe(2);
   });
