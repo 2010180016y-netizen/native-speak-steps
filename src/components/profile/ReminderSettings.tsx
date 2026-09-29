@@ -16,8 +16,8 @@ const ReminderSettings = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  const reminderEnabled = (profile as any)?.reminder_enabled ?? false;
-  const reminderTime = (profile as any)?.reminder_time ?? "20:00";
+  const reminderEnabled = profile?.reminder_enabled ?? false;
+  const reminderTime = profile?.reminder_time ?? "20:00";
 
   const handleToggle = async (enabled: boolean) => {
     if (!user) return;
@@ -25,7 +25,7 @@ const ReminderSettings = () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ reminder_enabled: enabled } as any)
+        .update({ reminder_enabled: enabled })
         .eq("user_id", user.id);
       if (error) throw error;
       await refreshProfile();
@@ -50,7 +50,7 @@ const ReminderSettings = () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ reminder_time: time } as any)
+        .update({ reminder_time: time })
         .eq("user_id", user.id);
       if (error) throw error;
       await refreshProfile();

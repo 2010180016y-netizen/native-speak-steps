@@ -122,7 +122,7 @@ const ImportPage = () => {
       setAnalyzingDetail(true);
       setDetailedAnalysis(null);
       
-      const { data: aiData, error: aiErr } = await invokeAi("analyze-text", {
+      const { data: aiData, error: aiErr } = await invokeAi<Partial<TextAnalysis>>("analyze-text", {
         body: {
           text: textToAnalyze,
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
@@ -160,7 +160,7 @@ const ImportPage = () => {
     if (!user || !profile || unknownWords.length === 0) return;
     setGeneratingCards(true);
     try {
-      const { data, error: fnError } = await invokeAi("generate-cards", {
+      const { data, error: fnError } = await invokeAi<{ cards?: GeneratedCard[] }>("generate-cards", {
         body: {
           text: unknownWords.join(", "),
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
@@ -192,7 +192,7 @@ const ImportPage = () => {
     try {
       const maskedText = maskSensitiveData(text);
       
-      const { data, error } = await invokeAi("split-dialogue", {
+      const { data, error } = await invokeAi<{ is_dialogue: boolean; speakers: string[]; lines: DialogueLine[] }>("split-dialogue", {
         body: {
           text: maskedText.slice(0, 8000),
           nativeLanguage: profile.native_language,

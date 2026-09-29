@@ -140,7 +140,7 @@ const CardsPage = () => {
     toast.success("카드가 삭제되었습니다");
   };
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (!flipped) return;
     if (info.offset.x < -SWIPE_THRESHOLD) {
       handleReview(1, "left");

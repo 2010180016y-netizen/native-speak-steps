@@ -4,11 +4,12 @@ import { motion } from "framer-motion";
 import { Heart, ShieldCheck, AlertTriangle, BookOpen, Clock, TrendingDown, Brain } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, AreaChart, Area,
+  CartesianGrid, Tooltip, AreaChart, Area, type TooltipProps,
 } from "recharts";
 import { format, addDays, differenceInDays, isPast } from "date-fns";
 import { ko } from "date-fns/locale";
 import { isMastered } from "@/lib/srs";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
   userId: string;
@@ -32,12 +33,12 @@ const STATUS_CONFIG = {
   overdue: { label: "위험", color: "hsl(var(--destructive))", emoji: "⚠️" },
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
       <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
           {p.name}: {p.value}
         </p>
@@ -46,7 +47,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-const classifyCard = (card: any): CardHealth => {
+const classifyCard = (card: Tables<"srs_cards">): CardHealth => {
   const nextReview = new Date(card.next_review_at);
   const now = new Date();
   let status: CardHealth["status"];

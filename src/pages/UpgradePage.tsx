@@ -75,7 +75,7 @@ const UpgradePage = ({ result }: { result?: "success" | "fail" }) => {
     }
     setBusy(true);
     try {
-      const { data: order, error } = await invokeAi("create-order");
+      const { data: order, error } = await invokeAi<{ orderId: string; amount: number; orderName: string; customerKey: string }>("create-order");
       if (error || !order) throw error ?? new Error("order not created");
       const tossPayments = await loadTossPayments();
       await tossPayments(TOSS_CLIENT_KEY).payment({ customerKey: order.customerKey }).requestPayment({

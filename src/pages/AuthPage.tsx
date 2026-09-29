@@ -8,6 +8,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import ForgotPasswordModal from "@/components/auth/ForgotPasswordModal";
 import { DISPLAY_NAME_MAX_LENGTH, getDisplayNameError } from "@/lib/displayName";
+import { errorMessage } from "@/lib/utils";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -37,8 +38,8 @@ const AuthPage = () => {
       });
       if (error) throw error;
       toast.success("인증 메일을 다시 보냈습니다 📧");
-    } catch (err: any) {
-      toast.error(err.message || "메일 발송에 실패했습니다");
+    } catch (err) {
+      toast.error(errorMessage(err, "메일 발송에 실패했습니다"));
     } finally {
       setResending(false);
     }
@@ -64,8 +65,8 @@ const AuthPage = () => {
         setSignedUpEmail(email);
         setVerificationSent(true);
       }
-    } catch (err: any) {
-      toast.error(err.message || "오류가 발생했습니다");
+    } catch (err) {
+      toast.error(errorMessage(err, "오류가 발생했습니다"));
     } finally {
       setSubmitting(false);
     }

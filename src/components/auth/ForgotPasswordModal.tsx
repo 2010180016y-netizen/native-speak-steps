@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { X, Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { errorMessage } from "@/lib/utils";
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;
@@ -24,8 +25,8 @@ const ForgotPasswordModal = ({ isOpen, onClose }: ForgotPasswordModalProps) => {
       if (error) throw error;
       setSent(true);
       toast.success("비밀번호 재설정 이메일을 발송했습니다 📧");
-    } catch (err: any) {
-      toast.error(err.message || "이메일 발송에 실패했습니다");
+    } catch (err) {
+      toast.error(errorMessage(err, "이메일 발송에 실패했습니다"));
     } finally {
       setSubmitting(false);
     }

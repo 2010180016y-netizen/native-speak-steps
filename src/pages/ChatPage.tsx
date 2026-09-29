@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { track } from "@/lib/analytics";
@@ -40,20 +40,24 @@ const ChatPage = () => {
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(speechLang);
 
   const { practiceCards, loadPracticeCards, practiceCardsReady, markPhraseUsed } = usePhrasePractice();
-  const missions: MiniMission[] = scenario
-    ? [
-        ...practiceCards.map((card) => ({
-          id: `phrase_${card.id}`,
-          title: `"${card.target_text}" 써 보기`,
-          description: "복습 카드 표현을 대화에서 사용해 보세요",
-          checkKeywords: [],
-          xpReward: 10,
-          phrase: card.target_text,
-          cardId: card.id,
-        })),
-        ...(SCENARIO_MISSIONS[scenario.id] || DEFAULT_MISSIONS),
-      ]
-    : [];
+  const missions = useMemo<MiniMission[]>(
+    () =>
+      scenario
+        ? [
+            ...practiceCards.map((card) => ({
+              id: `phrase_${card.id}`,
+              title: `"${card.target_text}" 써 보기`,
+              description: "복습 카드 표현을 대화에서 사용해 보세요",
+              checkKeywords: [],
+              xpReward: 10,
+              phrase: card.target_text,
+              cardId: card.id,
+            })),
+            ...(SCENARIO_MISSIONS[scenario.id] || DEFAULT_MISSIONS),
+          ]
+        : [],
+    [scenario, practiceCards],
+  );
 
   const starters = scenario ? SCENARIO_STARTERS[scenario.id] || SCENARIO_STARTERS.free : [];
 
@@ -213,7 +217,7 @@ const ChatPage = () => {
       const windowedMessages = newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content }));
       const cards = await practiceCardsReady();
 
-      const { data, error } = await invokeAi("chat", {
+      const { data, error } = await invokeAi<{ content?: string; response_time_ms?: number; corrections?: ChatCorrection[] }>("chat", {
         body: {
           messages: windowedMessages, targetLanguage: targetLang, nativeLanguage: nativeLang, level, persona,
           scenario: scenario?.label, practicePhrases: cards.map((c) => c.target_text),

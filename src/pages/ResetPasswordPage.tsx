@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Eye, EyeOff, Lock, CheckCircle } from "lucide-react";
+import { errorMessage } from "@/lib/utils";
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState("");
@@ -51,8 +52,8 @@ const ResetPasswordPage = () => {
       
       toast.success("비밀번호가 성공적으로 변경되었습니다! 🎉");
       navigate("/dashboard");
-    } catch (err: any) {
-      toast.error(err.message || "비밀번호 변경 중 오류가 발생했습니다");
+    } catch (err) {
+      toast.error(errorMessage(err, "비밀번호 변경 중 오류가 발생했습니다"));
     } finally {
       setSubmitting(false);
     }

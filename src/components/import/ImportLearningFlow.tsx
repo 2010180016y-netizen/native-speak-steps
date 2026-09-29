@@ -320,7 +320,7 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
         </motion.div>
       )}
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "words" | "structures")} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="words" className="flex items-center gap-2">
             <Type size={16} /> 단어 학습

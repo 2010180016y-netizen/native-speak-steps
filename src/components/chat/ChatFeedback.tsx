@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeAi, toastAiError } from "@/lib/ai";
@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2, BarChart3, MessageSquare, Lightbulb, AlertTriangle, BookOpen, ArrowLeft } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, type TooltipProps,
 } from "recharts";
 import type { Persona, ChatScenario } from "./ChatSetup";
 
@@ -35,12 +35,12 @@ const CHART_COLORS = [
   "hsl(var(--duo-yellow))",
 ];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
       <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
           {p.name}: {p.value}
         </p>
@@ -61,11 +61,9 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<FeedbackData | null>(null);
 
-  useEffect(() => {
-    if (messages.length > 0) analyzeFeedback();
-  }, []);
+  const started = useRef(false);
 
-  const analyzeFeedback = async () => {
+  const analyzeFeedback = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
@@ -73,7 +71,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
       const targetLang = profile?.target_language || "en";
       const nativeLang = profile?.native_language || "ko";
 
-      const { data, error } = await invokeAi("chat-feedback", {
+      const { data, error } = await invokeAi<FeedbackData>("chat-feedback", {
         body: {
           messages: messages.map((m) => ({ role: m.role, content: m.content })),
           targetLanguage: targetLang,
@@ -88,7 +86,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
       setFeedback(data);
 
       // Save feedback to DB
-      await supabase.from("chat_feedback_results" as any).insert({
+      await supabase.from("chat_feedback_results").insert({
         user_id: user.id,
         session_id: crypto.randomUUID(),
         overall_score: data.overallScore || 0,
@@ -132,7 +130,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
           .from("srs_cards")
           .select("target_text")
           .eq("user_id", user.id);
-        const existingSet = new Set((existing || []).map((c: any) => c.target_text.toLowerCase()));
+        const existingSet = new Set((existing || []).map((c) => c.target_text.toLowerCase()));
         const newCards = cardsToCreate.filter((c) => !existingSet.has(c.target_text.toLowerCase()));
 
         if (newCards.length > 0) {
@@ -154,7 +152,14 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, profile, messages, persona, scenario]);
+
+  // Once per screen: the analysis costs an AI request, so later prop changes must not repeat it.
+  useEffect(() => {
+    if (started.current || !user || messages.length === 0) return;
+    started.current = true;
+    void analyzeFeedback();
+  }, [user, messages.length, analyzeFeedback]);
 
   if (loading) {
     return (

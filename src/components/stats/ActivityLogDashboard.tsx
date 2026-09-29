@@ -48,7 +48,7 @@ const ActivityLogDashboard = ({ userId }: Props) => {
         .order("started_at", { ascending: true });
 
       const map: Record<string, { minutes: number; sessions: number }> = {};
-      (sessions || []).forEach((s: any) => {
+      (sessions || []).forEach((s) => {
         const key = format(new Date(s.started_at), "yyyy-MM-dd");
         if (!map[key]) map[key] = { minutes: 0, sessions: 0 };
         map[key].minutes += Math.round((s.duration_seconds || 0) / 60);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
@@ -18,6 +18,9 @@ import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
 import { SPEAKING_MISSIONS, SPEAKING_HINTS, type SpeakingMission } from "@/lib/speakingScenarioData";
 import { SPEECH_LANG_MAP, getRandomName } from "@/lib/constants";
 import type { SpeakingMessage, Correction, SpeakingPhase, SpeakingFeedbackData } from "@/lib/speakingTypes";
+
+// What the speaking function returns for a caller turn.
+type SpeakingReply = { content: string; corrections?: Correction[] };
 
 const SpeakingPage = () => {
   const { user } = useAuth();
@@ -45,20 +48,24 @@ const SpeakingPage = () => {
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(targetLang);
 
   const { practiceCards, loadPracticeCards, practiceCardsReady, markPhraseUsed } = usePhrasePractice();
-  const missions: SpeakingMission[] = scenario
-    ? [
-        ...practiceCards.map((card) => ({
-          id: `phrase_${card.id}`,
-          title: `"${card.target_text}" 말해 보기`,
-          xpReward: 10,
-          checkType: "phrase" as const,
-          threshold: 1,
-          phrase: card.target_text,
-          cardId: card.id,
-        })),
-        ...(SPEAKING_MISSIONS[scenario.id] || SPEAKING_MISSIONS.free),
-      ]
-    : [];
+  const missions = useMemo<SpeakingMission[]>(
+    () =>
+      scenario
+        ? [
+            ...practiceCards.map((card) => ({
+              id: `phrase_${card.id}`,
+              title: `"${card.target_text}" 말해 보기`,
+              xpReward: 10,
+              checkType: "phrase" as const,
+              threshold: 1,
+              phrase: card.target_text,
+              cardId: card.id,
+            })),
+            ...(SPEAKING_MISSIONS[scenario.id] || SPEAKING_MISSIONS.free),
+          ]
+        : [],
+    [scenario, practiceCards],
+  );
   const levelHints = SPEAKING_HINTS[profile?.target_language || "en"]?.[profile?.current_level || "beginner"] || [];
 
   useEffect(() => {
@@ -69,13 +76,6 @@ const SpeakingPage = () => {
   }, [user]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isAiLoading]);
-
-  useEffect(() => {
-    if (transcript && !isListening) {
-      sendMessage(transcript);
-      resetTranscript();
-    }
-  }, [transcript, isListening]);
 
   useEffect(() => {
     if (phase === "call") {
@@ -141,7 +141,7 @@ const SpeakingPage = () => {
     saveMessageToDB("user", text);
     try {
       const practicePhrases = (await practiceCardsReady()).map((c) => c.target_text);
-      const { data, error } = await invokeAi("speaking", {
+      const { data, error } = await invokeAi<SpeakingReply>("speaking", {
         body: {
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
@@ -172,6 +172,14 @@ const SpeakingPage = () => {
     }
   }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions, recordActivity, speakingSessionId, practiceCardsReady]);
 
+  // Sends a finished transcript once: resetTranscript() clears the trigger.
+  useEffect(() => {
+    if (transcript && !isListening) {
+      sendMessage(transcript);
+      resetTranscript();
+    }
+  }, [transcript, isListening, sendMessage, resetTranscript]);
+
   const startCall = useCallback(async () => {
     setPhase("call");
     setMessages([]);
@@ -179,7 +187,7 @@ const SpeakingPage = () => {
     setIsAiLoading(true);
     try {
       const practicePhrases = (await practiceCardsReady()).map((c) => c.target_text);
-      const { data, error } = await invokeAi("speaking", {
+      const { data, error } = await invokeAi<SpeakingReply>("speaking", {
         body: {
           messages: [{ role: "user", content: "The phone is ringing and I just answered. Start the conversation as the caller." }],
           targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
@@ -206,12 +214,12 @@ const SpeakingPage = () => {
     stopSpeaking();
     setIsFeedbackLoading(true);
     try {
-      const { data, error } = await invokeAi("speaking-feedback", {
+      const { data, error } = await invokeAi<{ feedback?: SpeakingFeedbackData }>("speaking-feedback", {
         body: { messages, targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko", level: profile?.current_level || "beginner" },
       });
       if (error) throw error;
       if (data.feedback) {
-        setFeedback(data.feedback as SpeakingFeedbackData);
+        setFeedback(data.feedback);
         if (user) {
           const score = data.feedback.overallScore || 50;
           const reward = await recordActivity("speaking_session", `speaking_session:${speakingSessionId}`, score);
@@ -246,7 +254,7 @@ const SpeakingPage = () => {
       setIsFeedbackLoading(false);
       setPhase("feedback");
     }
-  }, [messages, profile, stopSpeaking, user, callDuration, speakingSessionId, scenario, persona, callerName]);
+  }, [messages, profile, stopSpeaking, user, callDuration, speakingSessionId, scenario, persona, callerName, recordActivity]);
 
   const handleMicClick = () => {
     if (isSpeaking) stopSpeaking();

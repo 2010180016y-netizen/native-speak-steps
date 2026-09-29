@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { BarChart3, Type, AlignLeft, Brain, TrendingUp, Hash } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, type TooltipProps,
 } from "recharts";
 
 export type TextAnalysis = {
@@ -31,12 +31,12 @@ const CHART_COLORS = [
   "hsl(var(--duo-green-dark))",
 ];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
       <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
           {p.name}: {typeof p.value === "number" ? p.value.toLocaleString() : p.value}
         </p>

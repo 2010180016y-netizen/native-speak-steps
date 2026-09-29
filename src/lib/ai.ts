@@ -17,10 +17,11 @@ export const isPaywallError = (error: unknown) => error instanceof AiError && er
 type AiResult<T> = { data: T; error: null } | { data: null; error: Error };
 
 /**
- * Calls an AI edge function. Server-explained failures come back as AiError. When the daily
- * quota is used up it also shows the paywall (BIZ-1), so callers must not add their own toast.
+ * Calls an AI edge function; `T` is the JSON it returns. Server-explained failures come back as
+ * AiError. When the daily quota is used up it also shows the paywall (BIZ-1), so callers must
+ * not add their own toast.
  */
-export async function invokeAi<T = any>(name: string, options?: { body?: unknown }): Promise<AiResult<T>> {
+export async function invokeAi<T>(name: string, options?: { body?: unknown }): Promise<AiResult<T>> {
   const result = await supabase.functions.invoke<T>(name, options as { body?: Record<string, unknown> });
   if (!(result.error instanceof FunctionsHttpError)) return result;
 

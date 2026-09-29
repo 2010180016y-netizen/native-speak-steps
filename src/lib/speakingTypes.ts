@@ -12,7 +12,8 @@ export type SpeakingMessage = {
 
 export type SpeakingPhase = "setup" | "incoming" | "call" | "feedback";
 
-export interface SpeakingFeedbackData {
+// A type alias, not an interface, so it can be stored in a JSON column without a cast.
+export type SpeakingFeedbackData = {
   overallScore: number;
   grammar: { score: number; errors: { original: string; corrected: string; explanation: string }[] };
   pronunciation: { score: number; comments: string[] };
@@ -22,4 +23,4 @@ export interface SpeakingFeedbackData {
   summary?: string;
   strengths?: string[];
   improvements?: string[];
-}
+};

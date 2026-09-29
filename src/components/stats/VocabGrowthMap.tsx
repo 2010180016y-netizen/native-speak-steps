@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Map, RefreshCw, TrendingUp, Sprout } from "lucide-react";
 import { format, subDays, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { ko } from "date-fns/locale";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipProps } from "recharts";
 import { toast } from "sonner";
 import { isMastered } from "@/lib/srs";
 
@@ -90,12 +90,12 @@ function categorizeCard(card: CardData): string {
   return "기타";
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
       <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
           {p.name}: {p.value}개
         </p>
@@ -109,7 +109,7 @@ const VocabGrowthMap = ({ userId }: Props) => {
   const [cards, setCards] = useState<CardData[]>([]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -125,11 +125,11 @@ const VocabGrowthMap = ({ userId }: Props) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchData();
-  }, [userId]);
+  }, [fetchData]);
 
   const categories = useMemo(() => {
     const catMap: Record<string, { count: number; mastered: number; recent: number; words: string[] }> = {};

@@ -11,8 +11,8 @@ export const useReminder = () => {
   useEffect(() => {
     if (!profile || shown.current) return;
 
-    const enabled = (profile as any)?.reminder_enabled;
-    const reminderTime = (profile as any)?.reminder_time ?? "20:00";
+    const enabled = profile.reminder_enabled;
+    const reminderTime = profile.reminder_time ?? "20:00";
 
     if (!enabled) return;
 
