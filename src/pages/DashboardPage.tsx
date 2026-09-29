@@ -4,21 +4,16 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3, Trophy, ChevronDown, Check, Sparkles } from "lucide-react";
+import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3, ChevronDown, Check, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getEffectiveStreak } from "@/lib/streak";
 import { syncCoverage } from "@/lib/srs";
 import { toast } from "sonner";
-import DashboardPetWidget from "@/components/dashboard/DashboardPetWidget";
-import PersonalizedRecommendations from "@/components/dashboard/PersonalizedRecommendations";
 import { useReminder } from "@/hooks/useReminder";
-import WeeklyReportWidget from "@/components/dashboard/WeeklyReportWidget";
 import GoalProgressWidget from "@/components/dashboard/GoalProgressWidget";
 import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
 import DashboardSpeakingWidget from "@/components/dashboard/DashboardSpeakingWidget";
-
 import { LANGUAGES, LANG_NAMES } from "@/lib/constants";
-import { FEATURES } from "@/lib/features";
 
 // Stagger animation variants
 const container = {
@@ -275,14 +270,7 @@ const DashboardPage = () => {
           />
         </motion.div>
 
-        {/* ═══ Section 3: 내 펫 ═══ */}
-        {FEATURES.pets && (
-          <motion.div variants={item}>
-            <DashboardPetWidget />
-          </motion.div>
-        )}
-
-        {/* ═══ Section 4: 학습 인사이트 ═══ */}
+        {/* ═══ Section 3: 학습 인사이트 ═══ */}
         <motion.div variants={item}>
           <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest">학습 인사이트</p>
         </motion.div>
@@ -299,41 +287,12 @@ const DashboardPage = () => {
           </motion.div>
         )}
 
-        {/* Weekly Report */}
-        {FEATURES.aiWeeklyReport && (
-          <motion.div variants={item}>
-            <WeeklyReportWidget />
-          </motion.div>
-        )}
-
-        {/* Personalized Recommendations */}
-        {FEATURES.aiRecommendations && (
-          <motion.div variants={item}>
-            <PersonalizedRecommendations />
-          </motion.div>
-        )}
-
-        {/* ═══ Section 5: 더 알아보기 ═══ */}
+        {/* ═══ Section 4: 더 알아보기 ═══ */}
         <motion.div variants={item}>
           <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest">더 알아보기</p>
         </motion.div>
 
-        <motion.div variants={item} className={`grid gap-2.5 ${FEATURES.leaderboard ? "grid-cols-2" : "grid-cols-1"}`}>
-          {FEATURES.leaderboard && (
-            <Link to="/leaderboard">
-              <motion.div
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-card rounded-2xl p-4 border border-border shadow-sm text-center"
-              >
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/80 to-primary mx-auto flex items-center justify-center text-white mb-2">
-                  <Trophy size={22} />
-                </div>
-                <div className="font-bold text-foreground text-sm">리더보드</div>
-                <div className="text-[10px] text-muted-foreground font-semibold">순위 확인</div>
-              </motion.div>
-            </Link>
-          )}
+        <motion.div variants={item}>
           <Link to="/stats">
             <motion.div
               whileHover={{ scale: 1.02, y: -1 }}

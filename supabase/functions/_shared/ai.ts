@@ -35,12 +35,6 @@ const FEATURE_DAILY_LIMITS: Record<string, number> = {
   "analyze-text": 20,
   "generate-cards": 40,
   "split-dialogue": 20,
-  "generate-examples": 50,
-  "generate-pet-image": 5,
-  "pet-diary": 5,
-  "personalized-recommendations": 10,
-  "sync-gap-analysis": 10,
-  "weekly-report": 10,
 };
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";

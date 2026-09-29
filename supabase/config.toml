@@ -6,9 +6,6 @@ verify_jwt = false
 [functions.generate-cards]
 verify_jwt = false
 
-[functions.generate-pet-image]
-verify_jwt = false
-
 [functions.speaking]
 verify_jwt = false
 
@@ -21,16 +18,7 @@ verify_jwt = false
 [functions.analyze-text]
 verify_jwt = false
 
-[functions.pet-diary]
-verify_jwt = false
-
 [functions.chat-feedback]
-verify_jwt = false
-
-[functions.weekly-report]
-verify_jwt = false
-
-[functions.personalized-recommendations]
 verify_jwt = false
 
 # Called by pg_cron with a shared secret header, not a user JWT.

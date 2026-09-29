@@ -74,6 +74,3 @@ export const getRandomName = (lang: string, gender: "male" | "female") => {
   const list = names[gender];
   return list[Math.floor(Math.random() * list.length)];
 };
-
-/** Pet level thresholds */
-export const PET_LEVEL_THRESHOLDS = Array.from({ length: 30 }, (_, i) => Math.round(100 * Math.pow(1.2, i)));

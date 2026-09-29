@@ -53,7 +53,7 @@ export const useRecordActivity = () => {
       const result = data as unknown as ActivityResult;
       if (result.milestone) {
         const milestone = MILESTONE_LIST.find((m) => m.days === result.milestone!.days);
-        if (milestone) toast.success(`${milestone.badge} ${milestone.name} 달성! +${result.milestone.points}P`);
+        if (milestone) toast.success(`${milestone.badge} ${milestone.name} 달성! ${milestone.days}일 연속 학습`);
       }
       if (result.applied) void refreshProfile();
       return result;

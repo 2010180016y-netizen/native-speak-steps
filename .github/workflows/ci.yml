@@ -19,6 +19,7 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: npm run check:bundle
 
   edge-functions:
     runs-on: ubuntu-latest
