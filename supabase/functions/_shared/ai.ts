@@ -11,12 +11,8 @@ export const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/** Model IDs live here (overridable per environment); no function hard-codes a model. */
-export const MODELS = {
-  default: Deno.env.get("AI_MODEL_DEFAULT") ?? "google/gemini-2.5-flash",
-  lite: Deno.env.get("AI_MODEL_LITE") ?? "google/gemini-2.5-flash-lite",
-  image: Deno.env.get("AI_MODEL_IMAGE") ?? "google/gemini-2.5-flash-image",
-};
+/** The one model every function uses; override per environment with AI_MODEL_DEFAULT. */
+const DEFAULT_MODEL = Deno.env.get("AI_MODEL_DEFAULT") ?? "gemini-2.5-flash";
 
 export const LIMITS = {
   maxBodyChars: 100_000,
@@ -41,7 +37,8 @@ const DAILY_LIMITS = {
   },
 } satisfies Record<string, { total: number; other: number; features: Record<string, number> }>;
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+// Google's OpenAI-compatible endpoint for the Gemini API.
+const GATEWAY_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 export class HttpError extends Error {
   constructor(public status: number, message: string, public errorType: string) {
@@ -208,12 +205,12 @@ async function logUsage(ctx: AiContext, model: string, status: number, latencyMs
   if (error) console.error("usage log failed:", error.message);
 }
 
-/** Calls the AI gateway and records token usage for the calling user. */
+/** Calls the Gemini API and records token usage for the calling user. */
 export async function callModel(ctx: AiContext, request: ModelRequest) {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
 
-  const model = request.model ?? MODELS.default;
+  const model = request.model ?? DEFAULT_MODEL;
   const started = Date.now();
   const res = await fetch(GATEWAY_URL, {
     method: "POST",
@@ -225,7 +222,6 @@ export async function callModel(ctx: AiContext, request: ModelRequest) {
   if (!res.ok) {
     await logUsage(ctx, model, res.status, latencyMs);
     if (res.status === 429) throw new HttpError(429, "요청이 너무 많아요. 잠시 후 다시 시도해주세요.", "rate_limit");
-    if (res.status === 402) throw new HttpError(402, "AI 크레딧이 부족합니다.", "payment_required");
     console.error(`AI gateway error (${ctx.feature}):`, res.status, await res.text());
     throw new HttpError(502, "AI 응답을 받지 못했어요. 다시 시도해주세요.", "gateway_error");
   }
