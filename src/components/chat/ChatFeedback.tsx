@@ -5,9 +5,7 @@ import { invokeAi, toastAiError } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2, BarChart3, MessageSquare, Lightbulb, AlertTriangle, BookOpen, ArrowLeft } from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, type TooltipProps,
-} from "recharts";
+import { BarList, DonutChart } from "@/components/Charts";
 import type { Persona, ChatScenario } from "./ChatSetup";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -34,20 +32,6 @@ const CHART_COLORS = [
   "hsl(var(--duo-red))",
   "hsl(var(--duo-yellow))",
 ];
-
-const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
-      <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
-          {p.name}: {p.value}
-        </p>
-      ))}
-    </div>
-  );
-};
 
 type Props = {
   messages: Message[];
@@ -272,15 +256,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
             <BarChart3 size={16} className="text-primary" />
             <h3 className="font-bold text-foreground text-sm">사용 단어 빈도</h3>
           </div>
-          <ResponsiveContainer width="100%" height={Math.max(160, topWords.length * 24)}>
-            <BarChart data={topWords} layout="vertical" margin={{ left: 0, right: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis type="category" dataKey="word" tick={{ fontSize: 10, fontWeight: 700, fill: "hsl(var(--foreground))" }} width={70} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" name="횟수" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarList items={topWords.map((w) => ({ label: w.word, value: w.count }))} />
         </motion.div>
       )}
 
@@ -291,28 +267,13 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
             <BookOpen size={16} className="text-duo-purple" />
             <h3 className="font-bold text-foreground text-sm">문장 구조 패턴</h3>
           </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie
-                data={patterns}
-                dataKey="count"
-                nameKey="pattern"
-                cx="50%"
-                cy="50%"
-                outerRadius={65}
-                innerRadius={30}
-                label={({ pattern, percent }) => `${pattern} ${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
-                fontSize={10}
-                fontWeight={700}
-              >
-                {patterns.map((_, i) => (
-                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="flex justify-center">
+            <DonutChart
+              slices={patterns.map((p, i) => ({ label: p.pattern, value: p.count, color: CHART_COLORS[i % CHART_COLORS.length] }))}
+              size={150}
+              label="문장 구조 패턴"
+            />
+          </div>
           <div className="mt-2 space-y-1.5">
             {patterns.map((p, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">

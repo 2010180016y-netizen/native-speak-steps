@@ -1,8 +1,6 @@
 import { motion } from "framer-motion";
 import { BarChart3, Type, AlignLeft, Brain, TrendingUp, Hash } from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, type TooltipProps,
-} from "recharts";
+import { BarList, DonutChart } from "@/components/Charts";
 
 export type TextAnalysis = {
   wordFrequency: { word: string; count: number; percentage: number }[];
@@ -30,20 +28,6 @@ const CHART_COLORS = [
   "hsl(var(--duo-yellow))",
   "hsl(var(--duo-green-dark))",
 ];
-
-const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
-      <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
-          {p.name}: {typeof p.value === "number" ? p.value.toLocaleString() : p.value}
-        </p>
-      ))}
-    </div>
-  );
-};
 
 const AnalysisDashboard = ({ analysis, wordCount, uniqueWords }: Props) => {
   const topWords = (analysis.wordFrequency || []).slice(0, 15);
@@ -98,20 +82,7 @@ const AnalysisDashboard = ({ analysis, wordCount, uniqueWords }: Props) => {
             <BarChart3 size={18} className="text-primary" />
             <h3 className="font-bold text-foreground">단어 사용 빈도 랭킹</h3>
           </div>
-          <ResponsiveContainer width="100%" height={Math.max(200, topWords.length * 28)}>
-            <BarChart data={topWords} layout="vertical" margin={{ left: 0, right: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis
-                type="category"
-                dataKey="word"
-                tick={{ fontSize: 11, fontWeight: 700, fill: "hsl(var(--foreground))" }}
-                width={80}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" name="사용 횟수" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarList items={topWords.map((w) => ({ label: w.word, value: w.count }))} />
         </motion.div>
       )}
 
@@ -152,28 +123,13 @@ const AnalysisDashboard = ({ analysis, wordCount, uniqueWords }: Props) => {
             <AlignLeft size={18} className="text-duo-orange" />
             <h3 className="font-bold text-foreground">문장 구조 분석</h3>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={structures}
-                dataKey="count"
-                nameKey="pattern"
-                cx="50%"
-                cy="50%"
-                outerRadius={70}
-                innerRadius={35}
-                label={({ pattern, percent }) => `${pattern} ${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
-                fontSize={10}
-                fontWeight={700}
-              >
-                {structures.map((_, i) => (
-                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="flex justify-center">
+            <DonutChart
+              slices={structures.map((s, i) => ({ label: s.pattern, value: s.count, color: CHART_COLORS[i % CHART_COLORS.length] }))}
+              size={160}
+              label="문장 구조 분석"
+            />
+          </div>
 
           {/* Structure details */}
           <div className="mt-3 space-y-2">

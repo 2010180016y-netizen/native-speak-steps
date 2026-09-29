@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Map, RefreshCw, TrendingUp, Sprout } from "lucide-react";
 import { format, subDays, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { ko } from "date-fns/locale";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, type TooltipProps } from "recharts";
+import { AreaChart } from "@/components/Charts";
 import { toast } from "sonner";
 import { isMastered } from "@/lib/srs";
 
@@ -89,20 +89,6 @@ function categorizeCard(card: CardData): string {
   }
   return "기타";
 }
-
-const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
-      <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
-          {p.name}: {p.value}개
-        </p>
-      ))}
-    </div>
-  );
-};
 
 const VocabGrowthMap = ({ userId }: Props) => {
   const [loading, setLoading] = useState(true);
@@ -361,28 +347,13 @@ const VocabGrowthMap = ({ userId }: Props) => {
             <TrendingUp size={18} className="text-duo-purple" />
             <h3 className="font-bold text-foreground">어휘 성장 추이 (8주)</h3>
           </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={weeklyGrowth}>
-              <defs>
-                <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tick={{ fontSize: 10, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={30} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="total"
-                name="누적 어휘"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                fill="url(#growthGradient)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <AreaChart
+            data={weeklyGrowth.map((week) => ({ label: week.label, value: week.total }))}
+            color="hsl(var(--primary))"
+            name="누적 어휘"
+            unit="개"
+            height={180}
+          />
         </motion.div>
       )}
     </div>
