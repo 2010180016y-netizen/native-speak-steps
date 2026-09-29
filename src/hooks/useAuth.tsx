@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import type { Tables } from "@/integrations/supabase/types";
+import { track } from "@/lib/analytics";
 
 type Profile = Tables<"profiles">;
 
@@ -63,6 +64,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const userId = user?.id;
+  useEffect(() => {
+    if (userId) track("app_opened");
+  }, [userId]);
 
   const signUp = async (email: string, password: string, displayName: string) => {
     const { error } = await supabase.auth.signUp({

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
+import { track } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
@@ -135,6 +136,7 @@ const ChatPage = () => {
     }
     clearSavedSession();
     setPhase("feedback");
+    track("chat_completed");
   };
 
   const handleBackToSetup = () => {
@@ -216,7 +218,9 @@ const ChatPage = () => {
           context: `💬 채팅 교정: ${c.explanation || ""}\n원문: ${c.wrong}`,
           difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
         }));
-        const { error: srsError } = await supabase.from("srs_cards").insert(cardsToInsert);
+        const { error: srsError } = await supabase
+          .from("srs_cards")
+          .upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
         if (!srsError) toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
       }
 

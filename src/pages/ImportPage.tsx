@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
+import { track } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -93,7 +94,7 @@ const ImportPage = () => {
     setDialogueLines([]);
 
     try {
-      const analysis = analyzeTextContent(text);
+      const analysis = analyzeTextContent(text, profile.native_language);
       setResult({
         wordCount: analysis.wordCount,
         uniqueWords: analysis.uniqueWords,
@@ -109,6 +110,7 @@ const ImportPage = () => {
       }).select("id").single();
       if (error) throw error;
       void recordActivity("import_analyzed", `import:${savedImport.id}`, analysis.wordCount);
+      track("import_analyzed");
 
       toast.success(`${analysis.wordCount}개 단어 분석 완료! 🎉`);
 
@@ -124,20 +126,24 @@ const ImportPage = () => {
           text: textToAnalyze,
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
           targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
-          totalWordCount: analysis.wordCount,
-          totalUniqueWords: analysis.uniqueWords,
           speakerNames: analysis.speakers,
         },
       });
 
-      if (!aiErr && aiData) {
-        setDetailedAnalysis(aiData as TextAnalysis);
-        // Save analysis result to latest import
-        supabase.from("language_imports")
-          .update({ analysis_result: aiData })
-          .eq("id", savedImport.id)
-          .then(() => {});
-      }
+      // Counts come from the local analysis; the model only adds structures, summary and expressions.
+      if (aiErr) toast.error("AI 상세 분석에 실패해 단어 빈도만 표시해요");
+      const merged = {
+        sentenceStructures: [],
+        complexityScore: 0,
+        summary: "",
+        ...(aiErr ? {} : aiData),
+        ...analysis.stats,
+      } as TextAnalysis;
+      setDetailedAnalysis(merged);
+      supabase.from("language_imports")
+        .update({ analysis_result: merged })
+        .eq("id", savedImport.id)
+        .then(() => {});
       setAnalyzingDetail(false);
     } catch (err) {
       console.error(err);
@@ -224,12 +230,15 @@ const ImportPage = () => {
         context: card.context,
       }));
 
-      const { error } = await supabase.from("srs_cards").insert(cardsToInsert);
+      const { error } = await supabase
+        .from("srs_cards")
+        .upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
       if (error) throw error;
 
       setCardsSaved(true);
       toast.success("카드가 저장되었어요! 복습 탭에서 확인하세요 ✅");
       void recordActivity("cards_saved", `cards_saved:${crypto.randomUUID()}`, cardsToInsert.length);
+      track("cards_saved");
     } catch {
       toast.error("카드 저장에 실패했습니다");
     }

@@ -87,7 +87,7 @@ const VocabUtilizationDashboard = ({ userId }: Props) => {
         native_text: ex.korean,
         context: `예문 (${selectedWord.target_text})`,
       }));
-      const { error } = await supabase.from("srs_cards").insert(rows);
+      const { error } = await supabase.from("srs_cards").upsert(rows, { onConflict: "user_id,native_text", ignoreDuplicates: true });
       if (error) throw error;
       toast.success(`${parsed.length}개 예문이 SRS 카드로 추가되었어요! 🎉`);
       setAddedCards(true);

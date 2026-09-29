@@ -9,6 +9,7 @@ import SpeakingCall from "@/components/speaking/SpeakingCall";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
+import { track } from "@/lib/analytics";
 import { toast } from "sonner";
 import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
 import { SPEAKING_MISSIONS, SPEAKING_HINTS, type SpeakingMission } from "@/lib/speakingScenarioData";
@@ -81,7 +82,7 @@ const SpeakingPage = () => {
       context: `📞 스피킹 교정: ${c.explanation || ""}\n원문: ${c.wrong}`,
       difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
     }));
-    const { error } = await supabase.from("srs_cards").insert(cardsToInsert);
+    const { error } = await supabase.from("srs_cards").upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
     if (!error) toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
   }, [user]);
 
@@ -206,9 +207,10 @@ const SpeakingPage = () => {
               context: `📞 스피킹 피드백 교정: ${err.explanation || ""}`,
               difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
             }));
-            await supabase.from("srs_cards").insert(feedbackCards);
+            await supabase.from("srs_cards").upsert(feedbackCards, { onConflict: "user_id,native_text", ignoreDuplicates: true });
           }
           if (reward?.applied) toast.success(`🎉 스피킹 완료! +${reward.xp} XP`);
+          track("speaking_completed");
         }
       } else {
         toast.error("피드백을 생성할 수 없어요");

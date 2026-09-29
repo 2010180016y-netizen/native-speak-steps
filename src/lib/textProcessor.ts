@@ -20,22 +20,6 @@ const PATTERNS = {
   urlWithParams: /https?:\/\/[^\s]+\?[^\s]+/g,
 };
 
-// Common speaker identifiers in chat exports
-const SPEAKER_PATTERNS = [
-  // KakaoTalk format: [Name] [Time]
-  /^\[([^\]]+)\]\s*\[.*?\]/gm,
-  // KakaoTalk date line
-  /^-+\s*\d{4}년\s*\d{1,2}월\s*\d{1,2}일.*-+$/gm,
-  // Common chat format: Name:
-  /^([가-힣A-Za-z0-9_]+)\s*:\s*/gm,
-  // Line format: Name (Time)
-  /^([가-힣A-Za-z0-9_]+)\s*\(\d{1,2}:\d{2}\)/gm,
-  // Timestamps
-  /\d{1,2}:\d{2}(:\d{2})?\s*(AM|PM|오전|오후)?/gi,
-  // Date formats
-  /\d{4}[년./-]\d{1,2}[월./-]\d{1,2}[일]?/g,
-];
-
 /**
  * Mask sensitive personal information in text
  */
@@ -149,62 +133,74 @@ export function removeMetadata(text: string): string {
   return cleaned;
 }
 
+// Korean particles (조사), longest first. A one-letter particle is only stripped when at
+// least two letters remain, so words like "사과" or "하나" stay intact.
+// ponytail: suffix heuristic, still splits nouns such as "고양이"; use a morphological analyzer if accuracy matters.
+const KO_PARTICLES = [
+  "에서는", "에게서", "으로는", "이랑", "에서", "에게", "한테", "까지", "부터", "처럼", "보다", "으로",
+  "은", "는", "이", "가", "을", "를", "에", "의", "도", "만", "로", "와", "과", "랑",
+];
+
+function stripParticle(word: string): string {
+  if (!/^[가-힣]+$/.test(word)) return word;
+  for (const particle of KO_PARTICLES) {
+    const stem = word.slice(0, -particle.length);
+    if (word.endsWith(particle) && stem.length >= (particle.length === 1 ? 2 : 1)) return stem;
+  }
+  return word;
+}
+
 /**
- * Analyze text with preprocessing
+ * Word statistics computed in code with Intl.Segmenter. The model never counts:
+ * frequencies, bigrams and sentence stats all come from here.
  */
-export function analyzeTextContent(rawText: string) {
-  // Step 1: Mask sensitive data first
-  const maskedText = maskSensitiveData(rawText);
-  
-  // Step 2: Extract speakers before removing metadata
-  const speakers = extractSpeakers(maskedText);
-  
-  // Step 3: Remove metadata for accurate counting
-  const cleanedText = removeMetadata(maskedText);
-  
-  // Step 4: Count words (excluding empty strings)
-  const words = cleanedText
-    .trim()
-    .split(/\s+/)
-    .filter(w => w.length > 0);
-  
-  const uniqueWords = new Set(words);
-  
+export function computeTextStats(text: string, locale: string, excludeWords: string[] = []) {
+  const excluded = new Set(excludeWords.map((w) => w.toLowerCase()));
+  const tokens: string[] = [];
+  for (const { segment, isWordLike } of new Intl.Segmenter(locale, { granularity: "word" }).segment(text)) {
+    const token = segment.toLowerCase();
+    if (isWordLike && /\p{L}/u.test(token) && !excluded.has(token)) tokens.push(token);
+  }
+
+  const words = tokens.map(stripParticle).filter((w) => !excluded.has(w));
+  const countOf = (items: string[]) => {
+    const counts = new Map<string, number>();
+    for (const item of items) counts.set(item, (counts.get(item) ?? 0) + 1);
+    return [...counts].sort((a, b) => b[1] - a[1]);
+  };
+
+  const wordCounts = countOf(words);
+  const bigrams = tokens.slice(1).map((token, i) => `${tokens[i]} ${token}`);
+  const sentences = [...new Intl.Segmenter(locale, { granularity: "sentence" }).segment(text)]
+    .filter(({ segment }) => /\p{L}/u.test(segment)).length;
+  const percent = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 1000) / 10 : 0);
+
   return {
-    maskedText,
-    cleanedText,
-    speakers,
     wordCount: words.length,
-    uniqueWords: uniqueWords.size,
+    uniqueWords: wordCounts.length,
+    wordFrequency: wordCounts.slice(0, 50).map(([word, count]) => ({ word, count, percentage: percent(count, words.length) })),
+    topBigrams: countOf(bigrams).filter(([, count]) => count > 1).slice(0, 15).map(([phrase, count]) => ({ phrase, count })),
+    totalSentences: sentences,
+    avgSentenceLength: sentences > 0 ? Math.round((words.length / sentences) * 10) / 10 : 0,
+    vocabularyRichness: percent(wordCounts.length, words.length),
   };
 }
 
 /**
- * Split large text into chunks for processing
+ * Masks sensitive data, strips chat metadata and computes word statistics.
  */
-export function splitIntoChunks(text: string, maxChunkSize: number = 8000): string[] {
-  if (text.length <= maxChunkSize) {
-    return [text];
-  }
-  
-  const chunks: string[] = [];
-  const sentences = text.split(/(?<=[.!?。！？\n])\s*/);
-  let currentChunk = "";
-  
-  for (const sentence of sentences) {
-    if ((currentChunk + sentence).length > maxChunkSize) {
-      if (currentChunk) {
-        chunks.push(currentChunk.trim());
-      }
-      currentChunk = sentence;
-    } else {
-      currentChunk += " " + sentence;
-    }
-  }
-  
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim());
-  }
-  
-  return chunks;
+export function analyzeTextContent(rawText: string, locale = "ko") {
+  const maskedText = maskSensitiveData(rawText);
+  const speakers = extractSpeakers(maskedText);
+  const cleanedText = removeMetadata(maskedText);
+  const stats = computeTextStats(cleanedText, locale, speakers);
+
+  return {
+    maskedText,
+    cleanedText,
+    speakers,
+    wordCount: stats.wordCount,
+    uniqueWords: stats.uniqueWords,
+    stats,
+  };
 }

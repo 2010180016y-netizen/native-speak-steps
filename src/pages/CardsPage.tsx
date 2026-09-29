@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
+import { scheduleReview } from "@/lib/srs";
+import { track } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
@@ -107,37 +109,15 @@ const CardsPage = () => {
     if (!currentCard || !user) return;
     if (direction) setExitDirection(direction);
 
-    let ef = currentCard.ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-    ef = Math.max(1.3, ef);
-    let interval = currentCard.interval_days;
-
-    if (quality < 3) {
-      interval = 1;
-    } else if (currentCard.review_count === 0) {
-      interval = 1;
-    } else if (currentCard.review_count === 1) {
-      interval = 6;
-    } else {
-      interval = Math.round(interval * ef);
-    }
-
-    const nextReview = new Date();
-    nextReview.setDate(nextReview.getDate() + interval);
-
     const { error } = await supabase
       .from("srs_cards")
-      .update({
-        ease_factor: ef,
-        interval_days: interval,
-        next_review_at: nextReview.toISOString(),
-        review_count: currentCard.review_count + 1,
-        difficulty: quality,
-      })
+      .update(scheduleReview(currentCard, quality))
       .eq("id", currentCard.id);
     if (error) {
       toast.error("복습 결과를 저장하지 못했어요");
     } else {
       void recordActivity("card_review", `card_review:${currentCard.id}:${currentCard.review_count}`);
+      track("card_reviewed");
     }
 
     setTimeout(() => {

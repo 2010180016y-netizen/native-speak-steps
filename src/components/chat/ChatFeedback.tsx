@@ -135,13 +135,14 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
         const newCards = cardsToCreate.filter((c) => !existingSet.has(c.target_text.toLowerCase()));
 
         if (newCards.length > 0) {
-          await supabase.from("srs_cards").insert(
+          await supabase.from("srs_cards").upsert(
             newCards.map((c) => ({
               user_id: user.id,
               target_text: c.target_text,
               native_text: c.native_text,
               context: c.context,
-            }))
+            })),
+            { onConflict: "user_id,native_text", ignoreDuplicates: true },
           );
           toast.success(`📚 ${newCards.length}개의 학습 카드가 자동 생성되었습니다!`);
         }

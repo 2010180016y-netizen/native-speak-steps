@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3, Trophy, ChevronDown, Check, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getEffectiveStreak } from "@/lib/streak";
+import { syncCoverage } from "@/lib/srs";
 import { toast } from "sonner";
 import DashboardPetWidget from "@/components/dashboard/DashboardPetWidget";
 import PersonalizedRecommendations from "@/components/dashboard/PersonalizedRecommendations";
@@ -37,7 +38,7 @@ const DashboardPage = () => {
   const { profile, user, updateProfile } = useAuth();
   const navigate = useNavigate();
   useReminder();
-  const [stats, setStats] = useState({ nativeWords: 0, targetWords: 0, cardsToReview: 0, streak: 0 });
+  const [stats, setStats] = useState({ coverage: { total: 0, covered: 0, percent: 0 }, cardsToReview: 0, streak: 0 });
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [langPickerType, setLangPickerType] = useState<"native" | "target">("native");
 
@@ -75,15 +76,18 @@ const DashboardPage = () => {
     if (!user) return;
     const fetchStats = async () => {
       const [importsRes, cardsRes] = await Promise.all([
-        supabase.from("language_imports").select("word_count").eq("user_id", user.id),
-        supabase.from("srs_cards").select("id").eq("user_id", user.id).lte("next_review_at", new Date().toISOString()),
+        supabase.from("language_imports").select("analysis_result").eq("user_id", user.id),
+        supabase.from("srs_cards").select("native_text, interval_days, next_review_at").eq("user_id", user.id),
       ]);
 
-      const nativeWords = (importsRes.data || []).reduce((sum, i) => sum + i.word_count, 0);
+      const cards = cardsRes.data || [];
+      const frequencies = (importsRes.data || []).map(
+        (i) => (i.analysis_result as { wordFrequency?: { word: string; count: number }[] } | null)?.wordFrequency ?? [],
+      );
+      const now = new Date().toISOString();
       setStats({
-        nativeWords,
-        targetWords: Math.round(nativeWords * 0.7),
-        cardsToReview: cardsRes.data?.length || 0,
+        coverage: syncCoverage(frequencies, cards),
+        cardsToReview: cards.filter((c) => c.next_review_at <= now).length,
         streak: profile ? getEffectiveStreak(profile) : 0,
       });
     };
@@ -92,7 +96,7 @@ const DashboardPage = () => {
 
   if (!profile) return null;
 
-  const syncRatio = stats.nativeWords > 0 ? Math.min((stats.targetWords / stats.nativeWords) * 100, 100) : 0;
+  const syncRatio = stats.coverage.percent;
 
   return (
     <AppLayout>
@@ -206,8 +210,8 @@ const DashboardPage = () => {
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground font-semibold">
-              <span>모국어 {stats.nativeWords.toLocaleString()}단어</span>
-              <span>학습 {stats.targetWords.toLocaleString()}단어</span>
+              <span>자주 쓰는 표현 {stats.coverage.total}개</span>
+              <span>숙달 {stats.coverage.covered}개</span>
             </div>
           </div>
         </motion.div>

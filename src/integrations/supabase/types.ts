@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event: string
+          event_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          event_date?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          event_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_feedback: {
         Row: {
           created_at: string
