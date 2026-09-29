@@ -3,12 +3,14 @@
 
 \set alice '00000000-0000-0000-0000-00000000000a'
 \set bob '00000000-0000-0000-0000-00000000000b'
+\set carol '00000000-0000-0000-0000-00000000000c'
 
 BEGIN;
 
 INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
   (:'alice', 'alice@example.com', '{"display_name": "alice@example.com"}'),
-  (:'bob', 'bob@example.com', '{"display_name": "Bob"}');
+  (:'bob', 'bob@example.com', '{"display_name": "Bob"}'),
+  (:'carol', 'carol@example.com', '{"display_name": "Carol"}');
 
 \echo 'schema invariants'
 
@@ -161,6 +163,25 @@ SELECT tests.login(:'bob');
 SELECT tests.eq((SELECT count(*) FROM payments), 0, 'other users see no payments');
 SELECT tests.eq((SELECT count(*) FROM push_subscriptions), 0, 'other users see no push subscriptions');
 SELECT tests.eq((SELECT count(*) FROM srs_cards), 0, 'other users see no cards');
+
+\echo 'order limit (BIZ-1)'
+
+RESET ROLE;
+SET LOCAL ROLE service_role;
+SELECT tests.eq((SELECT count(create_order(:'bob', 'pro_30d', 4900)) FROM generate_series(1, 5)), 5,
+  'five orders can be open at once');
+SELECT tests.eq(create_order(:'bob', 'pro_30d', 4900), NULL::uuid, 'a sixth open order within the hour is refused');
+SELECT tests.eq(create_order(:'carol', 'pro_30d', 4900) IS NOT NULL, true, 'the limit is per user');
+UPDATE payments SET status = 'paid'
+WHERE order_id = (SELECT order_id FROM payments WHERE user_id = :'bob' LIMIT 1);
+SELECT tests.eq(create_order(:'bob', 'pro_30d', 4900) IS NOT NULL, true, 'paid orders do not count against the limit');
+SELECT tests.eq(create_order(:'bob', 'pro_30d', 4900), NULL::uuid, 'the limit applies again once five are open');
+UPDATE payments SET created_at = now() - interval '2 hours' WHERE user_id = :'bob';
+SELECT tests.eq(create_order(:'bob', 'pro_30d', 4900) IS NOT NULL, true, 'orders older than an hour do not count');
+SELECT tests.eq((SELECT count(*) FROM payments WHERE user_id = :'bob'), 7, 'older unpaid orders are kept');
+
+SELECT tests.login(:'bob');
+SELECT tests.fails($$SELECT create_order(auth.uid(), 'pro_30d', 1)$$, 'clients cannot create orders through the function');
 
 \echo 'account deletion (CMP-1)'
 

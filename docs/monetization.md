@@ -30,6 +30,8 @@ activated users buy within 30 days. Below that, revisit the limits or the price 
 4. On failure or cancel Toss redirects to `/upgrade/fail?code&message`.
 
 Payment and account-deletion functions skip the AI quota, so they work after the limit is hit.
+Order creation has its own limit: `create_order()` refuses a sixth unpaid order opened within an
+hour (`429 too_many_orders`). Change the numbers in that function if real users hit it.
 
 ## Setup
 

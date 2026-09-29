@@ -6,6 +6,7 @@ import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { track } from "@/lib/analytics";
+import { AiError, invokeAi } from "@/lib/ai";
 import { isPro, PLAN_LIMITS, PRO_DAYS, PRO_PRICE_KRW } from "@/lib/plan";
 
 const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY as string | undefined;
@@ -74,7 +75,7 @@ const UpgradePage = ({ result }: { result?: "success" | "fail" }) => {
     }
     setBusy(true);
     try {
-      const { data: order, error } = await supabase.functions.invoke("create-order");
+      const { data: order, error } = await invokeAi("create-order");
       if (error || !order) throw error ?? new Error("order not created");
       const tossPayments = await loadTossPayments();
       await tossPayments(TOSS_CLIENT_KEY).payment({ customerKey: order.customerKey }).requestPayment({
@@ -87,7 +88,7 @@ const UpgradePage = ({ result }: { result?: "success" | "fail" }) => {
       });
     } catch (e) {
       console.error("checkout failed:", e);
-      toast.error("결제를 시작하지 못했어요. 잠시 후 다시 시도해 주세요.");
+      toast.error(e instanceof AiError ? e.message : "결제를 시작하지 못했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
