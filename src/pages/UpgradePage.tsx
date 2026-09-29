@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Check, Crown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -43,24 +43,27 @@ const UpgradePage = ({ result }: { result?: "success" | "fail" }) => {
     if (!result) track("upgrade_viewed");
   }, [result]);
 
+  // Safe to repeat: the server grants each order once and recovers orders Toss already charged.
+  const confirmPayment = useCallback(async () => {
+    setBusy(true);
+    setConfirmError(null);
+    const { error } = await supabase.functions.invoke("confirm-payment", {
+      body: { paymentKey: params.get("paymentKey"), orderId: params.get("orderId"), amount: params.get("amount") },
+    });
+    if (error) {
+      setConfirmError("결제를 확인하지 못했어요. 다시 확인해도 안 되면 문의해 주세요.");
+    } else {
+      track("upgrade_completed");
+      await refreshProfile();
+    }
+    setBusy(false);
+  }, [params, refreshProfile]);
+
   useEffect(() => {
     if (result !== "success" || confirmed.current) return;
     confirmed.current = true;
-    setBusy(true);
-    supabase.functions
-      .invoke("confirm-payment", {
-        body: { paymentKey: params.get("paymentKey"), orderId: params.get("orderId"), amount: params.get("amount") },
-      })
-      .then(async ({ error }) => {
-        if (error) {
-          setConfirmError("결제 승인에 실패했어요. 결제된 금액이 있다면 문의해 주세요.");
-          return;
-        }
-        track("upgrade_completed");
-        await refreshProfile();
-      })
-      .finally(() => setBusy(false));
-  }, [result, params, refreshProfile]);
+    confirmPayment();
+  }, [result, confirmPayment]);
 
   const handleCheckout = async () => {
     track("checkout_started");
@@ -102,7 +105,10 @@ const UpgradePage = ({ result }: { result?: "success" | "fail" }) => {
           {busy ? (
             <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> 결제를 확인하고 있어요...</span>
           ) : confirmError ? (
-            <span className="text-destructive">{confirmError}</span>
+            <span className="flex items-center justify-between gap-2 text-destructive">
+              {confirmError}
+              <button onClick={confirmPayment} className="shrink-0 underline">다시 확인</button>
+            </span>
           ) : (
             <span className="text-primary">🎉 Pro가 활성화됐어요!</span>
           )}

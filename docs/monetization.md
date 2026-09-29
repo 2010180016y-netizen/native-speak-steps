@@ -61,8 +61,11 @@ group by 1 order by 1 desc;
 
 ## Operations
 
-- **Charged but not granted:** if `complete_payment()` fails after Toss confirmed, the order stays
-  `pending`. Compare `pending` orders older than an hour with the Toss dashboard and run
+- **Charged but not granted:** when the Toss confirm call fails or times out, `confirm-payment`
+  looks the order up at Toss (`GET /v1/payments/orders/{orderId}`) and grants Pro if it is `DONE`
+  for the stored amount. If the grant itself fails, the order stays `pending` and the success page
+  offers "다시 확인", which retries through the same lookup. Only a user who never retries needs
+  manual work: compare `pending` orders older than an hour with the Toss dashboard and run
   `select complete_payment('<order_id>', '<payment_key>');` as the service role.
 - **Refunds:** cancel in the Toss dashboard, then shorten `profiles.pro_until` by hand.
 - `payments` rows are kept for 5 years (e-commerce records law); deleting an account only unlinks
