@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { MILESTONE_LIST } from "@/lib/milestones";
+import { browserTimeZone } from "@/lib/streak";
 
 export type ActivityKind =
   | "card_review"
@@ -20,14 +21,6 @@ export type ActivityResult = {
   total_xp: number;
   streak_days: number;
   milestone: { days: number; points: number } | null;
-};
-
-const browserTimeZone = () => {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch {
-    return undefined;
-  }
 };
 
 /**

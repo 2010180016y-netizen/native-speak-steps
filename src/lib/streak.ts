@@ -2,6 +2,15 @@ type StreakProfile = { streak_days: number; last_active_date: string | null; tim
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** The device's IANA time zone, e.g. "Asia/Seoul"; undefined when the browser cannot tell. */
+export function browserTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** YYYY-MM-DD of `date` in the given IANA time zone (falls back to UTC). */
 function localDate(date: Date, timeZone: string): string {
   try {

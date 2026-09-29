@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import type { Tables } from "@/integrations/supabase/types";
 import { track } from "@/lib/analytics";
+import { browserTimeZone } from "@/lib/streak";
 
 type Profile = Tables<"profiles">;
 
@@ -69,6 +70,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (userId) track("app_opened");
   }, [userId]);
+
+  // Reminders fire in the profile's time zone, so keep it the device's from the first visit on.
+  const profileTimeZone = profile?.timezone;
+  useEffect(() => {
+    const timeZone = browserTimeZone();
+    if (!userId || !profileTimeZone || !timeZone || timeZone === profileTimeZone) return;
+    supabase
+      .from("profiles")
+      .update({ timezone: timeZone })
+      .eq("user_id", userId)
+      .then(({ error }) => {
+        if (error) console.warn("time zone not saved:", error.message);
+        else setProfile((p) => (p ? { ...p, timezone: timeZone } : p));
+      });
+  }, [userId, profileTimeZone]);
 
   const signUp = async (email: string, password: string, displayName: string) => {
     const { error } = await supabase.auth.signUp({

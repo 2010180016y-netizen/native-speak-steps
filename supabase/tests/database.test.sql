@@ -47,8 +47,9 @@ SELECT tests.eq((SELECT display_name FROM profiles WHERE user_id = :'alice'), 'í
 
 SELECT tests.login(:'alice');
 SELECT tests.eq((SELECT count(*) FROM profiles), 1, 'a user sees only their own profile');
-UPDATE profiles SET display_name = 'Alice', ai_processing_consent_at = now();
+UPDATE profiles SET display_name = 'Alice', ai_processing_consent_at = now(), timezone = 'America/New_York';
 SELECT tests.eq((SELECT display_name FROM profiles), 'Alice', 'preferences stay editable');
+SELECT tests.fails($$UPDATE profiles SET timezone = 'Mars/Olympus_Mons'$$, 'unknown time zones are rejected', '23514');
 SELECT tests.fails($$UPDATE profiles SET display_name = 'alice@example.com'$$,
   'emails are rejected as display names', '23514');
 SELECT tests.fails($$UPDATE profiles SET total_xp = 1000000$$, 'XP is not client-writable');
