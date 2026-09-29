@@ -12,6 +12,10 @@ Events are stored in `analytics_events` (one row per user, event and UTC day) by
 | `card_reviewed` | A card is reviewed (review screen or import weekly review) |
 | `chat_completed` | An AI chat is ended for feedback |
 | `speaking_completed` | A speaking call is ended and feedback is received |
+| `paywall_shown` | An AI request is refused because the daily quota is used up |
+| `upgrade_viewed` | The upgrade page (`/upgrade`) is opened |
+| `checkout_started` | The Pro checkout button is pressed |
+| `upgrade_completed` | A Pro payment is confirmed |
 
 ## Definitions
 
@@ -30,3 +34,5 @@ select * from analytics_cohorts;
 
 Columns: `cohort_week`, `signups`, `onboarded`, `imported`, `activated`, `activation_rate`,
 `d1_retention`, `d7_retention` (percentages).
+
+Monetization funnel queries: `docs/monetization.md`.

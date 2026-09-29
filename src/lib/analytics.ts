@@ -8,7 +8,11 @@ export type AnalyticsEvent =
   | "cards_saved"
   | "card_reviewed"
   | "chat_completed"
-  | "speaking_completed";
+  | "speaking_completed"
+  | "paywall_shown"
+  | "upgrade_viewed"
+  | "checkout_started"
+  | "upgrade_completed";
 
 /** Records an event for the signed-in user; at most one row per user, event and day. Never throws. */
 export function track(event: AnalyticsEvent) {

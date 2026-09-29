@@ -308,6 +308,39 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          order_id: string
+          paid_at: string | null
+          payment_key: string | null
+          product: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          order_id?: string
+          paid_at?: string | null
+          payment_key?: string | null
+          product: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          order_id?: string
+          paid_at?: string | null
+          payment_key?: string | null
+          product?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       pet_accessories: {
         Row: {
           category: string
@@ -520,6 +553,7 @@ export type Database = {
           last_reminded_on: string | null
           native_language: string
           onboarding_completed: boolean
+          pro_until: string | null
           reminder_enabled: boolean
           reminder_time: string
           streak_days: number
@@ -540,6 +574,7 @@ export type Database = {
           last_reminded_on?: string | null
           native_language?: string
           onboarding_completed?: boolean
+          pro_until?: string | null
           reminder_enabled?: boolean
           reminder_time?: string
           streak_days?: number
@@ -560,6 +595,7 @@ export type Database = {
           last_reminded_on?: string | null
           native_language?: string
           onboarding_completed?: boolean
+          pro_until?: string | null
           reminder_enabled?: boolean
           reminder_time?: string
           streak_days?: number

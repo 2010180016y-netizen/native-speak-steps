@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { track } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAi } from "@/lib/ai";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield, Plus, History } from "lucide-react";
@@ -121,7 +122,7 @@ const ImportPage = () => {
       setAnalyzingDetail(true);
       setDetailedAnalysis(null);
       
-      const { data: aiData, error: aiErr } = await supabase.functions.invoke("analyze-text", {
+      const { data: aiData, error: aiErr } = await invokeAi("analyze-text", {
         body: {
           text: textToAnalyze,
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
@@ -159,7 +160,7 @@ const ImportPage = () => {
     if (!user || !profile || unknownWords.length === 0) return;
     setGeneratingCards(true);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("generate-cards", {
+      const { data, error: fnError } = await invokeAi("generate-cards", {
         body: {
           text: unknownWords.join(", "),
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
@@ -191,7 +192,7 @@ const ImportPage = () => {
     try {
       const maskedText = maskSensitiveData(text);
       
-      const { data, error } = await supabase.functions.invoke("split-dialogue", {
+      const { data, error } = await invokeAi("split-dialogue", {
         body: {
           text: maskedText.slice(0, 8000),
           nativeLanguage: profile.native_language,

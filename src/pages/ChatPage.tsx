@@ -5,6 +5,7 @@ import { track } from "@/lib/analytics";
 import { usePhrasePractice } from "@/hooks/usePhrasePractice";
 import { usesPhrase } from "@/lib/phrasePractice";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAi } from "@/lib/ai";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import { History } from "lucide-react";
@@ -205,7 +206,7 @@ const ChatPage = () => {
       const level = profile?.current_level || "beginner";
       const windowedMessages = newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content }));
 
-      const { data, error } = await supabase.functions.invoke("chat", {
+      const { data, error } = await invokeAi("chat", {
         body: {
           messages: windowedMessages, targetLanguage: targetLang, nativeLanguage: nativeLang, level, persona,
           scenario: scenario?.label, practicePhrases: practiceCards.map((c) => c.target_text),

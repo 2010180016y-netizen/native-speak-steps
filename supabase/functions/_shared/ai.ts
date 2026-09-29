@@ -23,19 +23,23 @@ export const LIMITS = {
   maxMessages: 100,
   maxMessageChars: 4_000,
   historyWindow: 20,
-  dailyRequests: 400,
 };
 
-/** Per-user daily request limits per function; all functions together are capped by LIMITS.dailyRequests. */
-const FEATURE_DAILY_LIMITS: Record<string, number> = {
-  "chat": 200,
-  "speaking": 200,
-  "chat-feedback": 30,
-  "speaking-feedback": 30,
-  "analyze-text": 20,
-  "generate-cards": 40,
-  "split-dialogue": 20,
-};
+/**
+ * Per-user daily request limits by plan (BIZ-1). `total` caps all functions together;
+ * functions not listed (account and payment endpoints) get `other`.
+ * The upgrade page shows the free/pro numbers: keep src/lib/plan.ts in sync.
+ */
+const DAILY_LIMITS = {
+  free: {
+    total: 80, other: 20,
+    features: { "chat": 30, "speaking": 30, "chat-feedback": 3, "speaking-feedback": 3, "analyze-text": 3, "generate-cards": 10, "split-dialogue": 3 },
+  },
+  pro: {
+    total: 400, other: 20,
+    features: { "chat": 200, "speaking": 200, "chat-feedback": 30, "speaking-feedback": 30, "analyze-text": 20, "generate-cards": 40, "split-dialogue": 20 },
+  },
+} satisfies Record<string, { total: number; other: number; features: Record<string, number> }>;
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -125,30 +129,45 @@ async function parseBody<T extends z.ZodTypeAny>(req: Request, schema: T): Promi
 }
 
 async function consumeQuota(ctx: AiContext) {
+  const { data: profile } = await ctx.admin.from("profiles").select("pro_until").eq("user_id", ctx.userId).maybeSingle();
+  const isPro = Boolean(profile?.pro_until && new Date(profile.pro_until) > new Date());
+  const limits = isPro ? DAILY_LIMITS.pro : DAILY_LIMITS.free;
+
   const { data: allowed, error } = await ctx.admin.rpc("consume_ai_quota", {
     p_user_id: ctx.userId,
     p_feature: ctx.feature,
-    p_feature_limit: FEATURE_DAILY_LIMITS[ctx.feature] ?? 20,
-    p_daily_limit: LIMITS.dailyRequests,
+    p_feature_limit: (limits.features as Record<string, number>)[ctx.feature] ?? limits.other,
+    p_daily_limit: limits.total,
   });
   if (error) throw new Error(`quota check failed: ${error.message}`);
   if (!allowed) {
-    throw new HttpError(429, "오늘 사용할 수 있는 AI 요청을 모두 사용했어요. 내일 다시 시도해주세요.", "quota_exceeded");
+    throw new HttpError(
+      429,
+      isPro
+        ? "오늘 사용할 수 있는 AI 요청을 모두 사용했어요. 내일 다시 시도해주세요."
+        : "오늘 무료로 사용할 수 있는 AI 요청을 모두 사용했어요. Pro로 업그레이드하면 더 많이 쓸 수 있어요.",
+      "quota_exceeded",
+    );
   }
 }
 
-/** Wraps a function handler with CORS, auth, validation, quota and uniform error responses. */
+/**
+ * Wraps a function handler with CORS, auth, validation, quota and uniform error responses.
+ * `quota: false` is for non-AI calls (payments, account deletion) that must keep working
+ * after the daily AI quota is used up.
+ */
 export function aiHandler<T extends z.ZodTypeAny>(
   feature: string,
   schema: T,
   handler: (body: z.infer<T>, ctx: AiContext) => Promise<Response>,
+  { quota = true } = {},
 ) {
   return async (req: Request): Promise<Response> => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
     try {
       const ctx = await authenticate(req, feature);
       const body = await parseBody(req, schema);
-      await consumeQuota(ctx);
+      if (quota) await consumeQuota(ctx);
       return await handler(body, ctx);
     } catch (e) {
       if (e instanceof HttpError) return json({ error: e.message, error_type: e.errorType }, e.status);

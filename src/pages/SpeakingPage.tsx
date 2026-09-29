@@ -7,6 +7,7 @@ import SpeakingSetup from "@/components/speaking/SpeakingSetup";
 import SpeakingIncoming from "@/components/speaking/SpeakingIncoming";
 import SpeakingCall from "@/components/speaking/SpeakingCall";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAi } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { track } from "@/lib/analytics";
@@ -140,7 +141,7 @@ const SpeakingPage = () => {
     setIsAiLoading(true);
     saveMessageToDB("user", text);
     try {
-      const { data, error } = await supabase.functions.invoke("speaking", {
+      const { data, error } = await invokeAi("speaking", {
         body: {
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
@@ -176,7 +177,7 @@ const SpeakingPage = () => {
     setFeedback(null);
     setIsAiLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("speaking", {
+      const { data, error } = await invokeAi("speaking", {
         body: {
           messages: [{ role: "user", content: "The phone is ringing and I just answered. Start the conversation as the caller." }],
           targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
@@ -202,7 +203,7 @@ const SpeakingPage = () => {
     stopSpeaking();
     setIsFeedbackLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("speaking-feedback", {
+      const { data, error } = await invokeAi("speaking-feedback", {
         body: { messages, targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko", level: profile?.current_level || "beginner" },
       });
       if (error) throw error;

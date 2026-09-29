@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAi } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2, BarChart3, MessageSquare, Lightbulb, AlertTriangle, BookOpen, ArrowLeft } from "lucide-react";
@@ -72,7 +73,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
       const targetLang = profile?.target_language || "en";
       const nativeLang = profile?.native_language || "ko";
 
-      const { data, error } = await supabase.functions.invoke("chat-feedback", {
+      const { data, error } = await invokeAi("chat-feedback", {
         body: {
           messages: messages.map((m) => ({ role: m.role, content: m.content })),
           targetLanguage: targetLang,

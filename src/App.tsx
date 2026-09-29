@@ -20,6 +20,7 @@ const SpeakingPage = lazy(() => import("./pages/SpeakingPage"));
 const SpeakingHistoryPage = lazy(() => import("./pages/SpeakingHistoryPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const LegalPage = lazy(() => import("./pages/LegalPage"));
+const UpgradePage = lazy(() => import("./pages/UpgradePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const PageLoading = () => (
@@ -48,6 +49,9 @@ const App = () => (
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/speaking" element={<ProtectedRoute><SpeakingPage /></ProtectedRoute>} />
               <Route path="/speaking-history" element={<ProtectedRoute><SpeakingHistoryPage /></ProtectedRoute>} />
+              <Route path="/upgrade" element={<ProtectedRoute><UpgradePage /></ProtectedRoute>} />
+              <Route path="/upgrade/success" element={<ProtectedRoute><UpgradePage result="success" /></ProtectedRoute>} />
+              <Route path="/upgrade/fail" element={<ProtectedRoute><UpgradePage result="fail" /></ProtectedRoute>} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/privacy" element={<LegalPage doc="privacy" />} />
               <Route path="/terms" element={<LegalPage doc="terms" />} />

@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
-import { LogOut, Flame, Zap, BookOpen } from "lucide-react";
+import { LogOut, Flame, Zap, BookOpen, Crown } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ReminderSettings from "@/components/profile/ReminderSettings";
 import GoalSettings from "@/components/profile/GoalSettings";
@@ -9,6 +9,7 @@ import DisplayNameSettings from "@/components/profile/DisplayNameSettings";
 import DeleteAccount from "@/components/profile/DeleteAccount";
 import { LANG_NAMES, LEVEL_NAMES } from "@/lib/constants";
 import { getEffectiveStreak } from "@/lib/streak";
+import { isPro } from "@/lib/plan";
 
 const ProfilePage = () => {
   const { profile, signOut } = useAuth();
@@ -63,6 +64,14 @@ const ProfilePage = () => {
             <div className="text-[10px] text-muted-foreground font-bold">레벨</div>
           </div>
         </div>
+
+        <Link to="/upgrade" className="duo-card flex items-center justify-between hover:border-primary transition-colors">
+          <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+            <Crown className="text-duo-orange" size={18} />
+            {isPro(profile) ? `Pro · ${new Date(profile.pro_until!).toLocaleDateString("ko-KR")}까지` : "무료 플랜"}
+          </span>
+          <span className="text-xs font-bold text-primary">{isPro(profile) ? "연장" : "업그레이드"}</span>
+        </Link>
 
         <DisplayNameSettings />
 

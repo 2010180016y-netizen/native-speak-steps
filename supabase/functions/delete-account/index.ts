@@ -14,4 +14,4 @@ Deno.serve(aiHandler("delete-account", z.object({}), async (_body, { userId, adm
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) throw error;
   return json({ deleted: true });
-}));
+}, { quota: false }));
