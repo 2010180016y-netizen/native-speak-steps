@@ -25,4 +25,5 @@ The streak is included when it is still alive.
    ```
 
 Without these, reminders fall back to the in-app toast shown when the app is opened near the
-reminder time. iOS delivers web push only to web apps added to the Home Screen.
+reminder time. The same happens where pg_cron or pg_net is unavailable: the schedule migration
+then skips with a notice instead of failing the deploy (check with `select * from cron.job;`). iOS delivers web push only to web apps added to the Home Screen.

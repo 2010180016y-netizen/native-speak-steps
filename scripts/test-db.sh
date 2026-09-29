@@ -13,10 +13,6 @@ dropdb --if-exists "$PGDATABASE"
 createdb "$PGDATABASE"
 run -f supabase/tests/setup.sql
 for f in supabase/migrations/*.sql; do
-  case "$f" in
-    # pg_cron, pg_net and Vault exist only on the Supabase platform.
-    *_prd3_reminder_schedule.sql) continue ;;
-  esac
   run -f "$f"
 done
 for f in supabase/tests/*.test.sql; do

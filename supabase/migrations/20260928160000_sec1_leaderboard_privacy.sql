@@ -11,7 +11,7 @@ AS $$
   SELECT CASE
     WHEN candidate IS NULL OR btrim(candidate) = '' OR position('@' IN candidate) > 0
       THEN '학습자#' || upper(left(replace(uid::text, '-', ''), 6))
-    ELSE left(btrim(candidate), 30)
+    ELSE btrim(left(btrim(candidate), 30))
   END;
 $$;
 

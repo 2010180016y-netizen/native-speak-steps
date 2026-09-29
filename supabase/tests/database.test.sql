@@ -46,6 +46,8 @@ SELECT tests.eq(
 
 SELECT tests.eq((SELECT display_name FROM profiles WHERE user_id = :'alice'), '학습자#000000',
   'an email is never used as a display name');
+SELECT tests.eq(safe_display_name(repeat('a', 29) || ' bcd', :'bob'), repeat('a', 29),
+  'a name cut at 30 characters does not end in a space');
 
 SELECT tests.login(:'alice');
 SELECT tests.eq((SELECT count(*) FROM profiles), 1, 'a user sees only their own profile');
@@ -124,6 +126,7 @@ SELECT tests.fails($$INSERT INTO analytics_events (event) VALUES ('made_up')$$, 
 SELECT tests.fails(format($$INSERT INTO analytics_events (user_id, event) VALUES (%L, 'app_opened')$$, :'bob'),
   'events cannot be recorded for another user');
 SELECT tests.fails($$SELECT * FROM analytics_cohorts$$, 'cohort metrics are not exposed to users');
+SELECT tests.fails($$SELECT * FROM backup.srs_cards_removed_prd1$$, 'backed-up cards are not exposed to users');
 
 \echo 'push reminders (PRD-3)'
 
