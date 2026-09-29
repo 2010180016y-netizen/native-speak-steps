@@ -6,6 +6,7 @@ import { format, subDays, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinIn
 import { ko } from "date-fns/locale";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
+import { isMastered } from "@/lib/srs";
 
 interface Props {
   userId: string;
@@ -15,8 +16,7 @@ interface CardData {
   target_text: string;
   native_text: string;
   context: string | null;
-  ease_factor: number;
-  review_count: number;
+  interval_days: number;
   created_at: string;
 }
 
@@ -114,7 +114,7 @@ const VocabGrowthMap = ({ userId }: Props) => {
     try {
       const { data, error } = await supabase
         .from("srs_cards")
-        .select("target_text, native_text, context, ease_factor, review_count, created_at")
+        .select("target_text, native_text, context, interval_days, created_at")
         .eq("user_id", userId)
         .order("created_at");
       if (error) throw error;
@@ -139,7 +139,7 @@ const VocabGrowthMap = ({ userId }: Props) => {
       const cat = categorizeCard(card);
       if (!catMap[cat]) catMap[cat] = { count: 0, mastered: 0, recent: 0, words: [] };
       catMap[cat].count++;
-      if (card.ease_factor >= 2.5 && card.review_count >= 3) catMap[cat].mastered++;
+      if (isMastered(card)) catMap[cat].mastered++;
       if (new Date(card.created_at) >= sevenDaysAgo) catMap[cat].recent++;
       if (catMap[cat].words.length < 8) catMap[cat].words.push(card.target_text);
     });

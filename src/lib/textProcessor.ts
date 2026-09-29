@@ -150,18 +150,26 @@ function stripParticle(word: string): string {
   return word;
 }
 
+/** Lowercased words of `text` as Intl.Segmenter splits them for `locale`; numbers and punctuation dropped. */
+function wordTokens(text: string, locale: string): string[] {
+  const tokens: string[] = [];
+  for (const { segment, isWordLike } of new Intl.Segmenter(locale, { granularity: "word" }).segment(text)) {
+    const token = segment.toLowerCase();
+    if (isWordLike && /\p{L}/u.test(token)) tokens.push(token);
+  }
+  return tokens;
+}
+
+/** The words `text` is counted as in word frequencies: its tokens with Korean particles stripped. */
+export const countedWords = (text: string, locale: string) => wordTokens(text, locale).map(stripParticle);
+
 /**
  * Word statistics computed in code with Intl.Segmenter. The model never counts:
  * frequencies, bigrams and sentence stats all come from here.
  */
 export function computeTextStats(text: string, locale: string, excludeWords: string[] = []) {
   const excluded = new Set(excludeWords.map((w) => w.toLowerCase()));
-  const tokens: string[] = [];
-  for (const { segment, isWordLike } of new Intl.Segmenter(locale, { granularity: "word" }).segment(text)) {
-    const token = segment.toLowerCase();
-    if (isWordLike && /\p{L}/u.test(token) && !excluded.has(token)) tokens.push(token);
-  }
-
+  const tokens = wordTokens(text, locale).filter((token) => !excluded.has(token));
   const words = tokens.map(stripParticle).filter((w) => !excluded.has(w));
   const countOf = (items: string[]) => {
     const counts = new Map<string, number>();

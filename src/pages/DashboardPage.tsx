@@ -81,7 +81,7 @@ const DashboardPage = () => {
       );
       const now = new Date().toISOString();
       setStats({
-        coverage: syncCoverage(frequencies, cards),
+        coverage: syncCoverage(frequencies, cards, profile?.native_language ?? "ko"),
         cardsToReview: cards.filter((c) => c.next_review_at <= now).length,
         streak: profile ? getEffectiveStreak(profile) : 0,
       });

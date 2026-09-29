@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { format, addDays, differenceInDays, isPast } from "date-fns";
 import { ko } from "date-fns/locale";
+import { isMastered } from "@/lib/srs";
 
 interface Props {
   userId: string;
@@ -52,7 +53,7 @@ const classifyCard = (card: any): CardHealth => {
 
   if (card.review_count === 0) {
     status = "new";
-  } else if (card.ease_factor >= 2.5 && card.review_count >= 3) {
+  } else if (isMastered(card)) {
     status = isPast(nextReview) ? "overdue" : "mastered";
   } else if (isPast(nextReview) && differenceInDays(now, nextReview) > 2) {
     status = "overdue";
