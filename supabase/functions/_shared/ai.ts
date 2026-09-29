@@ -11,8 +11,22 @@ export const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// The Gemini API directly when GEMINI_API_KEY is set (free tier), otherwise the Lovable AI gateway.
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+const PROVIDER = GEMINI_API_KEY
+  ? {
+    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    key: GEMINI_API_KEY,
+    model: "gemini-2.5-flash",
+  }
+  : {
+    url: "https://ai.gateway.lovable.dev/v1/chat/completions",
+    key: Deno.env.get("LOVABLE_API_KEY"),
+    model: "google/gemini-2.5-flash",
+  };
+
 /** The one model every function uses; override per environment with AI_MODEL_DEFAULT. */
-const DEFAULT_MODEL = Deno.env.get("AI_MODEL_DEFAULT") ?? "gemini-2.5-flash";
+const DEFAULT_MODEL = Deno.env.get("AI_MODEL_DEFAULT") ?? PROVIDER.model;
 
 export const LIMITS = {
   maxBodyChars: 100_000,
@@ -36,9 +50,6 @@ const DAILY_LIMITS = {
     features: { "chat": 200, "speaking": 200, "chat-feedback": 30, "speaking-feedback": 30, "analyze-text": 20, "generate-cards": 40, "split-dialogue": 20 },
   },
 } satisfies Record<string, { total: number; other: number; features: Record<string, number> }>;
-
-// Google's OpenAI-compatible endpoint for the Gemini API.
-const GATEWAY_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 export class HttpError extends Error {
   constructor(public status: number, message: string, public errorType: string) {
@@ -205,16 +216,15 @@ async function logUsage(ctx: AiContext, model: string, status: number, latencyMs
   if (error) console.error("usage log failed:", error.message);
 }
 
-/** Calls the Gemini API and records token usage for the calling user. */
+/** Calls the model provider and records token usage for the calling user. */
 export async function callModel(ctx: AiContext, request: ModelRequest) {
-  const apiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+  if (!PROVIDER.key) throw new Error("Set GEMINI_API_KEY or LOVABLE_API_KEY");
 
   const model = request.model ?? DEFAULT_MODEL;
   const started = Date.now();
-  const res = await fetch(GATEWAY_URL, {
+  const res = await fetch(PROVIDER.url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${PROVIDER.key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ stream: false, ...request, model }),
   });
   const latencyMs = Date.now() - started;
@@ -222,6 +232,8 @@ export async function callModel(ctx: AiContext, request: ModelRequest) {
   if (!res.ok) {
     await logUsage(ctx, model, res.status, latencyMs);
     if (res.status === 429) throw new HttpError(429, "요청이 너무 많아요. 잠시 후 다시 시도해주세요.", "rate_limit");
+    // The Lovable gateway returns 402 once the workspace's AI allowance is used up.
+    if (res.status === 402) throw new HttpError(402, "AI 크레딧이 부족합니다.", "payment_required");
     console.error(`AI gateway error (${ctx.feature}):`, res.status, await res.text());
     throw new HttpError(502, "AI 응답을 받지 못했어요. 다시 시도해주세요.", "gateway_error");
   }
