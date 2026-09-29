@@ -7,7 +7,7 @@ import SpeakingSetup from "@/components/speaking/SpeakingSetup";
 import SpeakingIncoming from "@/components/speaking/SpeakingIncoming";
 import SpeakingCall from "@/components/speaking/SpeakingCall";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeAi } from "@/lib/ai";
+import { invokeAi, toastAiError } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { track } from "@/lib/analytics";
@@ -160,12 +160,13 @@ const SpeakingPage = () => {
       void recordActivity("chat_message", `speaking_message:${speakingSessionId}:${newMessages.filter((m) => m.role === "user").length}`);
       checkMissions(finalMessages);
       if (autoSpeak && data.content) setTimeout(() => speak(data.content), 300);
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : "AI 응답에 실패했어요. 다시 시도해 주세요.";
+    } catch (e) {
       console.error("Speaking error:", e);
       setLastFailedText(text);
       setMessages(messages);
-      toast.error(errMsg, { action: { label: "재시도", onClick: () => sendMessage(text) } });
+      toastAiError(e, "AI 응답에 실패했어요. 다시 시도해 주세요.", {
+        action: { label: "재시도", onClick: () => sendMessage(text) },
+      });
     } finally {
       setIsAiLoading(false);
     }
@@ -191,8 +192,9 @@ const SpeakingPage = () => {
       setMessages([aiMsg]);
       saveMessageToDB("assistant", data.content);
       if (autoSpeak && data.content) setTimeout(() => speak(data.content), 300);
-    } catch {
-      toast.error("통화를 시작할 수 없어요");
+    } catch (e) {
+      console.error("Speaking start error:", e);
+      toastAiError(e, "통화를 시작할 수 없어요");
     } finally {
       setIsAiLoading(false);
     }
@@ -236,10 +238,9 @@ const SpeakingPage = () => {
       } else {
         toast.error("피드백을 생성할 수 없어요");
       }
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : "피드백 생성에 실패했어요";
+    } catch (e) {
       console.error("Feedback error:", e);
-      toast.error(errMsg);
+      toastAiError(e, "피드백 생성에 실패했어요");
     } finally {
       setIsFeedbackLoading(false);
       setPhase("feedback");

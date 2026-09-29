@@ -5,7 +5,7 @@ import { track } from "@/lib/analytics";
 import { usePhrasePractice } from "@/hooks/usePhrasePractice";
 import { usesPhrase } from "@/lib/phrasePractice";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeAi } from "@/lib/ai";
+import { AiError, invokeAi, isPaywallError } from "@/lib/ai";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import { History } from "lucide-react";
@@ -248,21 +248,19 @@ const ChatPage = () => {
 
       void recordActivity("chat_message", `chat_message:${sessionId}:${newMessages.filter((m) => m.role === "user").length}`);
       checkMissions(finalMessages);
-    } catch (err: any) {
+    } catch (err) {
       await supabase.from("ai_feedback").insert({
         user_id: user.id, feature: "chat",
-        error_type: err?.error_type || "unknown",
-        error_message: err?.message || "Unknown error",
-        response_time_ms: err?.response_time_ms || 0,
+        error_type: err instanceof AiError ? err.type : "unknown",
+        error_message: err instanceof Error ? err.message : String(err),
+        response_time_ms: 0,
       });
 
-      if (err?.message?.includes("429") || err?.error_type === "rate_limit") {
-        toast.error("요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
-      } else if (err?.message?.includes("402") || err?.error_type === "payment_required") {
-        toast.error("크레딧이 부족합니다. 설정에서 충전해주세요.");
+      // The paywall toast already explains a used-up quota; other failures get the reason inline.
+      if (!isPaywallError(err)) {
+        const reason = err instanceof AiError ? err.message : "오류가 발생했습니다. 다시 시도해주세요.";
+        setMessages([...newMessages, { role: "assistant", content: `⚠️ ${reason}` }]);
       }
-
-      setMessages([...newMessages, { role: "assistant", content: "⚠️ 오류가 발생했습니다. 다시 시도해주세요." }]);
     } finally {
       setLoading(false);
     }

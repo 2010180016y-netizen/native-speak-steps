@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeAi } from "@/lib/ai";
+import { invokeAi, toastAiError } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2, BarChart3, MessageSquare, Lightbulb, AlertTriangle, BookOpen, ArrowLeft } from "lucide-react";
@@ -150,7 +150,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
       }
     } catch (err) {
       console.error("Feedback error:", err);
-      toast.error("피드백 분석에 실패했습니다");
+      toastAiError(err, "피드백 분석에 실패했습니다");
     } finally {
       setLoading(false);
     }

@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { track } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeAi } from "@/lib/ai";
+import { invokeAi, toastAiError } from "@/lib/ai";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield, Plus, History } from "lucide-react";
@@ -132,7 +132,7 @@ const ImportPage = () => {
       });
 
       // Counts come from the local analysis; the model only adds structures, summary and expressions.
-      if (aiErr) toast.error("AI 상세 분석에 실패해 단어 빈도만 표시해요");
+      if (aiErr) toastAiError(aiErr, "AI 상세 분석에 실패해 단어 빈도만 표시해요");
       const merged = {
         sentenceStructures: [],
         complexityScore: 0,
@@ -179,7 +179,7 @@ const ImportPage = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error("카드 생성에 실패했습니다");
+      toastAiError(err, "카드 생성에 실패했습니다");
     } finally {
       setGeneratingCards(false);
     }
@@ -212,9 +212,9 @@ const ImportPage = () => {
       setRolePlayId(crypto.randomUUID());
       setShowRolePlay(true);
       toast.success(`${data.speakers.length}명의 화자, ${data.lines.length}개 대사를 분리했어요! 🎭`);
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      toast.error(e?.message || "대화 분리에 실패했어요");
+      toastAiError(e, "대화 분리에 실패했어요");
     } finally {
       setSplittingDialogue(false);
     }

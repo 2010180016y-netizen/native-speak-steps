@@ -86,7 +86,7 @@ export type AiContext = {
 
 async function authenticate(req: Request, feature: string): Promise<AiContext> {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) throw new HttpError(401, "Unauthorized", "unauthorized");
+  if (!authHeader?.startsWith("Bearer ")) throw new HttpError(401, "로그인이 필요해요. 다시 로그인해 주세요.", "unauthorized");
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const supabase = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -96,7 +96,7 @@ async function authenticate(req: Request, feature: string): Promise<AiContext> {
   const claims = data?.claims;
   // The public anon key is also a valid JWT; only signed-in users may use AI features.
   if (error || !claims?.sub || claims.role !== "authenticated") {
-    throw new HttpError(401, "Unauthorized", "unauthorized");
+    throw new HttpError(401, "로그인이 필요해요. 다시 로그인해 주세요.", "unauthorized");
   }
 
   const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
