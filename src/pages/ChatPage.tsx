@@ -39,7 +39,7 @@ const ChatPage = () => {
   const { isListening, transcript, interimTranscript, isSupported: sttSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(speechLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(speechLang);
 
-  const { practiceCards, loadPracticeCards, markPhraseUsed } = usePhrasePractice();
+  const { practiceCards, loadPracticeCards, practiceCardsReady, markPhraseUsed } = usePhrasePractice();
   const missions: MiniMission[] = scenario
     ? [
         ...practiceCards.map((card) => ({
@@ -81,20 +81,26 @@ const ChatPage = () => {
           setPersona(parsed.persona);
           setScenario(parsed.scenario);
           setMessages(parsed.messages);
+          setCompletedMissions(new Set(parsed.completedMissions ?? []));
+          loadPracticeCards(parsed.practiceCards);
           setPhase("chat");
         }
       }
     } catch { /* ignore */ }
     setRestoringSession(false);
+    // Restore once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Persist session ──
   useEffect(() => {
     if (phase === "chat" && persona && scenario && messages.length > 0) {
-      const session: SavedChatSession = { sessionId, persona, scenario, messages };
+      const session: SavedChatSession = {
+        sessionId, persona, scenario, messages, practiceCards, completedMissions: [...completedMissions],
+      };
       localStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(session));
     }
-  }, [phase, persona, scenario, messages, sessionId]);
+  }, [phase, persona, scenario, messages, sessionId, practiceCards, completedMissions]);
 
   const clearSavedSession = () => localStorage.removeItem(CHAT_SESSION_KEY);
 
@@ -145,7 +151,7 @@ const ChatPage = () => {
     setMessages([]);
     setCompletedMissions(new Set());
     setPhase("chat");
-    void loadPracticeCards();
+    loadPracticeCards();
   };
 
   const handleEndChat = () => {
@@ -205,11 +211,12 @@ const ChatPage = () => {
       const nativeLang = LANG_NAMES[profile?.native_language || "ko"];
       const level = profile?.current_level || "beginner";
       const windowedMessages = newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content }));
+      const cards = await practiceCardsReady();
 
       const { data, error } = await invokeAi("chat", {
         body: {
           messages: windowedMessages, targetLanguage: targetLang, nativeLanguage: nativeLang, level, persona,
-          scenario: scenario?.label, practicePhrases: practiceCards.map((c) => c.target_text),
+          scenario: scenario?.label, practicePhrases: cards.map((c) => c.target_text),
         },
       });
       if (error) throw error;

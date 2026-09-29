@@ -44,7 +44,7 @@ const SpeakingPage = () => {
   const { isListening, transcript, interimTranscript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(targetLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(targetLang);
 
-  const { practiceCards, loadPracticeCards, markPhraseUsed } = usePhrasePractice();
+  const { practiceCards, loadPracticeCards, practiceCardsReady, markPhraseUsed } = usePhrasePractice();
   const missions: SpeakingMission[] = scenario
     ? [
         ...practiceCards.map((card) => ({
@@ -59,7 +59,6 @@ const SpeakingPage = () => {
         ...(SPEAKING_MISSIONS[scenario.id] || SPEAKING_MISSIONS.free),
       ]
     : [];
-  const practicePhrases = practiceCards.map((c) => c.target_text);
   const levelHints = SPEAKING_HINTS[profile?.target_language || "en"]?.[profile?.current_level || "beginner"] || [];
 
   useEffect(() => {
@@ -141,6 +140,7 @@ const SpeakingPage = () => {
     setIsAiLoading(true);
     saveMessageToDB("user", text);
     try {
+      const practicePhrases = (await practiceCardsReady()).map((c) => c.target_text);
       const { data, error } = await invokeAi("speaking", {
         body: {
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
@@ -170,7 +170,7 @@ const SpeakingPage = () => {
     } finally {
       setIsAiLoading(false);
     }
-  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions, recordActivity, speakingSessionId, practicePhrases]);
+  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions, recordActivity, speakingSessionId, practiceCardsReady]);
 
   const startCall = useCallback(async () => {
     setPhase("call");
@@ -178,6 +178,7 @@ const SpeakingPage = () => {
     setFeedback(null);
     setIsAiLoading(true);
     try {
+      const practicePhrases = (await practiceCardsReady()).map((c) => c.target_text);
       const { data, error } = await invokeAi("speaking", {
         body: {
           messages: [{ role: "user", content: "The phone is ringing and I just answered. Start the conversation as the caller." }],
@@ -198,7 +199,7 @@ const SpeakingPage = () => {
     } finally {
       setIsAiLoading(false);
     }
-  }, [profile, autoSpeak, speak, scenario, persona, callerName, saveMessageToDB, practicePhrases]);
+  }, [profile, autoSpeak, speak, scenario, persona, callerName, saveMessageToDB, practiceCardsReady]);
 
   const endConversation = useCallback(async () => {
     if (messages.length < 2) { toast.error("대화를 좀 더 진행한 후 피드백을 받아보세요"); return; }
@@ -265,7 +266,7 @@ const SpeakingPage = () => {
     setScenario(s);
     const name = getRandomName(profile?.target_language || "en", p.gender as "male" | "female");
     setCallerName(name);
-    void loadPracticeCards();
+    loadPracticeCards();
     setPhase("incoming");
     setTimeout(() => { setPhase((current) => current === "incoming" ? "setup" : current); }, 15000);
   };
