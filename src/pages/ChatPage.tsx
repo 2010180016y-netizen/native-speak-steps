@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { track } from "@/lib/analytics";
+import { usePhrasePractice } from "@/hooks/usePhrasePractice";
+import { usesPhrase } from "@/lib/phrasePractice";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
@@ -36,8 +38,20 @@ const ChatPage = () => {
   const { isListening, transcript, interimTranscript, isSupported: sttSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(speechLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(speechLang);
 
+  const { practiceCards, loadPracticeCards, markPhraseUsed } = usePhrasePractice();
   const missions: MiniMission[] = scenario
-    ? SCENARIO_MISSIONS[scenario.id] || DEFAULT_MISSIONS
+    ? [
+        ...practiceCards.map((card) => ({
+          id: `phrase_${card.id}`,
+          title: `"${card.target_text}" 써 보기`,
+          description: "복습 카드 표현을 대화에서 사용해 보세요",
+          checkKeywords: [],
+          xpReward: 10,
+          phrase: card.target_text,
+          cardId: card.id,
+        })),
+        ...(SCENARIO_MISSIONS[scenario.id] || DEFAULT_MISSIONS),
+      ]
     : [];
 
   const starters = scenario ? SCENARIO_STARTERS[scenario.id] || SCENARIO_STARTERS.free : [];
@@ -96,7 +110,8 @@ const ChatPage = () => {
       for (const mission of missions) {
         if (newCompleted.has(mission.id)) continue;
         let completed = false;
-        if (mission.id.includes("5msg") && userMessages.length >= 5) completed = true;
+        if (mission.phrase) completed = userMessages.some((m) => usesPhrase(m.content, mission.phrase!));
+        else if (mission.id.includes("5msg") && userMessages.length >= 5) completed = true;
         else if (mission.id.includes("question") && mission.checkKeywords.includes("?") && questionCount >= 2) completed = true;
         else if (mission.checkKeywords.length > 0 && !mission.checkKeywords.includes("?")) {
           const matchCount = mission.checkKeywords.filter((kw) => allUserText.includes(kw.toLowerCase())).length;
@@ -113,10 +128,12 @@ const ChatPage = () => {
           if (!m) continue;
           toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
           void recordActivity("chat_mission", `chat_mission:${sessionId}:${m.id}`, m.xpReward);
+          const card = practiceCards.find((c) => c.id === m.cardId);
+          if (card) void markPhraseUsed(card);
         }
       }
     },
-    [scenario, missions, completedMissions, recordActivity, sessionId]
+    [scenario, missions, completedMissions, recordActivity, sessionId, practiceCards, markPhraseUsed]
   );
 
   // ── Handlers ──
@@ -127,6 +144,7 @@ const ChatPage = () => {
     setMessages([]);
     setCompletedMissions(new Set());
     setPhase("chat");
+    void loadPracticeCards();
   };
 
   const handleEndChat = () => {
@@ -188,7 +206,10 @@ const ChatPage = () => {
       const windowedMessages = newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content }));
 
       const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: windowedMessages, targetLanguage: targetLang, nativeLanguage: nativeLang, level, persona, scenario: scenario?.label },
+        body: {
+          messages: windowedMessages, targetLanguage: targetLang, nativeLanguage: nativeLang, level, persona,
+          scenario: scenario?.label, practicePhrases: practiceCards.map((c) => c.target_text),
+        },
       });
       if (error) throw error;
 

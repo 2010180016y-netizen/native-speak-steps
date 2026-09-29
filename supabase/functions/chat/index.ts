@@ -1,6 +1,6 @@
 import {
   aiHandler, callModel, json, languageSchema, levelSchema, LIMITS, messagesSchema, messageText,
-  parseReplyWithCorrections, personaSchema, z,
+  parseReplyWithCorrections, personaSchema, practicePhrasesInstruction, practicePhrasesSchema, z,
 } from "../_shared/ai.ts";
 
 const schema = z.object({
@@ -10,6 +10,7 @@ const schema = z.object({
   level: levelSchema,
   persona: personaSchema.nullish(),
   scenario: z.string().trim().max(100).nullish(),
+  practicePhrases: practicePhrasesSchema,
 });
 
 const levelGuide: Record<string, string> = {
@@ -19,7 +20,7 @@ const levelGuide: Record<string, string> = {
   advanced: "Use sophisticated language with idioms and complex structures.",
 };
 
-Deno.serve(aiHandler("chat", schema, async ({ messages, targetLanguage, nativeLanguage, level, persona, scenario }, ctx) => {
+Deno.serve(aiHandler("chat", schema, async ({ messages, targetLanguage, nativeLanguage, level, persona, scenario, practicePhrases }, ctx) => {
   const personaDesc = persona
     ? `You are a ${persona.gender === "male" ? "man" : "woman"} who works as a ${persona.occupation}. Your personality is ${persona.personality}.`
     : "";
@@ -31,7 +32,7 @@ Deno.serve(aiHandler("chat", schema, async ({ messages, targetLanguage, nativeLa
 
 ${personaDesc}
 ${scenarioDesc}
-
+${practicePhrasesInstruction(practicePhrases)}
 CRITICAL RULES:
 - Respond ONLY in ${targetLanguage} (use ${nativeLanguage} only for brief translations when absolutely needed)
 - ${levelGuide[level]}

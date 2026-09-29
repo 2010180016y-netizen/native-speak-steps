@@ -1,6 +1,6 @@
 import {
   aiHandler, callModel, json, languageSchema, levelSchema, messagesSchema, messageText,
-  parseReplyWithCorrections, personaSchema, z,
+  parseReplyWithCorrections, personaSchema, practicePhrasesInstruction, practicePhrasesSchema, z,
 } from "../_shared/ai.ts";
 
 const schema = z.object({
@@ -11,6 +11,7 @@ const schema = z.object({
   scenario: z.string().trim().max(50).optional(),
   persona: personaSchema.optional(),
   callerName: z.string().trim().max(40).optional(),
+  practicePhrases: practicePhrasesSchema,
 });
 
 const scenarioPrompts: Record<string, string> = {
@@ -41,7 +42,7 @@ const LANG_NAMES: Record<string, string> = {
 /** Speaking sends the whole call; only the most recent turns go to the model. */
 const HISTORY_WINDOW = 15;
 
-Deno.serve(aiHandler("speaking", schema, async ({ messages, targetLanguage, nativeLanguage, level, scenario, persona, callerName }, ctx) => {
+Deno.serve(aiHandler("speaking", schema, async ({ messages, targetLanguage, nativeLanguage, level, scenario, persona, callerName, practicePhrases }, ctx) => {
   const targetLangName = LANG_NAMES[targetLanguage] || targetLanguage;
   const nativeLangName = LANG_NAMES[nativeLanguage] || nativeLanguage;
 
@@ -59,7 +60,7 @@ Deno.serve(aiHandler("speaking", schema, async ({ messages, targetLanguage, nati
 ${personaDesc ? personaDesc + "\n" : ""}Scenario: ${scenarioPrompts[scenario ?? "free"] || scenarioPrompts.free}
 
 This is a phone call scenario. You are the one who CALLED the user. The conversation should feel like a real phone call.
-
+${practicePhrasesInstruction(practicePhrases)}
 Rules:
 - Respond ONLY in ${targetLangName}
 - ${levelGuide[level]}

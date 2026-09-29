@@ -517,6 +517,7 @@ export type Database = {
           display_name: string | null
           id: string
           last_active_date: string | null
+          last_reminded_on: string | null
           native_language: string
           onboarding_completed: boolean
           reminder_enabled: boolean
@@ -536,6 +537,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_active_date?: string | null
+          last_reminded_on?: string | null
           native_language?: string
           onboarding_completed?: boolean
           reminder_enabled?: boolean
@@ -555,6 +557,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_active_date?: string | null
+          last_reminded_on?: string | null
           native_language?: string
           onboarding_completed?: boolean
           reminder_enabled?: boolean
@@ -564,6 +567,30 @@ export type Database = {
           timezone?: string
           total_xp?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          p256dh: string
+          user_id?: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          p256dh?: string
           user_id?: string
         }
         Relationships: []

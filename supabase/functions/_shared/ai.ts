@@ -69,6 +69,14 @@ export const messagesSchema = z
 
 export type ChatMessage = z.infer<typeof messagesSchema>[number];
 
+/** Review-card phrases the user is practising (PRD-4). */
+export const practicePhrasesSchema = z.array(z.string().trim().min(1).max(100)).max(5).default([]);
+
+export const practicePhrasesInstruction = (phrases: string[]) =>
+  phrases.length > 0
+    ? `\nThe user is practising these expressions: ${phrases.map((p) => `"${p}"`).join(", ")}. Steer the conversation naturally so the user has chances to use them. Do not list them, quiz the user, or use them all yourself.\n`
+    : "";
+
 export type AiContext = {
   feature: string;
   userId: string;

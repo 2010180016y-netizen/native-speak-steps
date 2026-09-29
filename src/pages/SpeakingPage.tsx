@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { track } from "@/lib/analytics";
+import { usePhrasePractice } from "@/hooks/usePhrasePractice";
+import { usesPhrase } from "@/lib/phrasePractice";
 import { toast } from "sonner";
 import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
 import { SPEAKING_MISSIONS, SPEAKING_HINTS, type SpeakingMission } from "@/lib/speakingScenarioData";
@@ -41,7 +43,22 @@ const SpeakingPage = () => {
   const { isListening, transcript, interimTranscript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(targetLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(targetLang);
 
-  const missions: SpeakingMission[] = scenario ? SPEAKING_MISSIONS[scenario.id] || SPEAKING_MISSIONS.free : [];
+  const { practiceCards, loadPracticeCards, markPhraseUsed } = usePhrasePractice();
+  const missions: SpeakingMission[] = scenario
+    ? [
+        ...practiceCards.map((card) => ({
+          id: `phrase_${card.id}`,
+          title: `"${card.target_text}" 말해 보기`,
+          xpReward: 10,
+          checkType: "phrase" as const,
+          threshold: 1,
+          phrase: card.target_text,
+          cardId: card.id,
+        })),
+        ...(SPEAKING_MISSIONS[scenario.id] || SPEAKING_MISSIONS.free),
+      ]
+    : [];
+  const practicePhrases = practiceCards.map((c) => c.target_text);
   const levelHints = SPEAKING_HINTS[profile?.target_language || "en"]?.[profile?.current_level || "beginner"] || [];
 
   useEffect(() => {
@@ -97,6 +114,7 @@ const SpeakingPage = () => {
       if (mission.checkType === "message_count" && userMessages.length >= mission.threshold) done = true;
       if (mission.checkType === "question_count" && questionCount >= mission.threshold) done = true;
       if (mission.checkType === "duration" && callDuration >= mission.threshold) done = true;
+      if (mission.checkType === "phrase" && userMessages.some((m) => usesPhrase(m.content, mission.phrase!))) done = true;
       if (done) newCompleted.add(mission.id);
     }
     if (newCompleted.size > completedMissions.size) {
@@ -107,9 +125,11 @@ const SpeakingPage = () => {
         if (!m) continue;
         toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
         void recordActivity("speaking_mission", `speaking_mission:${speakingSessionId}:${m.id}`, m.xpReward);
+        const card = practiceCards.find((c) => c.id === m.cardId);
+        if (card) void markPhraseUsed(card);
       }
     }
-  }, [scenario, missions, completedMissions, callDuration, recordActivity, speakingSessionId]);
+  }, [scenario, missions, completedMissions, callDuration, recordActivity, speakingSessionId, practiceCards, markPhraseUsed]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isAiLoading) return;
@@ -126,7 +146,7 @@ const SpeakingPage = () => {
           targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
           level: profile?.current_level || "beginner", scenario: scenario?.id || "free",
           persona: persona ? { gender: persona.gender, occupation: persona.occupation, personality: persona.personality } : undefined,
-          callerName: callerName || undefined,
+          callerName: callerName || undefined, practicePhrases,
         },
       });
       if (error) throw error;
@@ -148,7 +168,7 @@ const SpeakingPage = () => {
     } finally {
       setIsAiLoading(false);
     }
-  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions, recordActivity, speakingSessionId]);
+  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions, recordActivity, speakingSessionId, practicePhrases]);
 
   const startCall = useCallback(async () => {
     setPhase("call");
@@ -162,7 +182,7 @@ const SpeakingPage = () => {
           targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
           level: profile?.current_level || "beginner", scenario: scenario?.id || "free",
           persona: persona ? { gender: persona.gender, occupation: persona.occupation, personality: persona.personality } : undefined,
-          callerName: callerName || undefined,
+          callerName: callerName || undefined, practicePhrases,
         },
       });
       if (error) throw error;
@@ -175,7 +195,7 @@ const SpeakingPage = () => {
     } finally {
       setIsAiLoading(false);
     }
-  }, [profile, autoSpeak, speak, scenario, persona, callerName, saveMessageToDB]);
+  }, [profile, autoSpeak, speak, scenario, persona, callerName, saveMessageToDB, practicePhrases]);
 
   const endConversation = useCallback(async () => {
     if (messages.length < 2) { toast.error("대화를 좀 더 진행한 후 피드백을 받아보세요"); return; }
@@ -243,6 +263,7 @@ const SpeakingPage = () => {
     setScenario(s);
     const name = getRandomName(profile?.target_language || "en", p.gender as "male" | "female");
     setCallerName(name);
+    void loadPracticeCards();
     setPhase("incoming");
     setTimeout(() => { setPhase((current) => current === "incoming" ? "setup" : current); }, 15000);
   };

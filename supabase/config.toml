@@ -32,3 +32,7 @@ verify_jwt = false
 
 [functions.personalized-recommendations]
 verify_jwt = false
+
+# Called by pg_cron with a shared secret header, not a user JWT.
+[functions.send-reminders]
+verify_jwt = false
