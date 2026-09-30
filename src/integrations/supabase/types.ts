@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event: string
+          event_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          event_date?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          event_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_feedback: {
         Row: {
           created_at: string
@@ -46,6 +67,36 @@ export type Database = {
           metadata?: Json | null
           rating?: number | null
           response_time_ms?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      client_errors: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          stack: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
@@ -134,7 +185,6 @@ export type Database = {
       language_imports: {
         Row: {
           analysis_result: Json | null
-          content: string
           created_at: string
           id: string
           source_type: string
@@ -144,7 +194,6 @@ export type Database = {
         }
         Insert: {
           analysis_result?: Json | null
-          content: string
           created_at?: string
           id?: string
           source_type?: string
@@ -154,7 +203,6 @@ export type Database = {
         }
         Update: {
           analysis_result?: Json | null
-          content?: string
           created_at?: string
           id?: string
           source_type?: string
@@ -257,6 +305,39 @@ export type Database = {
           metadata?: Json | null
           score?: number | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          order_id: string
+          paid_at: string | null
+          payment_key: string | null
+          product: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          order_id?: string
+          paid_at?: string | null
+          payment_key?: string | null
+          product: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          order_id?: string
+          paid_at?: string | null
+          payment_key?: string | null
+          product?: string
+          status?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -462,51 +543,90 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_processing_consent_at: string | null
           avatar_url: string | null
           created_at: string
           current_level: string
           display_name: string | null
           id: string
+          last_active_date: string | null
+          last_reminded_on: string | null
           native_language: string
           onboarding_completed: boolean
+          pro_until: string | null
           reminder_enabled: boolean
           reminder_time: string
           streak_days: number
           target_language: string
+          timezone: string
           total_xp: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          ai_processing_consent_at?: string | null
           avatar_url?: string | null
           created_at?: string
           current_level?: string
           display_name?: string | null
           id?: string
+          last_active_date?: string | null
+          last_reminded_on?: string | null
           native_language?: string
           onboarding_completed?: boolean
+          pro_until?: string | null
           reminder_enabled?: boolean
           reminder_time?: string
           streak_days?: number
           target_language?: string
+          timezone?: string
           total_xp?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          ai_processing_consent_at?: string | null
           avatar_url?: string | null
           created_at?: string
           current_level?: string
           display_name?: string | null
           id?: string
+          last_active_date?: string | null
+          last_reminded_on?: string | null
           native_language?: string
           onboarding_completed?: boolean
+          pro_until?: string | null
           reminder_enabled?: boolean
           reminder_time?: string
           streak_days?: number
           target_language?: string
+          timezone?: string
           total_xp?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          p256dh: string
+          user_id?: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          p256dh?: string
           user_id?: string
         }
         Relationships: []
@@ -713,15 +833,26 @@ export type Database = {
       get_leaderboard: {
         Args: { limit_count?: number }
         Returns: {
-          avatar_url: string
           current_level: string
           display_name: string
+          is_me: boolean
+          rank: number
           streak_days: number
           total_xp: number
-          user_id: string
         }[]
       }
-      get_user_rank: { Args: { target_user_id: string }; Returns: number }
+      get_my_rank: { Args: never; Returns: number }
+      adopt_pet: { Args: { p_name: string; p_pet_type_id: string }; Returns: string }
+      feed_pet: { Args: { p_item_id: string; p_pet_id: string }; Returns: Json }
+      record_activity: {
+        Args: {
+          p_idempotency_key: string
+          p_kind: string
+          p_timezone?: string
+          p_units?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Heart, ShieldCheck, AlertTriangle, BookOpen, Clock, TrendingDown, Brain } from "lucide-react";
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, AreaChart, Area,
-} from "recharts";
+import { AreaChart, Columns, DonutChart } from "@/components/Charts";
 import { format, addDays, differenceInDays, isPast } from "date-fns";
 import { ko } from "date-fns/locale";
+import { isMastered } from "@/lib/srs";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
   userId: string;
@@ -31,28 +30,14 @@ const STATUS_CONFIG = {
   overdue: { label: "위험", color: "hsl(var(--destructive))", emoji: "⚠️" },
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
-      <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
-          {p.name}: {p.value}
-        </p>
-      ))}
-    </div>
-  );
-};
-
-const classifyCard = (card: any): CardHealth => {
+const classifyCard = (card: Tables<"srs_cards">): CardHealth => {
   const nextReview = new Date(card.next_review_at);
   const now = new Date();
   let status: CardHealth["status"];
 
   if (card.review_count === 0) {
     status = "new";
-  } else if (card.ease_factor >= 2.5 && card.review_count >= 3) {
+  } else if (isMastered(card)) {
     status = isPast(nextReview) ? "overdue" : "mastered";
   } else if (isPast(nextReview) && differenceInDays(now, nextReview) > 2) {
     status = "overdue";
@@ -237,24 +222,11 @@ const SrsHealthDashboard = ({ userId }: Props) => {
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="duo-card">
         <h3 className="font-bold text-foreground mb-3">카드 상태 분포</h3>
         <div className="flex items-center gap-4">
-          <ResponsiveContainer width="45%" height={140}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={55}
-                innerRadius={30}
-              >
-                {pieData.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <DonutChart
+            slices={pieData.map((slice) => ({ label: slice.name, value: slice.value, color: slice.color }))}
+            size={120}
+            label="카드 상태 분포"
+          />
           <div className="flex-1 space-y-2">
             {Object.entries(STATUS_CONFIG).map(([key, config]) => (
               <div key={key} className="flex items-center justify-between">
@@ -285,28 +257,13 @@ const SrsHealthDashboard = ({ userId }: Props) => {
         <p className="text-[11px] text-muted-foreground font-semibold mb-3">
           복습하지 않으면 기한 초과되는 카드 수
         </p>
-        <ResponsiveContainer width="100%" height={160}>
-          <AreaChart data={forecastDays}>
-            <defs>
-              <linearGradient id="overdueGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }} />
-            <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={25} allowDecimals={false} />
-            <Tooltip content={<CustomTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="cumulativeOverdue"
-              name="누적 위험 카드"
-              stroke="hsl(var(--destructive))"
-              strokeWidth={2.5}
-              fill="url(#overdueGrad)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <AreaChart
+          data={forecastDays.map((day) => ({ label: day.label, value: day.cumulativeOverdue }))}
+          color="hsl(var(--destructive))"
+          name="누적 위험 카드"
+          unit="개"
+          height={160}
+        />
         {forecastDays[6]?.cumulativeOverdue > 0 && (
           <div className="mt-2 p-2.5 rounded-xl bg-destructive/10 border border-destructive/20">
             <p className="text-[11px] font-bold text-destructive">
@@ -325,22 +282,15 @@ const SrsHealthDashboard = ({ userId }: Props) => {
         <p className="text-[10px] text-muted-foreground font-semibold mb-3">
           낮을수록 어려운 카드 · 높을수록 쉬운 카드
         </p>
-        <ResponsiveContainer width="100%" height={130}>
-          <BarChart data={easeBuckets.filter(b => b.count > 0)}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }} />
-            <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={25} allowDecimals={false} />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="count" name="카드 수" radius={[6, 6, 0, 0]}>
-              {easeBuckets.filter(b => b.count > 0).map((entry, i) => (
-                <Cell
-                  key={i}
-                  fill={entry.min < 2.1 ? "hsl(var(--destructive))" : entry.min < 2.5 ? "hsl(var(--duo-orange))" : "hsl(var(--primary))"}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <Columns
+          data={easeBuckets
+            .filter((bucket) => bucket.count > 0)
+            .map((bucket) => ({
+              label: bucket.label,
+              value: bucket.count,
+              color: bucket.min < 2.1 ? "hsl(var(--destructive))" : bucket.min < 2.5 ? "hsl(var(--duo-orange))" : "hsl(var(--primary))",
+            }))}
+        />
       </motion.div>
 
       {/* Overdue Cards List */}

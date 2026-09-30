@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Eye, EyeOff, Sparkles, Globe, BookOpen, Trophy, Mail, RefreshCw } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import ForgotPasswordModal from "@/components/auth/ForgotPasswordModal";
+import { DISPLAY_NAME_MAX_LENGTH, getDisplayNameError } from "@/lib/displayName";
+import { errorMessage } from "@/lib/utils";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -36,8 +38,8 @@ const AuthPage = () => {
       });
       if (error) throw error;
       toast.success("인증 메일을 다시 보냈습니다 📧");
-    } catch (err: any) {
-      toast.error(err.message || "메일 발송에 실패했습니다");
+    } catch (err) {
+      toast.error(errorMessage(err, "메일 발송에 실패했습니다"));
     } finally {
       setResending(false);
     }
@@ -45,6 +47,13 @@ const AuthPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLogin) {
+      const nameError = getDisplayNameError(displayName);
+      if (nameError) {
+        toast.error(nameError);
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       if (isLogin) {
@@ -52,12 +61,12 @@ const AuthPage = () => {
         toast.success("환영합니다! 🎉");
         navigate("/dashboard");
       } else {
-        await signUp(email, password, displayName);
+        await signUp(email, password, displayName.trim());
         setSignedUpEmail(email);
         setVerificationSent(true);
       }
-    } catch (err: any) {
-      toast.error(err.message || "오류가 발생했습니다");
+    } catch (err) {
+      toast.error(errorMessage(err, "오류가 발생했습니다"));
     } finally {
       setSubmitting(false);
     }
@@ -288,6 +297,7 @@ const AuthPage = () => {
                               placeholder="멋진 닉네임을 입력하세요"
                               value={displayName}
                               onChange={(e) => setDisplayName(e.target.value)}
+                              maxLength={DISPLAY_NAME_MAX_LENGTH}
                               className="w-full px-4 py-3.5 rounded-xl border-2 border-border bg-background text-foreground font-medium placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/20 focus:outline-none transition-all"
                               required={!isLogin}
                             />
@@ -406,8 +416,8 @@ const AuthPage = () => {
 
                   {/* Footer Text */}
                   <p className="text-center text-xs text-muted-foreground mt-6">
-                    계속하면 <span className="text-primary font-medium">이용약관</span> 및{" "}
-                    <span className="text-primary font-medium">개인정보처리방침</span>에 동의하게 됩니다.
+                    계속하면 <Link to="/terms" className="text-primary font-medium underline">이용약관</Link> 및{" "}
+                    <Link to="/privacy" className="text-primary font-medium underline">개인정보처리방침</Link>에 동의하게 됩니다.
                   </p>
                 </>
               )}

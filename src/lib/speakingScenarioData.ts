@@ -4,8 +4,11 @@ export type SpeakingMission = {
   id: string;
   title: string;
   xpReward: number;
-  checkType: "message_count" | "question_count" | "word_count" | "duration";
+  checkType: "message_count" | "question_count" | "word_count" | "duration" | "phrase";
   threshold: number;
+  /** Review-card phrase for checkType "phrase". */
+  phrase?: string;
+  cardId?: string;
 };
 
 export const SPEAKING_MISSIONS: Record<string, SpeakingMission[]> = {

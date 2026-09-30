@@ -4,18 +4,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3, Trophy, ChevronDown, Check, Sparkles } from "lucide-react";
+import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3, ChevronDown, Check, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import { checkAndAwardMilestone } from "@/lib/milestones";
+import { getEffectiveStreak } from "@/lib/streak";
+import { syncCoverage } from "@/lib/srs";
 import { toast } from "sonner";
-import DashboardPetWidget from "@/components/dashboard/DashboardPetWidget";
-import PersonalizedRecommendations from "@/components/dashboard/PersonalizedRecommendations";
 import { useReminder } from "@/hooks/useReminder";
-import WeeklyReportWidget from "@/components/dashboard/WeeklyReportWidget";
 import GoalProgressWidget from "@/components/dashboard/GoalProgressWidget";
 import VocabGrowthMap from "@/components/stats/VocabGrowthMap";
 import DashboardSpeakingWidget from "@/components/dashboard/DashboardSpeakingWidget";
-
 import { LANGUAGES, LANG_NAMES } from "@/lib/constants";
 
 // Stagger animation variants
@@ -36,7 +33,7 @@ const DashboardPage = () => {
   const { profile, user, updateProfile } = useAuth();
   const navigate = useNavigate();
   useReminder();
-  const [stats, setStats] = useState({ nativeWords: 0, targetWords: 0, cardsToReview: 0, streak: 0 });
+  const [stats, setStats] = useState({ coverage: { total: 0, covered: 0, percent: 0 }, cardsToReview: 0, streak: 0 });
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [langPickerType, setLangPickerType] = useState<"native" | "target">("native");
 
@@ -74,31 +71,27 @@ const DashboardPage = () => {
     if (!user) return;
     const fetchStats = async () => {
       const [importsRes, cardsRes] = await Promise.all([
-        supabase.from("language_imports").select("word_count").eq("user_id", user.id),
-        supabase.from("srs_cards").select("id").eq("user_id", user.id).lte("next_review_at", new Date().toISOString()),
+        supabase.from("language_imports").select("analysis_result").eq("user_id", user.id),
+        supabase.from("srs_cards").select("native_text, interval_days, next_review_at").eq("user_id", user.id),
       ]);
 
-      const nativeWords = (importsRes.data || []).reduce((sum, i) => sum + i.word_count, 0);
+      const cards = cardsRes.data || [];
+      const frequencies = (importsRes.data || []).map(
+        (i) => (i.analysis_result as { wordFrequency?: { word: string; count: number }[] } | null)?.wordFrequency ?? [],
+      );
+      const now = new Date().toISOString();
       setStats({
-        nativeWords,
-        targetWords: Math.round(nativeWords * 0.7),
-        cardsToReview: cardsRes.data?.length || 0,
-        streak: profile?.streak_days || 0,
+        coverage: syncCoverage(frequencies, cards, profile?.native_language ?? "ko"),
+        cardsToReview: cards.filter((c) => c.next_review_at <= now).length,
+        streak: profile ? getEffectiveStreak(profile) : 0,
       });
-
-      if (profile?.streak_days) {
-        const milestone = await checkAndAwardMilestone(user.id, profile.streak_days);
-        if (milestone) {
-          toast.success(`${milestone.badge} ${milestone.name} 달성! +${milestone.points}P`);
-        }
-      }
     };
     fetchStats();
   }, [user, profile]);
 
   if (!profile) return null;
 
-  const syncRatio = stats.nativeWords > 0 ? Math.min((stats.targetWords / stats.nativeWords) * 100, 100) : 0;
+  const syncRatio = stats.coverage.percent;
 
   return (
     <AppLayout>
@@ -212,8 +205,8 @@ const DashboardPage = () => {
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground font-semibold">
-              <span>모국어 {stats.nativeWords.toLocaleString()}단어</span>
-              <span>학습 {stats.targetWords.toLocaleString()}단어</span>
+              <span>자주 쓰는 표현 {stats.coverage.total}개</span>
+              <span>숙달 {stats.coverage.covered}개</span>
             </div>
           </div>
         </motion.div>
@@ -277,12 +270,7 @@ const DashboardPage = () => {
           />
         </motion.div>
 
-        {/* ═══ Section 3: 내 펫 ═══ */}
-        <motion.div variants={item}>
-          <DashboardPetWidget />
-        </motion.div>
-
-        {/* ═══ Section 4: 학습 인사이트 ═══ */}
+        {/* ═══ Section 3: 학습 인사이트 ═══ */}
         <motion.div variants={item}>
           <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest">학습 인사이트</p>
         </motion.div>
@@ -299,35 +287,12 @@ const DashboardPage = () => {
           </motion.div>
         )}
 
-        {/* Weekly Report */}
-        <motion.div variants={item}>
-          <WeeklyReportWidget />
-        </motion.div>
-
-        {/* Personalized Recommendations */}
-        <motion.div variants={item}>
-          <PersonalizedRecommendations />
-        </motion.div>
-
-        {/* ═══ Section 5: 더 알아보기 ═══ */}
+        {/* ═══ Section 4: 더 알아보기 ═══ */}
         <motion.div variants={item}>
           <p className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-widest">더 알아보기</p>
         </motion.div>
 
-        <motion.div variants={item} className="grid grid-cols-2 gap-2.5">
-          <Link to="/leaderboard">
-            <motion.div
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.98 }}
-              className="bg-card rounded-2xl p-4 border border-border shadow-sm text-center"
-            >
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/80 to-primary mx-auto flex items-center justify-center text-white mb-2">
-                <Trophy size={22} />
-              </div>
-              <div className="font-bold text-foreground text-sm">리더보드</div>
-              <div className="text-[10px] text-muted-foreground font-semibold">순위 확인</div>
-            </motion.div>
-          </Link>
+        <motion.div variants={item}>
           <Link to="/stats">
             <motion.div
               whileHover={{ scale: 1.02, y: -1 }}

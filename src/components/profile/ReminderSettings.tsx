@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Bell, BellOff, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { disablePush, enablePush, pushSupported } from "@/lib/push";
 
 const TIME_OPTIONS = [
   "06:00", "07:00", "08:00", "09:00", "10:00",
@@ -15,8 +16,8 @@ const ReminderSettings = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  const reminderEnabled = (profile as any)?.reminder_enabled ?? false;
-  const reminderTime = (profile as any)?.reminder_time ?? "20:00";
+  const reminderEnabled = profile?.reminder_enabled ?? false;
+  const reminderTime = profile?.reminder_time ?? "20:00";
 
   const handleToggle = async (enabled: boolean) => {
     if (!user) return;
@@ -24,11 +25,18 @@ const ReminderSettings = () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ reminder_enabled: enabled } as any)
+        .update({ reminder_enabled: enabled })
         .eq("user_id", user.id);
       if (error) throw error;
       await refreshProfile();
-      toast.success(enabled ? "리마인더가 켜졌습니다 🔔" : "리마인더가 꺼졌습니다");
+      if (!enabled) {
+        await disablePush();
+        toast.success("리마인더가 꺼졌습니다");
+      } else if (await enablePush()) {
+        toast.success("리마인더가 켜졌습니다. 앱을 닫아도 알려드려요 🔔");
+      } else {
+        toast.warning("알림 권한이 없어 앱을 열었을 때만 알려드려요");
+      }
     } catch {
       toast.error("설정 저장에 실패했습니다");
     } finally {
@@ -42,7 +50,7 @@ const ReminderSettings = () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ reminder_time: time } as any)
+        .update({ reminder_time: time })
         .eq("user_id", user.id);
       if (error) throw error;
       await refreshProfile();
@@ -95,7 +103,9 @@ const ReminderSettings = () => {
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            설정한 시간 전후로 앱에 접속하면 학습 알림이 표시됩니다.
+            {pushSupported()
+              ? "설정한 시간에 복습할 카드와 연속 학습 기록을 알림으로 보내드려요."
+              : "이 브라우저는 앱이 닫혀 있을 때 알림을 받을 수 없어요. 설정한 시간 전후로 앱에 접속하면 알려드려요. (iOS는 홈 화면에 추가하면 알림을 받을 수 있어요)"}
           </p>
         </div>
       )}

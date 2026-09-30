@@ -5,6 +5,27 @@ type SpeechRecognitionEvent = {
   resultIndex: number;
 };
 
+// The parts of the browser's SpeechRecognition used here; TypeScript's DOM types do not include it.
+type Recognition = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start(): void;
+  stop(): void;
+};
+
+const recognitionConstructor = () => {
+  const w = window as unknown as {
+    SpeechRecognition?: new () => Recognition;
+    webkitSpeechRecognition?: new () => Recognition;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition;
+};
+
 export const useSpeechRecognition = (lang: string = "en-US") => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -12,12 +33,12 @@ export const useSpeechRecognition = (lang: string = "en-US") => {
   const [isSupported, setIsSupported] = useState(
     typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
   );
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<Recognition | null>(null);
 
   const startListening = useCallback(() => {
-    if (!isSupported) return;
+    const SpeechRecognition = recognitionConstructor();
+    if (!isSupported || !SpeechRecognition) return;
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = lang;
     recognition.interimResults = true;

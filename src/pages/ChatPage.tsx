@@ -1,6 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRecordActivity } from "@/hooks/useRecordActivity";
+import { track } from "@/lib/analytics";
+import { usePhrasePractice } from "@/hooks/usePhrasePractice";
+import { usesPhrase } from "@/lib/phrasePractice";
 import { supabase } from "@/integrations/supabase/client";
+import { AiError, invokeAi, isPaywallError } from "@/lib/ai";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import { History } from "lucide-react";
@@ -18,6 +23,7 @@ import { CHAT_SESSION_KEY } from "@/lib/chatTypes";
 
 const ChatPage = () => {
   const { user, profile } = useAuth();
+  const recordActivity = useRecordActivity();
   const [phase, setPhase] = useState<ChatPhase>("setup");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -33,9 +39,25 @@ const ChatPage = () => {
   const { isListening, transcript, interimTranscript, isSupported: sttSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(speechLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(speechLang);
 
-  const missions: MiniMission[] = scenario
-    ? SCENARIO_MISSIONS[scenario.id] || DEFAULT_MISSIONS
-    : [];
+  const { practiceCards, loadPracticeCards, practiceCardsReady, markPhraseUsed } = usePhrasePractice();
+  const missions = useMemo<MiniMission[]>(
+    () =>
+      scenario
+        ? [
+            ...practiceCards.map((card) => ({
+              id: `phrase_${card.id}`,
+              title: `"${card.target_text}" 써 보기`,
+              description: "복습 카드 표현을 대화에서 사용해 보세요",
+              checkKeywords: [],
+              xpReward: 10,
+              phrase: card.target_text,
+              cardId: card.id,
+            })),
+            ...(SCENARIO_MISSIONS[scenario.id] || DEFAULT_MISSIONS),
+          ]
+        : [],
+    [scenario, practiceCards],
+  );
 
   const starters = scenario ? SCENARIO_STARTERS[scenario.id] || SCENARIO_STARTERS.free : [];
 
@@ -63,20 +85,26 @@ const ChatPage = () => {
           setPersona(parsed.persona);
           setScenario(parsed.scenario);
           setMessages(parsed.messages);
+          setCompletedMissions(new Set(parsed.completedMissions ?? []));
+          loadPracticeCards(parsed.practiceCards);
           setPhase("chat");
         }
       }
     } catch { /* ignore */ }
     setRestoringSession(false);
+    // Restore once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Persist session ──
   useEffect(() => {
     if (phase === "chat" && persona && scenario && messages.length > 0) {
-      const session: SavedChatSession = { sessionId, persona, scenario, messages };
+      const session: SavedChatSession = {
+        sessionId, persona, scenario, messages, practiceCards, completedMissions: [...completedMissions],
+      };
       localStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(session));
     }
-  }, [phase, persona, scenario, messages, sessionId]);
+  }, [phase, persona, scenario, messages, sessionId, practiceCards, completedMissions]);
 
   const clearSavedSession = () => localStorage.removeItem(CHAT_SESSION_KEY);
 
@@ -89,18 +117,18 @@ const ChatPage = () => {
       const questionCount = userMessages.filter((m) => m.content.includes("?")).length;
 
       const newCompleted = new Set(completedMissions);
-      let xpGained = 0;
 
       for (const mission of missions) {
         if (newCompleted.has(mission.id)) continue;
         let completed = false;
-        if (mission.id.includes("5msg") && userMessages.length >= 5) completed = true;
+        if (mission.phrase) completed = userMessages.some((m) => usesPhrase(m.content, mission.phrase!));
+        else if (mission.id.includes("5msg") && userMessages.length >= 5) completed = true;
         else if (mission.id.includes("question") && mission.checkKeywords.includes("?") && questionCount >= 2) completed = true;
         else if (mission.checkKeywords.length > 0 && !mission.checkKeywords.includes("?")) {
           const matchCount = mission.checkKeywords.filter((kw) => allUserText.includes(kw.toLowerCase())).length;
           if (matchCount >= 2) completed = true;
         }
-        if (completed) { newCompleted.add(mission.id); xpGained += mission.xpReward; }
+        if (completed) newCompleted.add(mission.id);
       }
 
       if (newCompleted.size > completedMissions.size) {
@@ -108,24 +136,16 @@ const ChatPage = () => {
         const newlyCompleted = [...newCompleted].filter((id) => !completedMissions.has(id));
         for (const id of newlyCompleted) {
           const m = missions.find((mi) => mi.id === id);
-          if (m) toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
+          if (!m) continue;
+          toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
+          void recordActivity("chat_mission", `chat_mission:${sessionId}:${m.id}`, m.xpReward);
+          const card = practiceCards.find((c) => c.id === m.cardId);
+          if (card) void markPhraseUsed(card);
         }
-        if (xpGained > 0 && user) awardXP(xpGained);
       }
     },
-    [scenario, missions, completedMissions, user]
+    [scenario, missions, completedMissions, recordActivity, sessionId, practiceCards, markPhraseUsed]
   );
-
-  const awardXP = async (xp: number) => {
-    if (!user || !profile) return;
-    try {
-      await supabase.from("profiles").update({ total_xp: profile.total_xp + xp }).eq("user_id", user.id);
-      await supabase.from("learning_stats").upsert(
-        { user_id: user.id, date: new Date().toISOString().split("T")[0], xp_earned: xp },
-        { onConflict: "user_id,date" }
-      );
-    } catch { /* silent */ }
-  };
 
   // ── Handlers ──
   const handleStart = (p: Persona, s: ChatScenario) => {
@@ -135,6 +155,7 @@ const ChatPage = () => {
     setMessages([]);
     setCompletedMissions(new Set());
     setPhase("chat");
+    loadPracticeCards();
   };
 
   const handleEndChat = () => {
@@ -144,6 +165,7 @@ const ChatPage = () => {
     }
     clearSavedSession();
     setPhase("feedback");
+    track("chat_completed");
   };
 
   const handleBackToSetup = () => {
@@ -160,7 +182,7 @@ const ChatPage = () => {
       stopSpeaking();
       setPlayingIndex(null);
     } else {
-      const clean = text.replace(/[*_~`#>\[\]()!]/g, "").replace(/\n+/g, " ").trim();
+      const clean = text.replace(/[*_~`#>[\]()!]/g, "").replace(/\n+/g, " ").trim();
       speak(clean);
       setPlayingIndex(index);
     }
@@ -193,9 +215,13 @@ const ChatPage = () => {
       const nativeLang = LANG_NAMES[profile?.native_language || "ko"];
       const level = profile?.current_level || "beginner";
       const windowedMessages = newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content }));
+      const cards = await practiceCardsReady();
 
-      const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: windowedMessages, targetLanguage: targetLang, nativeLanguage: nativeLang, level, persona, scenario: scenario?.label },
+      const { data, error } = await invokeAi<{ content?: string; response_time_ms?: number; corrections?: ChatCorrection[] }>("chat", {
+        body: {
+          messages: windowedMessages, targetLanguage: targetLang, nativeLanguage: nativeLang, level, persona,
+          scenario: scenario?.label, practicePhrases: cards.map((c) => c.target_text),
+        },
       });
       if (error) throw error;
 
@@ -225,26 +251,27 @@ const ChatPage = () => {
           context: `💬 채팅 교정: ${c.explanation || ""}\n원문: ${c.wrong}`,
           difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
         }));
-        const { error: srsError } = await supabase.from("srs_cards").insert(cardsToInsert);
+        const { error: srsError } = await supabase
+          .from("srs_cards")
+          .upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
         if (!srsError) toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
       }
 
+      void recordActivity("chat_message", `chat_message:${sessionId}:${newMessages.filter((m) => m.role === "user").length}`);
       checkMissions(finalMessages);
-    } catch (err: any) {
+    } catch (err) {
       await supabase.from("ai_feedback").insert({
         user_id: user.id, feature: "chat",
-        error_type: err?.error_type || "unknown",
-        error_message: err?.message || "Unknown error",
-        response_time_ms: err?.response_time_ms || 0,
+        error_type: err instanceof AiError ? err.type : "unknown",
+        error_message: err instanceof Error ? err.message : String(err),
+        response_time_ms: 0,
       });
 
-      if (err?.message?.includes("429") || err?.error_type === "rate_limit") {
-        toast.error("요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
-      } else if (err?.message?.includes("402") || err?.error_type === "payment_required") {
-        toast.error("크레딧이 부족합니다. 설정에서 충전해주세요.");
+      // The paywall toast already explains a used-up quota; other failures get the reason inline.
+      if (!isPaywallError(err)) {
+        const reason = err instanceof AiError ? err.message : "오류가 발생했습니다. 다시 시도해주세요.";
+        setMessages([...newMessages, { role: "assistant", content: `⚠️ ${reason}` }]);
       }
-
-      setMessages([...newMessages, { role: "assistant", content: "⚠️ 오류가 발생했습니다. 다시 시도해주세요." }]);
     } finally {
       setLoading(false);
     }

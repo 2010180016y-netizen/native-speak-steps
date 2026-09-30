@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRecordActivity } from "@/hooks/useRecordActivity";
+import { track } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAi, toastAiError } from "@/lib/ai";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, Loader2, BookOpen, Check, MessageSquare, Shield, Plus, History } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import DialogueRolePlay, { type DialogueLine } from "@/components/dialogue/DialogueRolePlay";
 import AnalysisDashboard, { type TextAnalysis } from "@/components/analysis/AnalysisDashboard";
 import ImportLearningFlow from "@/components/import/ImportLearningFlow";
@@ -22,7 +26,8 @@ type GeneratedCard = {
 };
 
 const ImportPage = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
+  const recordActivity = useRecordActivity();
   const [text, setText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [generatingCards, setGeneratingCards] = useState(false);
@@ -38,6 +43,7 @@ const ImportPage = () => {
   const [dialogueSpeakers, setDialogueSpeakers] = useState<string[]>([]);
   const [dialogueLines, setDialogueLines] = useState<DialogueLine[]>([]);
   const [showRolePlay, setShowRolePlay] = useState(false);
+  const [rolePlayId, setRolePlayId] = useState("");
 
   // Load previous analysis on mount
   useEffect(() => {
@@ -70,6 +76,16 @@ const ImportPage = () => {
     loadPreviousAnalysis();
   }, [user]);
 
+  const hasAiConsent = Boolean(profile?.ai_processing_consent_at);
+
+  const handleAiConsent = async () => {
+    try {
+      await updateProfile({ ai_processing_consent_at: new Date().toISOString() });
+    } catch {
+      toast.error("동의 저장에 실패했어요. 다시 시도해주세요.");
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!text.trim() || !user || !profile) return;
     setAnalyzing(true);
@@ -79,7 +95,7 @@ const ImportPage = () => {
     setDialogueLines([]);
 
     try {
-      const analysis = analyzeTextContent(text);
+      const analysis = analyzeTextContent(text, profile.native_language);
       setResult({
         wordCount: analysis.wordCount,
         uniqueWords: analysis.uniqueWords,
@@ -87,14 +103,15 @@ const ImportPage = () => {
       });
 
       // Save import with masked text for privacy
-      const { error } = await supabase.from("language_imports").insert({
+      const { data: savedImport, error } = await supabase.from("language_imports").insert({
         user_id: user.id,
         source_type: "text",
-        content: analysis.maskedText,
         word_count: analysis.wordCount,
         unique_words: analysis.uniqueWords,
-      });
+      }).select("id").single();
       if (error) throw error;
+      void recordActivity("import_analyzed", `import:${savedImport.id}`, analysis.wordCount);
+      track("import_analyzed");
 
       toast.success(`${analysis.wordCount}개 단어 분석 완료! 🎉`);
 
@@ -105,27 +122,29 @@ const ImportPage = () => {
       setAnalyzingDetail(true);
       setDetailedAnalysis(null);
       
-      const { data: aiData, error: aiErr } = await supabase.functions.invoke("analyze-text", {
+      const { data: aiData, error: aiErr } = await invokeAi<Partial<TextAnalysis>>("analyze-text", {
         body: {
           text: textToAnalyze,
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
           targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
-          totalWordCount: analysis.wordCount,
-          totalUniqueWords: analysis.uniqueWords,
           speakerNames: analysis.speakers,
         },
       });
 
-      if (!aiErr && aiData) {
-        setDetailedAnalysis(aiData as TextAnalysis);
-        // Save analysis result to latest import
-        supabase.from("language_imports")
-          .update({ analysis_result: aiData })
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .then(() => {});
-      }
+      // Counts come from the local analysis; the model only adds structures, summary and expressions.
+      if (aiErr) toastAiError(aiErr, "AI 상세 분석에 실패해 단어 빈도만 표시해요");
+      const merged = {
+        sentenceStructures: [],
+        complexityScore: 0,
+        summary: "",
+        ...(aiErr ? {} : aiData),
+        ...analysis.stats,
+      } as TextAnalysis;
+      setDetailedAnalysis(merged);
+      supabase.from("language_imports")
+        .update({ analysis_result: merged })
+        .eq("id", savedImport.id)
+        .then(() => {});
       setAnalyzingDetail(false);
     } catch (err) {
       console.error(err);
@@ -141,7 +160,7 @@ const ImportPage = () => {
     if (!user || !profile || unknownWords.length === 0) return;
     setGeneratingCards(true);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("generate-cards", {
+      const { data, error: fnError } = await invokeAi<{ cards?: GeneratedCard[] }>("generate-cards", {
         body: {
           text: unknownWords.join(", "),
           nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
@@ -160,7 +179,7 @@ const ImportPage = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error("카드 생성에 실패했습니다");
+      toastAiError(err, "카드 생성에 실패했습니다");
     } finally {
       setGeneratingCards(false);
     }
@@ -173,7 +192,7 @@ const ImportPage = () => {
     try {
       const maskedText = maskSensitiveData(text);
       
-      const { data, error } = await supabase.functions.invoke("split-dialogue", {
+      const { data, error } = await invokeAi<{ is_dialogue: boolean; speakers: string[]; lines: DialogueLine[] }>("split-dialogue", {
         body: {
           text: maskedText.slice(0, 8000),
           nativeLanguage: profile.native_language,
@@ -190,11 +209,12 @@ const ImportPage = () => {
 
       setDialogueSpeakers(data.speakers);
       setDialogueLines(data.lines);
+      setRolePlayId(crypto.randomUUID());
       setShowRolePlay(true);
       toast.success(`${data.speakers.length}명의 화자, ${data.lines.length}개 대사를 분리했어요! 🎭`);
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      toast.error(e?.message || "대화 분리에 실패했어요");
+      toastAiError(e, "대화 분리에 실패했어요");
     } finally {
       setSplittingDialogue(false);
     }
@@ -211,11 +231,15 @@ const ImportPage = () => {
         context: card.context,
       }));
 
-      const { error } = await supabase.from("srs_cards").insert(cardsToInsert);
+      const { error } = await supabase
+        .from("srs_cards")
+        .upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
       if (error) throw error;
 
       setCardsSaved(true);
       toast.success("카드가 저장되었어요! 복습 탭에서 확인하세요 ✅");
+      void recordActivity("cards_saved", `cards_saved:${crypto.randomUUID()}`, cardsToInsert.length);
+      track("cards_saved");
     } catch {
       toast.error("카드 저장에 실패했습니다");
     }
@@ -229,66 +253,9 @@ const ImportPage = () => {
     reader.readAsText(file);
   };
 
-  const handleRolePlayComplete = async (completedCount: number, totalCount: number) => {
-    if (!user) return;
-    const ratio = completedCount / totalCount;
-    const pointsEarned = Math.max(5, Math.round(completedCount * 2 * ratio));
-    const petXpEarned = Math.max(3, Math.round(completedCount * 1.5 * ratio));
-
-    try {
-      const { data: pointsData } = await supabase
-        .from("user_points")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (pointsData) {
-        await supabase
-          .from("user_points")
-          .update({ balance: (pointsData as any).balance + pointsEarned })
-          .eq("id", (pointsData as any).id);
-      } else {
-        await supabase
-          .from("user_points")
-          .insert({ user_id: user.id, balance: pointsEarned });
-      }
-
-      await supabase.from("point_transactions").insert({
-        user_id: user.id,
-        amount: pointsEarned,
-        type: "roleplay",
-        description: `역할 분리 연습 완료 (${completedCount}/${totalCount})`,
-      });
-
-      const { data: petData } = await supabase
-        .from("user_pets")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (petData) {
-        const LEVEL_THRESHOLDS = Array.from({ length: 30 }, (_, i) => Math.round(100 * Math.pow(1.2, i)));
-        let newExp = (petData as any).experience + petXpEarned;
-        let newLevel = (petData as any).level;
-        let newExpToNext = (petData as any).exp_to_next_level;
-
-        while (newExp >= newExpToNext && newLevel < 30) {
-          newExp -= newExpToNext;
-          newLevel++;
-          newExpToNext = LEVEL_THRESHOLDS[newLevel - 1] || 99999;
-        }
-
-        await supabase
-          .from("user_pets")
-          .update({ experience: newExp, level: newLevel, exp_to_next_level: newExpToNext })
-          .eq("id", (petData as any).id);
-      }
-
-      toast.success(`🎉 ${pointsEarned}P 획득! 펫 경험치 +${petXpEarned}`);
-    } catch (e) {
-      console.error("Reward error:", e);
-    }
+  const handleRolePlayComplete = async (completedCount: number) => {
+    const reward = await recordActivity("roleplay_complete", `roleplay:${rolePlayId}`, completedCount);
+    if (reward?.applied) toast.success(`🎉 역할극 완료! +${reward.xp} XP`);
   };
 
   // Role play view
@@ -327,8 +294,22 @@ const ImportPage = () => {
         {/* Privacy notice */}
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <Shield size={14} className="text-primary" />
-          <span>전화번호, 이메일 등 민감한 정보는 자동으로 마스킹됩니다</span>
+          <span>전화번호, 이메일 등은 자동으로 가려지고, 입력한 원문은 저장되지 않아요</span>
         </div>
+
+        {!hasAiConsent && (
+          <div className="duo-card mt-4 text-sm">
+            <p className="font-bold text-foreground mb-1">AI 분석 동의가 필요해요</p>
+            <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+              입력한 텍스트는 분석을 위해 AI 처리업체(Google Gemini, Lovable AI 게이트웨이 경유 가능)로 전송되며 국외(미국 등)에서 처리될 수 있어요. 무료 등급으로 처리하면 Google이 이 내용을 서비스 개선에 사용하고 검토자가 읽을 수 있어요.
+              원문은 저장하지 않고 분석 결과만 저장해요. 다른 사람의 대화가 포함되어 있다면 그 사람의 동의를 받은 내용만 입력해 주세요.{" "}
+              <Link to="/privacy" className="text-primary underline">개인정보처리방침</Link>
+            </p>
+            <button onClick={handleAiConsent} className="duo-btn-primary w-full text-sm">
+              동의하고 계속하기
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-3 mt-4">
           <label className="flex-1 duo-card flex items-center justify-center gap-2 p-3 cursor-pointer hover:scale-[1.01] transition-transform">
@@ -341,7 +322,7 @@ const ImportPage = () => {
         <div className="mt-4">
           <button
             onClick={handleAnalyze}
-            disabled={!text.trim() || analyzing}
+            disabled={!hasAiConsent || !text.trim() || analyzing}
             className="duo-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
             {analyzing ? (
@@ -355,7 +336,7 @@ const ImportPage = () => {
           
           <button
             onClick={handleSplitDialogue}
-            disabled={!text.trim() || splittingDialogue}
+            disabled={!hasAiConsent || !text.trim() || splittingDialogue}
             className="duo-btn-secondary w-full mt-3 flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
           >
             {splittingDialogue ? (

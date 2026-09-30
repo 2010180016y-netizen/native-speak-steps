@@ -43,7 +43,7 @@ const GoalProgressWidget = () => {
         .from("learning_goals")
         .select("*")
         .eq("user_id", user.id)
-        .eq("is_active", true) as any;
+        .eq("is_active", true);
 
       if (!goals || goals.length === 0) {
         setLoading(false);

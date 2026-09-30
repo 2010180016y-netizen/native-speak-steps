@@ -9,7 +9,6 @@ const ROUTE_ACTIVITY_MAP: Record<string, string> = {
   "/cards": "cards",
   "/stats": "general",
   "/speaking": "speaking",
-  "/pet": "general",
   "/profile": "general",
 };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Target, Plus, Trash2, Check } from "lucide-react";
@@ -27,18 +27,18 @@ const GoalSettings = () => {
   const [adding, setAdding] = useState(false);
   const [selectedType, setSelectedType] = useState("");
 
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("learning_goals")
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: true }) as any;
+      .order("created_at", { ascending: true });
     setGoals(data || []);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { fetchGoals(); }, [user]);
+  useEffect(() => { fetchGoals(); }, [fetchGoals]);
 
   const addGoal = async (goalType: string, targetValue: number) => {
     if (!user) return;
@@ -51,7 +51,7 @@ const GoalSettings = () => {
       user_id: user.id,
       goal_type: goalType,
       target_value: targetValue,
-    } as any);
+    });
     if (error) { toast.error("목표 추가 실패"); return; }
     toast.success("목표가 추가되었습니다! 🎯");
     setAdding(false);
@@ -60,7 +60,7 @@ const GoalSettings = () => {
   };
 
   const toggleGoal = async (id: string, isActive: boolean) => {
-    await supabase.from("learning_goals").update({ is_active: isActive } as any).eq("id", id);
+    await supabase.from("learning_goals").update({ is_active: isActive }).eq("id", id);
     fetchGoals();
   };
 
@@ -71,7 +71,7 @@ const GoalSettings = () => {
   };
 
   const updateTarget = async (id: string, value: number) => {
-    await supabase.from("learning_goals").update({ target_value: value } as any).eq("id", id);
+    await supabase.from("learning_goals").update({ target_value: value }).eq("id", id);
     toast.success("목표가 수정되었습니다");
     fetchGoals();
   };

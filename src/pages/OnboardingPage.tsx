@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { ChevronRight } from "lucide-react";
 import { LANGUAGES, LEVELS } from "@/lib/constants";
+import { track } from "@/lib/analytics";
 
 const OnboardingPage = () => {
   const [step, setStep] = useState(0);
@@ -22,6 +23,7 @@ const OnboardingPage = () => {
         current_level: level,
         onboarding_completed: true,
       });
+      track("onboarding_completed");
       toast.success("설정 완료! 학습을 시작하세요 🚀");
       navigate("/dashboard");
     } catch {

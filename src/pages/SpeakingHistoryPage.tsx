@@ -7,6 +7,10 @@ import { ArrowLeft, Phone, Clock, Star, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import type { Json } from "@/integrations/supabase/types";
+
+// What SpeakingPage stores in lesson_completions.metadata.
+type SessionMetadata = { scenario_label?: string; persona_name?: string; persona_occupation?: string };
 
 interface SpeakingSession {
   id: string;
@@ -14,7 +18,7 @@ interface SpeakingSession {
   lesson_type: string;
   score: number | null;
   duration_seconds: number | null;
-  metadata: any;
+  metadata: Json;
 }
 
 const formatDuration = (s: number) => {
@@ -85,7 +89,7 @@ const SpeakingHistoryPage = () => {
       {!loading && sessions.length > 0 && (
         <div className="space-y-3">
           {sessions.map((session, idx) => {
-            const meta = session.metadata || {};
+            const meta = (session.metadata ?? {}) as SessionMetadata;
             const scenarioEmoji = meta.scenario_label ? "📞" : "✨";
             const scenarioLabel = meta.scenario_label || "자유 대화";
             const personaName = meta.persona_name || "AI";

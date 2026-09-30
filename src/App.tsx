@@ -1,73 +1,72 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
+import { lazy, Suspense } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/hooks/AuthProvider";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Index from "./pages/Index";
-import AuthPage from "./pages/AuthPage";
-import OnboardingPage from "./pages/OnboardingPage";
-import DashboardPage from "./pages/DashboardPage";
-import ImportPage from "./pages/ImportPage";
-import ChatPage from "./pages/ChatPage";
-import ChatHistoryPage from "./pages/ChatHistoryPage";
-import CardsPage from "./pages/CardsPage";
-import StatsPage from "./pages/StatsPage";
-import ProfilePage from "./pages/ProfilePage";
-import PetPage from "./pages/PetPage";
-import SpeakingPage from "./pages/SpeakingPage";
-import SpeakingHistoryPage from "./pages/SpeakingHistoryPage";
-import LeaderboardPage from "./pages/LeaderboardPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import NotFound from "./pages/NotFound";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import OfflineBanner from "@/components/OfflineBanner";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 1000 * 60 * 5, // 5분
-      gcTime: 1000 * 60 * 10, // 10분
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: 1,
-    },
-  },
-});
+// Every page is its own chunk; the initial bundle is only the shell (PLT-1).
+const Index = lazy(() => import("./pages/Index"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const ImportPage = lazy(() => import("./pages/ImportPage"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+const ChatHistoryPage = lazy(() => import("./pages/ChatHistoryPage"));
+const CardsPage = lazy(() => import("./pages/CardsPage"));
+const StatsPage = lazy(() => import("./pages/StatsPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const SpeakingPage = lazy(() => import("./pages/SpeakingPage"));
+const SpeakingHistoryPage = lazy(() => import("./pages/SpeakingHistoryPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const LegalPage = lazy(() => import("./pages/LegalPage"));
+const UpgradePage = lazy(() => import("./pages/UpgradePage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+const PageLoading = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="animate-bounce-in text-4xl">🌱</div>
+  </div>
+);
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-            <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
-            <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-            <Route path="/chat-history" element={<ProtectedRoute><ChatHistoryPage /></ProtectedRoute>} />
-            <Route path="/cards" element={<ProtectedRoute><CardsPage /></ProtectedRoute>} />
-            <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-            <Route path="/pet" element={<ProtectedRoute><PetPage /></ProtectedRoute>} />
-            <Route path="/speaking" element={<ProtectedRoute><SpeakingPage /></ProtectedRoute>} />
-            <Route path="/speaking-history" element={<ProtectedRoute><SpeakingHistoryPage /></ProtectedRoute>} />
-            <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          </ErrorBoundary>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <>
+    <Toaster />
+    <OfflineBanner />
+    <BrowserRouter>
+      <AuthProvider>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+              <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+              <Route path="/chat-history" element={<ProtectedRoute><ChatHistoryPage /></ProtectedRoute>} />
+              <Route path="/cards" element={<ProtectedRoute><CardsPage /></ProtectedRoute>} />
+              <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/speaking" element={<ProtectedRoute><SpeakingPage /></ProtectedRoute>} />
+              <Route path="/speaking-history" element={<ProtectedRoute><SpeakingHistoryPage /></ProtectedRoute>} />
+              <Route path="/upgrade" element={<ProtectedRoute><UpgradePage /></ProtectedRoute>} />
+              <Route path="/upgrade/success" element={<ProtectedRoute><UpgradePage result="success" /></ProtectedRoute>} />
+              <Route path="/upgrade/fail" element={<ProtectedRoute><UpgradePage result="fail" /></ProtectedRoute>} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+              <Route path="/terms" element={<LegalPage doc="terms" />} />
+              {/* Removed features (PLT-1): keep old links and bookmarks working. */}
+              <Route path="/pet" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/leaderboard" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
+      </AuthProvider>
+    </BrowserRouter>
+  </>
 );
 
 export default App;

@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Map, RefreshCw, TrendingUp, Sprout } from "lucide-react";
 import { format, subDays, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { ko } from "date-fns/locale";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart } from "@/components/Charts";
 import { toast } from "sonner";
+import { isMastered } from "@/lib/srs";
 
 interface Props {
   userId: string;
@@ -15,8 +16,7 @@ interface CardData {
   target_text: string;
   native_text: string;
   context: string | null;
-  ease_factor: number;
-  review_count: number;
+  interval_days: number;
   created_at: string;
 }
 
@@ -90,31 +90,17 @@ function categorizeCard(card: CardData): string {
   return "기타";
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
-      <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
-          {p.name}: {p.value}개
-        </p>
-      ))}
-    </div>
-  );
-};
-
 const VocabGrowthMap = ({ userId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState<CardData[]>([]);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from("srs_cards")
-        .select("target_text, native_text, context, ease_factor, review_count, created_at")
+        .select("target_text, native_text, context, interval_days, created_at")
         .eq("user_id", userId)
         .order("created_at");
       if (error) throw error;
@@ -125,11 +111,11 @@ const VocabGrowthMap = ({ userId }: Props) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchData();
-  }, [userId]);
+  }, [fetchData]);
 
   const categories = useMemo(() => {
     const catMap: Record<string, { count: number; mastered: number; recent: number; words: string[] }> = {};
@@ -139,7 +125,7 @@ const VocabGrowthMap = ({ userId }: Props) => {
       const cat = categorizeCard(card);
       if (!catMap[cat]) catMap[cat] = { count: 0, mastered: 0, recent: 0, words: [] };
       catMap[cat].count++;
-      if (card.ease_factor >= 2.5 && card.review_count >= 3) catMap[cat].mastered++;
+      if (isMastered(card)) catMap[cat].mastered++;
       if (new Date(card.created_at) >= sevenDaysAgo) catMap[cat].recent++;
       if (catMap[cat].words.length < 8) catMap[cat].words.push(card.target_text);
     });
@@ -361,28 +347,13 @@ const VocabGrowthMap = ({ userId }: Props) => {
             <TrendingUp size={18} className="text-duo-purple" />
             <h3 className="font-bold text-foreground">어휘 성장 추이 (8주)</h3>
           </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={weeklyGrowth}>
-              <defs>
-                <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tick={{ fontSize: 10, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} width={30} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="total"
-                name="누적 어휘"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                fill="url(#growthGradient)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <AreaChart
+            data={weeklyGrowth.map((week) => ({ label: week.label, value: week.total }))}
+            color="hsl(var(--primary))"
+            name="누적 어휘"
+            unit="개"
+            height={180}
+          />
         </motion.div>
       )}
     </div>

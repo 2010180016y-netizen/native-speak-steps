@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
@@ -7,15 +7,24 @@ import SpeakingSetup from "@/components/speaking/SpeakingSetup";
 import SpeakingIncoming from "@/components/speaking/SpeakingIncoming";
 import SpeakingCall from "@/components/speaking/SpeakingCall";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAi, toastAiError } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
+import { useRecordActivity } from "@/hooks/useRecordActivity";
+import { track } from "@/lib/analytics";
+import { usePhrasePractice } from "@/hooks/usePhrasePractice";
+import { usesPhrase } from "@/lib/phrasePractice";
 import { toast } from "sonner";
 import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
 import { SPEAKING_MISSIONS, SPEAKING_HINTS, type SpeakingMission } from "@/lib/speakingScenarioData";
-import { SPEECH_LANG_MAP, getRandomName, PET_LEVEL_THRESHOLDS } from "@/lib/constants";
+import { SPEECH_LANG_MAP, getRandomName } from "@/lib/constants";
 import type { SpeakingMessage, Correction, SpeakingPhase, SpeakingFeedbackData } from "@/lib/speakingTypes";
+
+// What the speaking function returns for a caller turn.
+type SpeakingReply = { content: string; corrections?: Correction[] };
 
 const SpeakingPage = () => {
   const { user } = useAuth();
+  const recordActivity = useRecordActivity();
   const [phase, setPhase] = useState<SpeakingPhase>("setup");
   const [messages, setMessages] = useState<SpeakingMessage[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -38,7 +47,25 @@ const SpeakingPage = () => {
   const { isListening, transcript, interimTranscript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(targetLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(targetLang);
 
-  const missions: SpeakingMission[] = scenario ? SPEAKING_MISSIONS[scenario.id] || SPEAKING_MISSIONS.free : [];
+  const { practiceCards, loadPracticeCards, practiceCardsReady, markPhraseUsed } = usePhrasePractice();
+  const missions = useMemo<SpeakingMission[]>(
+    () =>
+      scenario
+        ? [
+            ...practiceCards.map((card) => ({
+              id: `phrase_${card.id}`,
+              title: `"${card.target_text}" 말해 보기`,
+              xpReward: 10,
+              checkType: "phrase" as const,
+              threshold: 1,
+              phrase: card.target_text,
+              cardId: card.id,
+            })),
+            ...(SPEAKING_MISSIONS[scenario.id] || SPEAKING_MISSIONS.free),
+          ]
+        : [],
+    [scenario, practiceCards],
+  );
   const levelHints = SPEAKING_HINTS[profile?.target_language || "en"]?.[profile?.current_level || "beginner"] || [];
 
   useEffect(() => {
@@ -49,13 +76,6 @@ const SpeakingPage = () => {
   }, [user]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isAiLoading]);
-
-  useEffect(() => {
-    if (transcript && !isListening) {
-      sendMessage(transcript);
-      resetTranscript();
-    }
-  }, [transcript, isListening]);
 
   useEffect(() => {
     if (phase === "call") {
@@ -79,7 +99,7 @@ const SpeakingPage = () => {
       context: `📞 스피킹 교정: ${c.explanation || ""}\n원문: ${c.wrong}`,
       difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
     }));
-    const { error } = await supabase.from("srs_cards").insert(cardsToInsert);
+    const { error } = await supabase.from("srs_cards").upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
     if (!error) toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
   }, [user]);
 
@@ -88,29 +108,28 @@ const SpeakingPage = () => {
     const userMessages = allMessages.filter((m) => m.role === "user");
     const questionCount = userMessages.filter((m) => m.content.includes("?")).length;
     const newCompleted = new Set(completedMissions);
-    let xpGained = 0;
     for (const mission of missions) {
       if (newCompleted.has(mission.id)) continue;
       let done = false;
       if (mission.checkType === "message_count" && userMessages.length >= mission.threshold) done = true;
       if (mission.checkType === "question_count" && questionCount >= mission.threshold) done = true;
       if (mission.checkType === "duration" && callDuration >= mission.threshold) done = true;
-      if (done) { newCompleted.add(mission.id); xpGained += mission.xpReward; }
+      if (mission.checkType === "phrase" && userMessages.some((m) => usesPhrase(m.content, mission.phrase!))) done = true;
+      if (done) newCompleted.add(mission.id);
     }
     if (newCompleted.size > completedMissions.size) {
       setCompletedMissions(newCompleted);
       const newlyDone = [...newCompleted].filter((id) => !completedMissions.has(id));
       for (const id of newlyDone) {
         const m = missions.find((mi) => mi.id === id);
-        if (m) toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
-      }
-      if (xpGained > 0 && user) {
-        supabase.from("profiles").select("total_xp").eq("user_id", user.id).single().then(({ data }) => {
-          if (data) supabase.from("profiles").update({ total_xp: data.total_xp + xpGained }).eq("user_id", user.id);
-        });
+        if (!m) continue;
+        toast.success(`🎯 미션 완료! "${m.title}" +${m.xpReward}XP`);
+        void recordActivity("speaking_mission", `speaking_mission:${speakingSessionId}:${m.id}`, m.xpReward);
+        const card = practiceCards.find((c) => c.id === m.cardId);
+        if (card) void markPhraseUsed(card);
       }
     }
-  }, [scenario, missions, completedMissions, callDuration, user]);
+  }, [scenario, missions, completedMissions, callDuration, recordActivity, speakingSessionId, practiceCards, markPhraseUsed]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isAiLoading) return;
@@ -121,13 +140,14 @@ const SpeakingPage = () => {
     setIsAiLoading(true);
     saveMessageToDB("user", text);
     try {
-      const { data, error } = await supabase.functions.invoke("speaking", {
+      const practicePhrases = (await practiceCardsReady()).map((c) => c.target_text);
+      const { data, error } = await invokeAi<SpeakingReply>("speaking", {
         body: {
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
           level: profile?.current_level || "beginner", scenario: scenario?.id || "free",
           persona: persona ? { gender: persona.gender, occupation: persona.occupation, personality: persona.personality } : undefined,
-          callerName: callerName || undefined,
+          callerName: callerName || undefined, practicePhrases,
         },
       });
       if (error) throw error;
@@ -137,18 +157,28 @@ const SpeakingPage = () => {
       setMessages(finalMessages);
       saveMessageToDB("assistant", data.content);
       if (corrections.length > 0) saveCorrectionCards(corrections);
+      void recordActivity("chat_message", `speaking_message:${speakingSessionId}:${newMessages.filter((m) => m.role === "user").length}`);
       checkMissions(finalMessages);
       if (autoSpeak && data.content) setTimeout(() => speak(data.content), 300);
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : "AI 응답에 실패했어요. 다시 시도해 주세요.";
+    } catch (e) {
       console.error("Speaking error:", e);
       setLastFailedText(text);
       setMessages(messages);
-      toast.error(errMsg, { action: { label: "재시도", onClick: () => sendMessage(text) } });
+      toastAiError(e, "AI 응답에 실패했어요. 다시 시도해 주세요.", {
+        action: { label: "재시도", onClick: () => sendMessage(text) },
+      });
     } finally {
       setIsAiLoading(false);
     }
-  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions]);
+  }, [messages, profile, scenario, persona, autoSpeak, speak, isAiLoading, saveMessageToDB, saveCorrectionCards, callerName, checkMissions, recordActivity, speakingSessionId, practiceCardsReady]);
+
+  // Sends a finished transcript once: resetTranscript() clears the trigger.
+  useEffect(() => {
+    if (transcript && !isListening) {
+      sendMessage(transcript);
+      resetTranscript();
+    }
+  }, [transcript, isListening, sendMessage, resetTranscript]);
 
   const startCall = useCallback(async () => {
     setPhase("call");
@@ -156,13 +186,14 @@ const SpeakingPage = () => {
     setFeedback(null);
     setIsAiLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("speaking", {
+      const practicePhrases = (await practiceCardsReady()).map((c) => c.target_text);
+      const { data, error } = await invokeAi<SpeakingReply>("speaking", {
         body: {
           messages: [{ role: "user", content: "The phone is ringing and I just answered. Start the conversation as the caller." }],
           targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
           level: profile?.current_level || "beginner", scenario: scenario?.id || "free",
           persona: persona ? { gender: persona.gender, occupation: persona.occupation, personality: persona.personality } : undefined,
-          callerName: callerName || undefined,
+          callerName: callerName || undefined, practicePhrases,
         },
       });
       if (error) throw error;
@@ -170,50 +201,28 @@ const SpeakingPage = () => {
       setMessages([aiMsg]);
       saveMessageToDB("assistant", data.content);
       if (autoSpeak && data.content) setTimeout(() => speak(data.content), 300);
-    } catch {
-      toast.error("통화를 시작할 수 없어요");
+    } catch (e) {
+      console.error("Speaking start error:", e);
+      toastAiError(e, "통화를 시작할 수 없어요");
     } finally {
       setIsAiLoading(false);
     }
-  }, [profile, autoSpeak, speak, scenario, persona, callerName, saveMessageToDB]);
+  }, [profile, autoSpeak, speak, scenario, persona, callerName, saveMessageToDB, practiceCardsReady]);
 
   const endConversation = useCallback(async () => {
     if (messages.length < 2) { toast.error("대화를 좀 더 진행한 후 피드백을 받아보세요"); return; }
     stopSpeaking();
     setIsFeedbackLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("speaking-feedback", {
+      const { data, error } = await invokeAi<{ feedback?: SpeakingFeedbackData }>("speaking-feedback", {
         body: { messages, targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko", level: profile?.current_level || "beginner" },
       });
       if (error) throw error;
       if (data.feedback) {
-        setFeedback(data.feedback as SpeakingFeedbackData);
+        setFeedback(data.feedback);
         if (user) {
-          const userMsgCount = messages.filter((m) => m.role === "user").length;
           const score = data.feedback.overallScore || 50;
-          const pointsEarned = Math.max(5, Math.round(userMsgCount * 3 * (score / 100)));
-          const petXpEarned = Math.max(3, Math.round(userMsgCount * 2 * (score / 100)));
-
-          const { data: pointsData } = await supabase.from("user_points").select("*").eq("user_id", user.id).maybeSingle();
-          if (pointsData) {
-            await supabase.from("user_points").update({ balance: pointsData.balance + pointsEarned }).eq("id", pointsData.id);
-          } else {
-            await supabase.from("user_points").insert({ user_id: user.id, balance: pointsEarned });
-          }
-          await supabase.from("point_transactions").insert({ user_id: user.id, amount: pointsEarned, type: "speaking", description: `스피킹 연습 완료 (점수: ${score})` });
-
-          const { data: petData } = await supabase.from("user_pets").select("*").eq("user_id", user.id).eq("is_active", true).maybeSingle();
-          if (petData) {
-            let newExp = petData.experience + petXpEarned;
-            let newLevel = petData.level;
-            let newExpToNext = petData.exp_to_next_level;
-            while (newExp >= newExpToNext && newLevel < 30) {
-              newExp -= newExpToNext;
-              newLevel++;
-              newExpToNext = PET_LEVEL_THRESHOLDS[newLevel - 1] || 99999;
-            }
-            await supabase.from("user_pets").update({ experience: newExp, level: newLevel, exp_to_next_level: newExpToNext }).eq("id", petData.id);
-          }
+          const reward = await recordActivity("speaking_session", `speaking_session:${speakingSessionId}`, score);
 
           await supabase.from("lesson_completions").insert({
             user_id: user.id, lesson_type: "speaking", score, duration_seconds: callDuration,
@@ -230,22 +239,22 @@ const SpeakingPage = () => {
               context: `📞 스피킹 피드백 교정: ${err.explanation || ""}`,
               difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
             }));
-            await supabase.from("srs_cards").insert(feedbackCards);
+            await supabase.from("srs_cards").upsert(feedbackCards, { onConflict: "user_id,native_text", ignoreDuplicates: true });
           }
-          toast.success(`🎉 ${pointsEarned}P 획득! 펫 경험치 +${petXpEarned}`);
+          if (reward?.applied) toast.success(`🎉 스피킹 완료! +${reward.xp} XP`);
+          track("speaking_completed");
         }
       } else {
         toast.error("피드백을 생성할 수 없어요");
       }
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : "피드백 생성에 실패했어요";
+    } catch (e) {
       console.error("Feedback error:", e);
-      toast.error(errMsg);
+      toastAiError(e, "피드백 생성에 실패했어요");
     } finally {
       setIsFeedbackLoading(false);
       setPhase("feedback");
     }
-  }, [messages, profile, stopSpeaking, user, callDuration, speakingSessionId, scenario, persona, callerName]);
+  }, [messages, profile, stopSpeaking, user, callDuration, speakingSessionId, scenario, persona, callerName, recordActivity]);
 
   const handleMicClick = () => {
     if (isSpeaking) stopSpeaking();
@@ -265,6 +274,7 @@ const SpeakingPage = () => {
     setScenario(s);
     const name = getRandomName(profile?.target_language || "en", p.gender as "male" | "female");
     setCallerName(name);
+    loadPracticeCards();
     setPhase("incoming");
     setTimeout(() => { setPhase((current) => current === "incoming" ? "setup" : current); }, 15000);
   };

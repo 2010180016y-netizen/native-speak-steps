@@ -7,6 +7,9 @@ import { Type, AlignLeft, Check, X, RotateCcw, ChevronRight, Award, Calendar } f
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRecordActivity } from "@/hooks/useRecordActivity";
+import { scheduleReview } from "@/lib/srs";
+import { track } from "@/lib/analytics";
 
 type WordItem = { word: string; count: number; percentage: number };
 type StructureItem = { pattern: string; description: string; count: number; example: string };
@@ -32,6 +35,7 @@ const QUANTITY_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 
 const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onUnknownWordsReady, onAllLearningComplete, generatingCards }: Props) => {
   const { user } = useAuth();
+  const recordActivity = useRecordActivity();
   const [activeTab, setActiveTab] = useState<"words" | "structures">("words");
   
   // Word learning state
@@ -79,41 +83,13 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
   const currentWord = currentWordBatch[currentWordIndex];
   const currentStructure = currentStructureBatch[currentStructureIndex];
 
-  // Save progress to database
-  const saveProgress = useCallback(async (type: "word" | "structure", item: string, known: boolean) => {
-    if (!user) return;
-    
-    try {
-      // Save to SRS cards for review
-      if (!known) {
-        const existingCard = await supabase
-          .from("srs_cards")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("native_text", item)
-          .maybeSingle();
-        
-        if (!existingCard.data) {
-          await supabase.from("srs_cards").insert({
-            user_id: user.id,
-            native_text: item,
-            target_text: type === "word" ? `[${item}]` : item,
-            context: type === "word" ? "빈도 기반 단어 학습" : "문장 구조 학습",
-            difficulty: 3,
-          });
-        }
-      }
-    } catch (e) {
-      console.error("Failed to save progress:", e);
-    }
-  }, [user]);
+  // Unknown items become real cards via onUnknownWordsReady (generate-cards), never placeholders.
 
   // Handle word response
   const handleWordResponse = async (known: boolean) => {
     if (!currentWord) return;
     
     setLearnedWords(prev => new Map(prev).set(currentWord.word, known));
-    await saveProgress("word", currentWord.word, known);
     
     if (currentWordIndex < currentWordBatch.length - 1) {
       setCurrentWordIndex(prev => prev + 1);
@@ -161,7 +137,6 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
     if (!currentStructure) return;
     
     setLearnedStructures(prev => new Map(prev).set(currentStructure.pattern, known));
-    await saveProgress("structure", currentStructure.pattern, known);
     
     if (currentStructureIndex < currentStructureBatch.length - 1) {
       setCurrentStructureIndex(prev => prev + 1);
@@ -239,21 +214,14 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
       .single();
     
     if (card) {
-      const newEaseFactor = known 
-        ? Math.min(card.ease_factor + 0.1, 3.0) 
-        : Math.max(card.ease_factor - 0.2, 1.3);
-      const newInterval = known 
-        ? card.interval_days * newEaseFactor 
-        : 1;
-      const nextReview = new Date();
-      nextReview.setDate(nextReview.getDate() + Math.ceil(newInterval));
-      
-      await supabase.from("srs_cards").update({
-        ease_factor: newEaseFactor,
-        interval_days: newInterval,
-        next_review_at: nextReview.toISOString(),
-        review_count: card.review_count + 1,
-      }).eq("id", currentItem.id);
+      const { error } = await supabase
+        .from("srs_cards")
+        .update(scheduleReview(card, known ? 4 : 1))
+        .eq("id", currentItem.id);
+      if (!error) {
+        void recordActivity("card_review", `card_review:${card.id}:${card.review_count}`);
+        track("card_reviewed");
+      }
     }
     
     if (currentReviewIndex < reviewItems.length - 1) {
@@ -352,7 +320,7 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
         </motion.div>
       )}
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "words" | "structures")} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="words" className="flex items-center gap-2">
             <Type size={16} /> 단어 학습

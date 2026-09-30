@@ -71,7 +71,7 @@ const DialogueRolePlay = ({ speakers, lines, targetLang, onClose, onLinesUpdate,
         onComplete?.(newCompleted.size, lines.length);
       }
     }
-  }, [transcript, isListening]);
+  }, [transcript, isListening, myRole, currentLine, lines, completedLines, speak, resetTranscript, onComplete]);
 
   const handleSelectRole = (speaker: string) => {
     setMyRole(speaker);

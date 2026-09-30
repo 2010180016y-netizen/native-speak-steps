@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAi, toastAiError } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2, BarChart3, MessageSquare, Lightbulb, AlertTriangle, BookOpen, ArrowLeft } from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
-} from "recharts";
+import { BarList, DonutChart } from "@/components/Charts";
 import type { Persona, ChatScenario } from "./ChatSetup";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -34,20 +33,6 @@ const CHART_COLORS = [
   "hsl(var(--duo-yellow))",
 ];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-card border-2 border-border rounded-xl p-3 shadow-lg">
-      <p className="font-bold text-foreground text-xs mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} className="text-xs font-semibold" style={{ color: p.color }}>
-          {p.name}: {p.value}
-        </p>
-      ))}
-    </div>
-  );
-};
-
 type Props = {
   messages: Message[];
   persona: Persona;
@@ -60,11 +45,9 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<FeedbackData | null>(null);
 
-  useEffect(() => {
-    if (messages.length > 0) analyzeFeedback();
-  }, []);
+  const started = useRef(false);
 
-  const analyzeFeedback = async () => {
+  const analyzeFeedback = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
@@ -72,7 +55,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
       const targetLang = profile?.target_language || "en";
       const nativeLang = profile?.native_language || "ko";
 
-      const { data, error } = await supabase.functions.invoke("chat-feedback", {
+      const { data, error } = await invokeAi<FeedbackData>("chat-feedback", {
         body: {
           messages: messages.map((m) => ({ role: m.role, content: m.content })),
           targetLanguage: targetLang,
@@ -87,7 +70,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
       setFeedback(data);
 
       // Save feedback to DB
-      await supabase.from("chat_feedback_results" as any).insert({
+      await supabase.from("chat_feedback_results").insert({
         user_id: user.id,
         session_id: crypto.randomUUID(),
         overall_score: data.overallScore || 0,
@@ -131,28 +114,36 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
           .from("srs_cards")
           .select("target_text")
           .eq("user_id", user.id);
-        const existingSet = new Set((existing || []).map((c: any) => c.target_text.toLowerCase()));
+        const existingSet = new Set((existing || []).map((c) => c.target_text.toLowerCase()));
         const newCards = cardsToCreate.filter((c) => !existingSet.has(c.target_text.toLowerCase()));
 
         if (newCards.length > 0) {
-          await supabase.from("srs_cards").insert(
+          await supabase.from("srs_cards").upsert(
             newCards.map((c) => ({
               user_id: user.id,
               target_text: c.target_text,
               native_text: c.native_text,
               context: c.context,
-            }))
+            })),
+            { onConflict: "user_id,native_text", ignoreDuplicates: true },
           );
           toast.success(`📚 ${newCards.length}개의 학습 카드가 자동 생성되었습니다!`);
         }
       }
     } catch (err) {
       console.error("Feedback error:", err);
-      toast.error("피드백 분석에 실패했습니다");
+      toastAiError(err, "피드백 분석에 실패했습니다");
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, profile, messages, persona, scenario]);
+
+  // Once per screen: the analysis costs an AI request, so later prop changes must not repeat it.
+  useEffect(() => {
+    if (started.current || !user || messages.length === 0) return;
+    started.current = true;
+    void analyzeFeedback();
+  }, [user, messages.length, analyzeFeedback]);
 
   if (loading) {
     return (
@@ -265,15 +256,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
             <BarChart3 size={16} className="text-primary" />
             <h3 className="font-bold text-foreground text-sm">사용 단어 빈도</h3>
           </div>
-          <ResponsiveContainer width="100%" height={Math.max(160, topWords.length * 24)}>
-            <BarChart data={topWords} layout="vertical" margin={{ left: 0, right: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis type="category" dataKey="word" tick={{ fontSize: 10, fontWeight: 700, fill: "hsl(var(--foreground))" }} width={70} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="count" name="횟수" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarList items={topWords.map((w) => ({ label: w.word, value: w.count }))} />
         </motion.div>
       )}
 
@@ -284,28 +267,13 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
             <BookOpen size={16} className="text-duo-purple" />
             <h3 className="font-bold text-foreground text-sm">문장 구조 패턴</h3>
           </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie
-                data={patterns}
-                dataKey="count"
-                nameKey="pattern"
-                cx="50%"
-                cy="50%"
-                outerRadius={65}
-                innerRadius={30}
-                label={({ pattern, percent }) => `${pattern} ${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
-                fontSize={10}
-                fontWeight={700}
-              >
-                {patterns.map((_, i) => (
-                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="flex justify-center">
+            <DonutChart
+              slices={patterns.map((p, i) => ({ label: p.pattern, value: p.count, color: CHART_COLORS[i % CHART_COLORS.length] }))}
+              size={150}
+              label="문장 구조 패턴"
+            />
+          </div>
           <div className="mt-2 space-y-1.5">
             {patterns.map((p, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">

@@ -86,23 +86,5 @@ export const useSessionTracker = (activityType: string = "general") => {
     };
   }, [user, startSession, endSession]);
 
-  const logLessonCompletion = useCallback(
-    async (lessonType: string, score: number = 0, durationSeconds: number = 0, metadata: Record<string, any> = {}) => {
-      if (!user) return;
-      try {
-        await supabase.from("lesson_completions").insert({
-          user_id: user.id,
-          lesson_type: lessonType,
-          score,
-          duration_seconds: durationSeconds,
-          metadata,
-        });
-      } catch (e) {
-        console.error("Lesson completion log error:", e);
-      }
-    },
-    [user]
-  );
-
-  return { logLessonCompletion, endSession };
+  return { endSession };
 };

@@ -124,6 +124,9 @@ export interface MiniMission {
   description: string;
   checkKeywords: string[]; // keywords to detect mission completion
   xpReward: number;
+  /** Review-card phrase the user should use; the mission completes when a message contains it. */
+  phrase?: string;
+  cardId?: string;
 }
 
 export const SCENARIO_MISSIONS: Record<string, MiniMission[]> = {
