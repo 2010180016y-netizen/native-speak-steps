@@ -14,24 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      analytics_events: {
+      activity_events: {
         Row: {
           created_at: string
-          event: string
-          event_date: string
+          id: string
+          idempotency_key: string
+          kind: string
+          local_date: string
+          units: number
           user_id: string
+          xp: number
         }
         Insert: {
           created_at?: string
-          event: string
-          event_date?: string
-          user_id?: string
+          id?: string
+          idempotency_key: string
+          kind: string
+          local_date: string
+          units: number
+          user_id: string
+          xp: number
         }
         Update: {
           created_at?: string
-          event?: string
-          event_date?: string
+          id?: string
+          idempotency_key?: string
+          kind?: string
+          local_date?: string
+          units?: number
           user_id?: string
+          xp?: number
         }
         Relationships: []
       }
@@ -71,32 +83,83 @@ export type Database = {
         }
         Relationships: []
       }
-      client_errors: {
+      ai_usage_daily: {
+        Row: {
+          feature: string
+          requests: number
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          feature: string
+          requests?: number
+          usage_date?: string
+          user_id: string
+        }
+        Update: {
+          feature?: string
+          requests?: number
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_usage_log: {
+        Row: {
+          completion_tokens: number | null
+          created_at: string
+          feature: string
+          id: number
+          latency_ms: number | null
+          model: string
+          prompt_tokens: number | null
+          status: number
+          total_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          completion_tokens?: number | null
+          created_at?: string
+          feature: string
+          id?: never
+          latency_ms?: number | null
+          model: string
+          prompt_tokens?: number | null
+          status: number
+          total_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          completion_tokens?: number | null
+          created_at?: string
+          feature?: string
+          id?: never
+          latency_ms?: number | null
+          model?: string
+          prompt_tokens?: number | null
+          status?: number
+          total_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      analytics_events: {
         Row: {
           created_at: string
-          id: string
-          message: string
-          stack: string | null
-          url: string | null
-          user_agent: string | null
+          event: string
+          event_date: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          id?: string
-          message: string
-          stack?: string | null
-          url?: string | null
-          user_agent?: string | null
+          event: string
+          event_date?: string
           user_id?: string
         }
         Update: {
           created_at?: string
-          id?: string
-          message?: string
-          stack?: string | null
-          url?: string | null
-          user_agent?: string | null
+          event?: string
+          event_date?: string
           user_id?: string
         }
         Relationships: []
@@ -178,6 +241,36 @@ export type Database = {
           id?: string
           role?: string
           session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      client_errors: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          stack: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
@@ -827,9 +920,55 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      analytics_cohorts: {
+        Row: {
+          activated: number | null
+          activation_rate: number | null
+          cohort_week: string | null
+          d1_retention: number | null
+          d7_retention: number | null
+          imported: number | null
+          onboarded: number | null
+          signups: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      add_pet_experience: {
+        Args: { p_exp: number; p_pet_id: string }
+        Returns: number
+      }
+      adopt_pet: {
+        Args: { p_name: string; p_pet_type_id: string }
+        Returns: string
+      }
+      claim_due_reminders: {
+        Args: never
+        Returns: {
+          due_cards: number
+          streak_days: number
+          user_id: string
+        }[]
+      }
+      complete_payment: {
+        Args: { p_order_id: string; p_payment_key: string }
+        Returns: string
+      }
+      consume_ai_quota: {
+        Args: {
+          p_daily_limit: number
+          p_feature: string
+          p_feature_limit: number
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      create_order: {
+        Args: { p_amount: number; p_product: string; p_user_id: string }
+        Returns: string
+      }
+      feed_pet: { Args: { p_item_id: string; p_pet_id: string }; Returns: Json }
       get_leaderboard: {
         Args: { limit_count?: number }
         Returns: {
@@ -842,8 +981,16 @@ export type Database = {
         }[]
       }
       get_my_rank: { Args: never; Returns: number }
-      adopt_pet: { Args: { p_name: string; p_pet_type_id: string }; Returns: string }
-      feed_pet: { Args: { p_item_id: string; p_pet_id: string }; Returns: Json }
+      grant_points: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      is_valid_timezone: { Args: { tz: string }; Returns: boolean }
       record_activity: {
         Args: {
           p_idempotency_key: string
@@ -852,6 +999,19 @@ export type Database = {
           p_units?: number
         }
         Returns: Json
+      }
+      safe_display_name: {
+        Args: { candidate: string; uid: string }
+        Returns: string
+      }
+      spend_points: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: number
       }
     }
     Enums: {
