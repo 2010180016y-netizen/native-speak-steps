@@ -6,12 +6,14 @@ import { toast } from "sonner";
 import { ChevronRight } from "lucide-react";
 import { LANGUAGES, LEVELS } from "@/lib/constants";
 import { track } from "@/lib/analytics";
+import EnglishVarietyPicker from "@/components/profile/EnglishVarietyPicker";
 
 const OnboardingPage = () => {
   const [step, setStep] = useState(0);
   const [nativeLang, setNativeLang] = useState("ko");
   const [targetLang, setTargetLang] = useState("");
   const [level, setLevel] = useState("");
+  const [variety, setVariety] = useState("en-US");
   const { updateProfile } = useAuth();
   const navigate = useNavigate();
 
@@ -20,6 +22,7 @@ const OnboardingPage = () => {
       await updateProfile({
         native_language: nativeLang,
         target_language: targetLang,
+        target_variety: targetLang === "en" ? variety : null,
         current_level: level,
         onboarding_completed: true,
       });
@@ -74,6 +77,13 @@ const OnboardingPage = () => {
 
     // Step 2: Level
     <motion.div key="level" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }}>
+      {targetLang === "en" && (
+        <div className="mb-8">
+          <h2 className="text-2xl font-extrabold text-foreground mb-2">어떤 영어를 배울까요?</h2>
+          <p className="text-muted-foreground mb-4">발음과 표현을 이 기준으로 알려 드려요</p>
+          <EnglishVarietyPicker value={variety} onChange={setVariety} />
+        </div>
+      )}
       <h2 className="text-2xl font-extrabold text-foreground mb-2">현재 실력은?</h2>
       <p className="text-muted-foreground mb-6">딱 맞는 난이도로 시작할게요</p>
       <div className="space-y-3">

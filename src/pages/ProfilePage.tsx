@@ -2,17 +2,19 @@ import { useAuth } from "@/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import { LogOut, Flame, Zap, BookOpen, Crown } from "lucide-react";
+import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import ReminderSettings from "@/components/profile/ReminderSettings";
 import GoalSettings from "@/components/profile/GoalSettings";
 import DisplayNameSettings from "@/components/profile/DisplayNameSettings";
 import DeleteAccount from "@/components/profile/DeleteAccount";
+import EnglishVarietyPicker from "@/components/profile/EnglishVarietyPicker";
 import { LANG_NAMES, LEVEL_NAMES } from "@/lib/constants";
 import { getEffectiveStreak } from "@/lib/streak";
 import { isPro } from "@/lib/plan";
 
 const ProfilePage = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, updateProfile } = useAuth();
   const navigate = useNavigate();
 
   if (!profile) return null;
@@ -20,6 +22,14 @@ const ProfilePage = () => {
   const handleLogout = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const handleVarietyChange = async (variety: string) => {
+    try {
+      await updateProfile({ target_variety: variety });
+    } catch {
+      toast.error("변경에 실패했습니다");
+    }
   };
 
   return (
@@ -44,6 +54,12 @@ const ProfilePage = () => {
               <span className="text-sm text-muted-foreground font-semibold">학습 언어</span>
               <span className="font-bold text-foreground">{LANG_NAMES[profile.target_language]}</span>
             </div>
+            {profile.target_language === "en" && (
+              <div>
+                <span className="text-sm text-muted-foreground font-semibold block mb-2">영어 종류</span>
+                <EnglishVarietyPicker value={profile.target_variety} onChange={handleVarietyChange} />
+              </div>
+            )}
           </div>
         </div>
 

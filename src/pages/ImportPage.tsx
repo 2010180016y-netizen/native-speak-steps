@@ -13,11 +13,7 @@ import DialogueRolePlay, { type DialogueLine } from "@/components/dialogue/Dialo
 import AnalysisDashboard, { type TextAnalysis } from "@/components/analysis/AnalysisDashboard";
 import ImportLearningFlow from "@/components/import/ImportLearningFlow";
 import { analyzeTextContent, maskSensitiveData } from "@/lib/textProcessor";
-
-const LANG_NAMES: Record<string, string> = {
-  ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese",
-  es: "Spanish", fr: "French", de: "German", pt: "Portuguese",
-};
+import { nativeLanguageForAi, targetLanguageForAi, targetSpeechLang } from "@/lib/constants";
 
 type GeneratedCard = {
   native_text: string;
@@ -125,8 +121,8 @@ const ImportPage = () => {
       const { data: aiData, error: aiErr } = await invokeAi<Partial<TextAnalysis>>("analyze-text", {
         body: {
           text: textToAnalyze,
-          nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
-          targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
+          nativeLanguage: nativeLanguageForAi(profile),
+          targetLanguage: targetLanguageForAi(profile),
           speakerNames: analysis.speakers,
         },
       });
@@ -163,8 +159,8 @@ const ImportPage = () => {
       const { data, error: fnError } = await invokeAi<{ cards?: GeneratedCard[] }>("generate-cards", {
         body: {
           text: unknownWords.join(", "),
-          nativeLanguage: LANG_NAMES[profile.native_language] || profile.native_language,
-          targetLanguage: LANG_NAMES[profile.target_language] || profile.target_language,
+          nativeLanguage: nativeLanguageForAi(profile),
+          targetLanguage: targetLanguageForAi(profile),
           level: profile.current_level,
           wordList: unknownWords,
         },
@@ -195,8 +191,8 @@ const ImportPage = () => {
       const { data, error } = await invokeAi<{ is_dialogue: boolean; speakers: string[]; lines: DialogueLine[] }>("split-dialogue", {
         body: {
           text: maskedText.slice(0, 8000),
-          nativeLanguage: profile.native_language,
-          targetLanguage: profile.target_language,
+          nativeLanguage: nativeLanguageForAi(profile),
+          targetLanguage: targetLanguageForAi(profile),
         },
       });
 
@@ -265,7 +261,7 @@ const ImportPage = () => {
         <DialogueRolePlay
           speakers={dialogueSpeakers}
           lines={dialogueLines}
-          targetLang={profile?.target_language || "en"}
+          speechLang={targetSpeechLang(profile)}
           onClose={() => setShowRolePlay(false)}
           onLinesUpdate={(updated) => setDialogueLines(updated)}
           onComplete={handleRolePlayComplete}

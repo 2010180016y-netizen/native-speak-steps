@@ -59,6 +59,9 @@ SELECT tests.fails($$UPDATE profiles SET display_name = 'alice@example.com'$$,
 SELECT tests.fails($$UPDATE profiles SET total_xp = 1000000$$, 'XP is not client-writable');
 SELECT tests.fails($$UPDATE profiles SET streak_days = 365$$, 'streaks are not client-writable');
 SELECT tests.fails($$UPDATE profiles SET pro_until = now() + interval '1 year'$$, 'Pro is not client-writable');
+UPDATE profiles SET target_variety = 'en-GB';
+SELECT tests.eq((SELECT target_variety FROM profiles), 'en-GB', 'the English variety is editable');
+SELECT tests.fails($$UPDATE profiles SET target_variety = 'en-AU'$$, 'unknown English varieties are rejected', '23514');
 
 \echo 'progress ledger (SEC-4)'
 
@@ -116,6 +119,27 @@ SELECT tests.fails(format($$INSERT INTO srs_cards (user_id, native_text, target_
   'a user has one card per native text', '23505');
 SELECT tests.fails(format($$INSERT INTO srs_cards (user_id, native_text, target_text) VALUES (%L, 'x', 'x')$$, :'bob'),
   'cards cannot be created for another user');
+
+\echo 'card sources and review log (P1)'
+
+RESET ROLE;
+INSERT INTO srs_cards (id, user_id, native_text, target_text, source)
+VALUES ('00000000-0000-0000-0000-0000000000c1', :'carol', '고마워', 'thanks', 'chat');
+SELECT tests.login(:'alice');
+SELECT tests.eq((SELECT source FROM srs_cards WHERE native_text = '안녕'), 'import', 'cards default to the import source');
+SELECT tests.fails($$UPDATE srs_cards SET source = 'made_up'$$, 'unknown card sources are rejected', '23514');
+INSERT INTO card_reviews (card_id, review_number, quality, interval_before, interval_after)
+SELECT id, 0, 4, 1, 1 FROM srs_cards WHERE native_text = '안녕'
+ON CONFLICT (card_id, review_number) DO NOTHING;
+INSERT INTO card_reviews (card_id, review_number, quality, interval_before, interval_after)
+SELECT id, 0, 4, 1, 1 FROM srs_cards WHERE native_text = '안녕'
+ON CONFLICT (card_id, review_number) DO NOTHING;
+SELECT tests.eq((SELECT count(*) FROM card_reviews), 1, 'a review is logged once per card and review number');
+SELECT tests.fails($$INSERT INTO card_reviews (card_id, review_number, quality, interval_before, interval_after)
+  VALUES ('00000000-0000-0000-0000-0000000000c1', 0, 4, 1, 1)$$, 'reviews of another user''s card are rejected');
+SELECT tests.fails($$INSERT INTO card_reviews (card_id, review_number, quality, interval_before, interval_after)
+  SELECT id, 1, 9, 1, 6 FROM srs_cards WHERE native_text = '안녕'$$, 'review quality is 0 to 5', '23514');
+SELECT tests.fails($$UPDATE card_reviews SET quality = 5$$, 'the review log cannot be edited');
 
 \echo 'analytics (PRD-2)'
 
@@ -192,6 +216,7 @@ RESET ROLE;
 DELETE FROM auth.users WHERE id = :'alice';
 SELECT tests.eq((SELECT count(*) FROM profiles WHERE user_id = :'alice'), 0, 'the profile is deleted');
 SELECT tests.eq((SELECT count(*) FROM activity_events WHERE user_id = :'alice'), 0, 'activity is deleted');
+SELECT tests.eq((SELECT count(*) FROM card_reviews WHERE user_id = :'alice'), 0, 'the review log is deleted');
 SELECT tests.eq((SELECT count(*) FROM payments WHERE user_id IS NULL), 3,
   'payment records are kept, unlinked from the account');
 

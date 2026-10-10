@@ -36,3 +36,17 @@ Columns: `cohort_week`, `signups`, `onboarded`, `imported`, `activated`, `activa
 `d1_retention`, `d7_retention` (percentages).
 
 Monetization funnel queries: `docs/monetization.md`.
+
+## Review outcomes
+
+`card_reviews` keeps one row per card review: the quality rating (0-5, below 3 means forgotten)
+and the interval before and after. `srs_cards.source` says where a card came from (`import`,
+`chat`, `speaking`). Recall by source, leaving out each card's first review:
+
+```sql
+select c.source, count(*) as reviews,
+  round(100.0 * avg((r.quality >= 3)::int), 1) as recall_pct
+from card_reviews r join srs_cards c on c.id = r.card_id
+where r.review_number > 0
+group by 1 order by 1;
+```

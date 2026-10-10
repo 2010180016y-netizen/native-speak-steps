@@ -36,6 +36,46 @@ export const SPEECH_LANG_MAP: Record<string, string> = {
   es: "es-ES", fr: "fr-FR", de: "de-DE", pt: "pt-BR",
 };
 
+/** English learners choose American or British English (profiles.target_variety; null = American). */
+export const ENGLISH_VARIETIES = [
+  { code: "en-US", label: "미국 영어", flag: "🇺🇸" },
+  { code: "en-GB", label: "영국 영어", flag: "🇬🇧" },
+] as const;
+
+/** Language names for AI prompts. */
+const AI_LANGUAGE_NAMES: Record<string, string> = {
+  ko: "Korean", en: "English", ja: "Japanese", zh: "Chinese",
+  es: "Spanish", fr: "French", de: "German", pt: "Portuguese",
+};
+
+type LanguageProfile = {
+  native_language?: string | null;
+  target_language?: string | null;
+  target_variety?: string | null;
+} | null | undefined;
+
+const targetCode = (profile: LanguageProfile) => profile?.target_language || "en";
+
+/** The learner's native language, named for AI prompts. */
+export const nativeLanguageForAi = (profile: LanguageProfile) => {
+  const code = profile?.native_language || "ko";
+  return AI_LANGUAGE_NAMES[code] ?? code;
+};
+
+/** The target language, named for AI prompts. English names the chosen variety so replies follow it. */
+export const targetLanguageForAi = (profile: LanguageProfile) => {
+  const code = targetCode(profile);
+  if (code === "en") return profile?.target_variety === "en-GB" ? "British English" : "American English";
+  return AI_LANGUAGE_NAMES[code] ?? code;
+};
+
+/** Speech recognition and synthesis language for the target language, following the English variety. */
+export const targetSpeechLang = (profile: LanguageProfile) => {
+  const code = targetCode(profile);
+  if (code === "en") return profile?.target_variety === "en-GB" ? "en-GB" : "en-US";
+  return SPEECH_LANG_MAP[code] ?? "en-US";
+};
+
 export const OCCUPATIONS = [
   "학생", "회사원", "프리랜서", "의사", "엔지니어", "교사",
   "예술가", "요리사", "변호사", "기자", "디자이너", "CEO",
