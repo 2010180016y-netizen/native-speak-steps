@@ -17,7 +17,7 @@ import ChatConversation from "@/components/chat/ChatConversation";
 import { SCENARIO_STARTERS, SCENARIO_MISSIONS, DEFAULT_MISSIONS, type MiniMission } from "@/lib/chatScenarioData";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
-import { LANG_NAMES, SPEECH_LANG_MAP } from "@/lib/constants";
+import { nativeLanguageForAi, targetLanguageForAi, targetSpeechLang } from "@/lib/constants";
 import type { ChatMessage, ChatCorrection, ChatPhase, SavedChatSession } from "@/lib/chatTypes";
 import { CHAT_SESSION_KEY } from "@/lib/chatTypes";
 
@@ -35,7 +35,7 @@ const ChatPage = () => {
   const [restoringSession, setRestoringSession] = useState(true);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
 
-  const speechLang = SPEECH_LANG_MAP[profile?.target_language || "en"] || "en-US";
+  const speechLang = targetSpeechLang(profile);
   const { isListening, transcript, interimTranscript, isSupported: sttSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(speechLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(speechLang);
 
@@ -211,8 +211,8 @@ const ChatPage = () => {
     });
 
     try {
-      const targetLang = LANG_NAMES[profile?.target_language || "en"];
-      const nativeLang = LANG_NAMES[profile?.native_language || "ko"];
+      const targetLang = targetLanguageForAi(profile);
+      const nativeLang = nativeLanguageForAi(profile);
       const level = profile?.current_level || "beginner";
       const windowedMessages = newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content }));
       const cards = await practiceCardsReady();
@@ -248,7 +248,7 @@ const ChatPage = () => {
       if (corrections.length > 0) {
         const cardsToInsert = corrections.map((c) => ({
           user_id: user.id, native_text: `${c.wrong} → ${c.correct}`, target_text: c.correct,
-          context: `💬 채팅 교정: ${c.explanation || ""}\n원문: ${c.wrong}`,
+          context: `💬 채팅 교정: ${c.explanation || ""}\n원문: ${c.wrong}`, source: "chat",
           difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
         }));
         const { error: srsError } = await supabase

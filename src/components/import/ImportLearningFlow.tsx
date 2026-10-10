@@ -7,9 +7,7 @@ import { Type, AlignLeft, Check, X, RotateCcw, ChevronRight, Award, Calendar } f
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useRecordActivity } from "@/hooks/useRecordActivity";
-import { scheduleReview } from "@/lib/srs";
-import { track } from "@/lib/analytics";
+import { useCardReview } from "@/hooks/useCardReview";
 
 type WordItem = { word: string; count: number; percentage: number };
 type StructureItem = { pattern: string; description: string; count: number; example: string };
@@ -35,7 +33,7 @@ const QUANTITY_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 
 const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onUnknownWordsReady, onAllLearningComplete, generatingCards }: Props) => {
   const { user } = useAuth();
-  const recordActivity = useRecordActivity();
+  const reviewCard = useCardReview();
   const [activeTab, setActiveTab] = useState<"words" | "structures">("words");
   
   // Word learning state
@@ -213,16 +211,7 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
       .eq("id", currentItem.id)
       .single();
     
-    if (card) {
-      const { error } = await supabase
-        .from("srs_cards")
-        .update(scheduleReview(card, known ? 4 : 1))
-        .eq("id", currentItem.id);
-      if (!error) {
-        void recordActivity("card_review", `card_review:${card.id}:${card.review_count}`);
-        track("card_reviewed");
-      }
-    }
+    if (card) await reviewCard(card, known ? 4 : 1);
     
     if (currentReviewIndex < reviewItems.length - 1) {
       setCurrentReviewIndex(prev => prev + 1);

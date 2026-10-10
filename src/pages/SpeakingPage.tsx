@@ -16,7 +16,7 @@ import { usesPhrase } from "@/lib/phrasePractice";
 import { toast } from "sonner";
 import type { Persona, ChatScenario } from "@/components/chat/ChatSetup";
 import { SPEAKING_MISSIONS, SPEAKING_HINTS, type SpeakingMission } from "@/lib/speakingScenarioData";
-import { SPEECH_LANG_MAP, getRandomName } from "@/lib/constants";
+import { getRandomName, nativeLanguageForAi, targetLanguageForAi, targetSpeechLang } from "@/lib/constants";
 import type { SpeakingMessage, Correction, SpeakingPhase, SpeakingFeedbackData } from "@/lib/speakingTypes";
 
 // What the speaking function returns for a caller turn.
@@ -43,7 +43,7 @@ const SpeakingPage = () => {
   const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
   const [lastFailedText, setLastFailedText] = useState<string | null>(null);
 
-  const targetLang = SPEECH_LANG_MAP[profile?.target_language || "en"] || "en-US";
+  const targetLang = targetSpeechLang(profile);
   const { isListening, transcript, interimTranscript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(targetLang);
   const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(targetLang);
 
@@ -96,7 +96,7 @@ const SpeakingPage = () => {
     if (!user || corrections.length === 0) return;
     const cardsToInsert = corrections.map((c) => ({
       user_id: user.id, native_text: `${c.wrong} → ${c.correct}`, target_text: c.correct,
-      context: `📞 스피킹 교정: ${c.explanation || ""}\n원문: ${c.wrong}`,
+      context: `📞 스피킹 교정: ${c.explanation || ""}\n원문: ${c.wrong}`, source: "speaking",
       difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
     }));
     const { error } = await supabase.from("srs_cards").upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
@@ -144,7 +144,7 @@ const SpeakingPage = () => {
       const { data, error } = await invokeAi<SpeakingReply>("speaking", {
         body: {
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-          targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
+          targetLanguage: targetLanguageForAi(profile), nativeLanguage: nativeLanguageForAi(profile),
           level: profile?.current_level || "beginner", scenario: scenario?.id || "free",
           persona: persona ? { gender: persona.gender, occupation: persona.occupation, personality: persona.personality } : undefined,
           callerName: callerName || undefined, practicePhrases,
@@ -190,7 +190,7 @@ const SpeakingPage = () => {
       const { data, error } = await invokeAi<SpeakingReply>("speaking", {
         body: {
           messages: [{ role: "user", content: "The phone is ringing and I just answered. Start the conversation as the caller." }],
-          targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko",
+          targetLanguage: targetLanguageForAi(profile), nativeLanguage: nativeLanguageForAi(profile),
           level: profile?.current_level || "beginner", scenario: scenario?.id || "free",
           persona: persona ? { gender: persona.gender, occupation: persona.occupation, personality: persona.personality } : undefined,
           callerName: callerName || undefined, practicePhrases,
@@ -215,7 +215,7 @@ const SpeakingPage = () => {
     setIsFeedbackLoading(true);
     try {
       const { data, error } = await invokeAi<{ feedback?: SpeakingFeedbackData }>("speaking-feedback", {
-        body: { messages, targetLanguage: profile?.target_language || "en", nativeLanguage: profile?.native_language || "ko", level: profile?.current_level || "beginner" },
+        body: { messages, targetLanguage: targetLanguageForAi(profile), nativeLanguage: nativeLanguageForAi(profile), level: profile?.current_level || "beginner" },
       });
       if (error) throw error;
       if (data.feedback) {
@@ -236,7 +236,7 @@ const SpeakingPage = () => {
           if (grammarErrors.length > 0) {
             const feedbackCards = grammarErrors.map((err) => ({
               user_id: user.id, native_text: `${err.original} → ${err.corrected}`, target_text: err.corrected,
-              context: `📞 스피킹 피드백 교정: ${err.explanation || ""}`,
+              context: `📞 스피킹 피드백 교정: ${err.explanation || ""}`, source: "speaking",
               difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
             }));
             await supabase.from("srs_cards").upsert(feedbackCards, { onConflict: "user_id,native_text", ignoreDuplicates: true });

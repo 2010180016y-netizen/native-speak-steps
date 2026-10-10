@@ -164,6 +164,47 @@ export type Database = {
         }
         Relationships: []
       }
+      card_reviews: {
+        Row: {
+          card_id: string
+          id: number
+          interval_after: number
+          interval_before: number
+          quality: number
+          review_number: number
+          reviewed_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          id?: never
+          interval_after: number
+          interval_before: number
+          quality: number
+          review_number: number
+          reviewed_at?: string
+          user_id?: string
+        }
+        Update: {
+          card_id?: string
+          id?: never
+          interval_after?: number
+          interval_before?: number
+          quality?: number
+          review_number?: number
+          reviewed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_reviews_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "srs_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_feedback_results: {
         Row: {
           avg_words_per_message: number
@@ -651,6 +692,7 @@ export type Database = {
           reminder_time: string
           streak_days: number
           target_language: string
+          target_variety: string | null
           timezone: string
           total_xp: number
           updated_at: string
@@ -672,6 +714,7 @@ export type Database = {
           reminder_time?: string
           streak_days?: number
           target_language?: string
+          target_variety?: string | null
           timezone?: string
           total_xp?: number
           updated_at?: string
@@ -693,6 +736,7 @@ export type Database = {
           reminder_time?: string
           streak_days?: number
           target_language?: string
+          target_variety?: string | null
           timezone?: string
           total_xp?: number
           updated_at?: string
@@ -735,6 +779,7 @@ export type Database = {
           native_text: string
           next_review_at: string
           review_count: number
+          source: string
           target_text: string
           updated_at: string
           user_id: string
@@ -749,6 +794,7 @@ export type Database = {
           native_text: string
           next_review_at?: string
           review_count?: number
+          source?: string
           target_text: string
           updated_at?: string
           user_id: string
@@ -763,6 +809,7 @@ export type Database = {
           native_text?: string
           next_review_at?: string
           review_count?: number
+          source?: string
           target_text?: string
           updated_at?: string
           user_id?: string

@@ -13,15 +13,11 @@ export type DialogueLine = {
 type Props = {
   speakers: string[];
   lines: DialogueLine[];
-  targetLang: string;
+  /** Speech recognition and synthesis language, e.g. "en-GB". */
+  speechLang: string;
   onClose: () => void;
   onLinesUpdate?: (lines: DialogueLine[]) => void;
   onComplete?: (completedCount: number, totalCount: number) => void;
-};
-
-const LANG_MAP: Record<string, string> = {
-  en: "en-US", ja: "ja-JP", zh: "zh-CN", ko: "ko-KR",
-  es: "es-ES", fr: "fr-FR", de: "de-DE", pt: "pt-BR",
 };
 
 const SPEAKER_COLORS = [
@@ -31,7 +27,7 @@ const SPEAKER_COLORS = [
   "bg-emerald-500/15 border-emerald-500/30 text-emerald-600",
 ];
 
-const DialogueRolePlay = ({ speakers, lines, targetLang, onClose, onLinesUpdate, onComplete }: Props) => {
+const DialogueRolePlay = ({ speakers, lines, speechLang, onClose, onLinesUpdate, onComplete }: Props) => {
   const [myRole, setMyRole] = useState<string | null>(null);
   const [currentLine, setCurrentLine] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -40,9 +36,8 @@ const DialogueRolePlay = ({ speakers, lines, targetLang, onClose, onLinesUpdate,
   const [editLines, setEditLines] = useState<DialogueLine[]>(lines);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const langCode = LANG_MAP[targetLang] || "en-US";
-  const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(langCode);
-  const { isListening, transcript, interimTranscript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(langCode);
+  const { isSpeaking, speak, stop: stopSpeaking } = useSpeechSynthesis(speechLang);
+  const { isListening, transcript, interimTranscript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition(speechLang);
 
   // Auto-scroll to current line
   useEffect(() => {

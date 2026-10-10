@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeAi, toastAiError } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
+import { nativeLanguageForAi, targetLanguageForAi } from "@/lib/constants";
 import { toast } from "sonner";
 import { Loader2, BarChart3, MessageSquare, Lightbulb, AlertTriangle, BookOpen, ArrowLeft } from "lucide-react";
 import { BarList, DonutChart } from "@/components/Charts";
@@ -52,8 +53,8 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
     setLoading(true);
 
     try {
-      const targetLang = profile?.target_language || "en";
-      const nativeLang = profile?.native_language || "ko";
+      const targetLang = targetLanguageForAi(profile);
+      const nativeLang = nativeLanguageForAi(profile);
 
       const { data, error } = await invokeAi<FeedbackData>("chat-feedback", {
         body: {
@@ -124,6 +125,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
               target_text: c.target_text,
               native_text: c.native_text,
               context: c.context,
+              source: "chat",
             })),
             { onConflict: "user_id,native_text", ignoreDuplicates: true },
           );

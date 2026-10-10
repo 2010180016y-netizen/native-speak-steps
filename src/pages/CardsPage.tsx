@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useRecordActivity } from "@/hooks/useRecordActivity";
-import { scheduleReview } from "@/lib/srs";
-import { track } from "@/lib/analytics";
+import { useCardReview } from "@/hooks/useCardReview";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
@@ -15,6 +13,7 @@ type Card = {
   native_text: string;
   target_text: string;
   context: string | null;
+  source: string;
   difficulty: number;
   interval_days: number;
   ease_factor: number;
@@ -28,11 +27,8 @@ type ViewMode = "card" | "list";
 
 const SWIPE_THRESHOLD = 100;
 
-const getCardSource = (context: string | null): "chat" | "analysis" => {
-  if (!context) return "analysis";
-  if (context.includes("좋은 표현") || context.includes("개선 표현")) return "chat";
-  return "analysis";
-};
+// Conversation cards come from chat or speaking; the rest from analysing imported text.
+const getCardSource = (source: string): "chat" | "analysis" => (source === "import" ? "analysis" : "chat");
 
 const getSourceLabel = (source: "chat" | "analysis") =>
   source === "chat" ? "💬 회화" : "📖 분석";
@@ -42,7 +38,7 @@ const getSourceColor = (source: "chat" | "analysis") =>
 
 const CardsPage = () => {
   const { user } = useAuth();
-  const recordActivity = useRecordActivity();
+  const reviewCard = useCardReview();
   const [allCards, setAllCards] = useState<Card[]>([]);
   const [allCardsForList, setAllCardsForList] = useState<Card[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -89,7 +85,7 @@ const CardsPage = () => {
   useEffect(() => {
     const filtered = sourceFilter === "all"
       ? allCards
-      : allCards.filter((c) => getCardSource(c.context) === sourceFilter);
+      : allCards.filter((c) => getCardSource(c.source) === sourceFilter);
     setCards(filtered);
     setCurrentIndex(0);
     setFlipped(false);
@@ -97,10 +93,10 @@ const CardsPage = () => {
 
   const listCards = sourceFilter === "all"
     ? allCardsForList
-    : allCardsForList.filter((c) => getCardSource(c.context) === sourceFilter);
+    : allCardsForList.filter((c) => getCardSource(c.source) === sourceFilter);
 
-  const chatCount = allCardsForList.filter((c) => getCardSource(c.context) === "chat").length;
-  const analysisCount = allCardsForList.filter((c) => getCardSource(c.context) === "analysis").length;
+  const chatCount = allCardsForList.filter((c) => getCardSource(c.source) === "chat").length;
+  const analysisCount = allCardsForList.filter((c) => getCardSource(c.source) === "analysis").length;
   const dueCount = allCards.length;
 
   const currentCard = cards[currentIndex];
@@ -109,16 +105,7 @@ const CardsPage = () => {
     if (!currentCard || !user) return;
     if (direction) setExitDirection(direction);
 
-    const { error } = await supabase
-      .from("srs_cards")
-      .update(scheduleReview(currentCard, quality))
-      .eq("id", currentCard.id);
-    if (error) {
-      toast.error("복습 결과를 저장하지 못했어요");
-    } else {
-      void recordActivity("card_review", `card_review:${currentCard.id}:${currentCard.review_count}`);
-      track("card_reviewed");
-    }
+    if (!(await reviewCard(currentCard, quality))) toast.error("복습 결과를 저장하지 못했어요");
 
     setTimeout(() => {
       setFlipped(false);
@@ -159,7 +146,7 @@ const CardsPage = () => {
     );
   }
 
-  const cardSource = currentCard ? getCardSource(currentCard.context) : null;
+  const cardSource = currentCard ? getCardSource(currentCard.source) : null;
 
   return (
     <AppLayout>
@@ -240,7 +227,7 @@ const CardsPage = () => {
             </div>
           ) : (
             listCards.map((card, i) => {
-              const source = getCardSource(card.context);
+              const source = getCardSource(card.source);
               const isExpanded = expandedId === card.id;
               const isDue = card.next_review_at && new Date(card.next_review_at) <= new Date();
 
