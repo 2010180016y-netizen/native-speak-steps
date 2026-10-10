@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import { ArrowLeft, MessageSquare, Clock, ChevronRight } from "lucide-react";
@@ -27,7 +27,7 @@ const ChatHistoryPage = () => {
     if (!user) return;
     const fetchSessions = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await backend
         .from("chat_messages")
         .select("session_id, role, content, created_at")
         .eq("user_id", user.id)

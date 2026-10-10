@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 
 // Product funnel events (PRD-2). Definitions and the cohort view: docs/metrics.md.
 export type AnalyticsEvent =
@@ -16,7 +16,7 @@ export type AnalyticsEvent =
 
 /** Records an event for the signed-in user; at most one row per user, event and day. Never throws. */
 export function track(event: AnalyticsEvent) {
-  supabase
+  backend
     .from("analytics_events")
     .upsert({ event }, { onConflict: "user_id,event,event_date", ignoreDuplicates: true })
     .then(({ error }) => {

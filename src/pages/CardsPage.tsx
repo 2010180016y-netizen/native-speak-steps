@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCardReview } from "@/hooks/useCardReview";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { RotateCcw, Check, X, Filter, Layers, List, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
@@ -59,7 +59,7 @@ const CardsPage = () => {
     if (!user) return;
     const fetchCards = async () => {
       // Due cards for review mode
-      const { data: dueData } = await supabase
+      const { data: dueData } = await backend
         .from("srs_cards")
         .select("*")
         .eq("user_id", user.id)
@@ -69,7 +69,7 @@ const CardsPage = () => {
       setAllCards(dueData || []);
 
       // All cards for list view
-      const { data: allData } = await supabase
+      const { data: allData } = await backend
         .from("srs_cards")
         .select("*")
         .eq("user_id", user.id)
@@ -121,7 +121,7 @@ const CardsPage = () => {
 
   const handleDelete = async (id: string) => {
     if (!user) return;
-    await supabase.from("srs_cards").delete().eq("id", id);
+    await backend.from("srs_cards").delete().eq("id", id);
     setAllCardsForList((prev) => prev.filter((c) => c.id !== id));
     setAllCards((prev) => prev.filter((c) => c.id !== id));
     toast.success("카드가 삭제되었습니다");

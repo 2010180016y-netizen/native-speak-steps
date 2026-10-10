@@ -4,7 +4,7 @@ import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { track } from "@/lib/analytics";
 import { usePhrasePractice } from "@/hooks/usePhrasePractice";
 import { usesPhrase } from "@/lib/phrasePractice";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { AiError, invokeAi, isPaywallError } from "@/lib/ai";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
@@ -192,7 +192,7 @@ const ChatPage = () => {
     const msg = messages[msgIndex];
     if (!msg.feedbackId || !user) return;
     const newRating = msg.rating === rating ? null : rating;
-    const { error } = await supabase.from("ai_feedback").update({ rating: newRating }).eq("id", msg.feedbackId);
+    const { error } = await backend.from("ai_feedback").update({ rating: newRating }).eq("id", msg.feedbackId);
     if (error) { toast.error("평가 저장에 실패했습니다"); return; }
     setMessages((prev) => prev.map((m, i) => (i === msgIndex ? { ...m, rating: newRating } : m)));
   };
@@ -206,7 +206,7 @@ const ChatPage = () => {
     setInput("");
     setLoading(true);
 
-    await supabase.from("chat_messages").insert({
+    await backend.from("chat_messages").insert({
       user_id: user.id, role: "user", content: input, session_id: sessionId,
     });
 
@@ -229,7 +229,7 @@ const ChatPage = () => {
       const responseTimeMs = data?.response_time_ms || 0;
       const corrections: ChatCorrection[] = data?.corrections || [];
 
-      const { data: feedbackData } = await supabase.from("ai_feedback").insert({
+      const { data: feedbackData } = await backend.from("ai_feedback").insert({
         user_id: user.id, feature: "chat", response_time_ms: responseTimeMs,
         metadata: { session_id: sessionId },
       }).select("id").single();
@@ -241,7 +241,7 @@ const ChatPage = () => {
       const finalMessages = [...newMessages, assistantMsg];
       setMessages(finalMessages);
 
-      await supabase.from("chat_messages").insert({
+      await backend.from("chat_messages").insert({
         user_id: user.id, role: "assistant", content: assistantContent, session_id: sessionId,
       });
 
@@ -251,7 +251,7 @@ const ChatPage = () => {
           context: `💬 채팅 교정: ${c.explanation || ""}\n원문: ${c.wrong}`, source: "chat",
           difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
         }));
-        const { error: srsError } = await supabase
+        const { error: srsError } = await backend
           .from("srs_cards")
           .upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
         if (!srsError) toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
@@ -260,7 +260,7 @@ const ChatPage = () => {
       void recordActivity("chat_message", `chat_message:${sessionId}:${newMessages.filter((m) => m.role === "user").length}`);
       checkMissions(finalMessages);
     } catch (err) {
-      await supabase.from("ai_feedback").insert({
+      await backend.from("ai_feedback").insert({
         user_id: user.id, feature: "chat",
         error_type: err instanceof AiError ? err.type : "unknown",
         error_message: err instanceof Error ? err.message : String(err),

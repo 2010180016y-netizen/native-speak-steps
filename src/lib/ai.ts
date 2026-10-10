@@ -1,9 +1,8 @@
-import { FunctionsHttpError } from "@supabase/supabase-js";
 import { toast, type ExternalToast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { track } from "@/lib/analytics";
 
-/** An AI function failure with the reason the server gave (supabase/functions/_shared/ai.ts). */
+/** An AI function failure with the reason the server gave (api/_lib/ai.ts). */
 export class AiError extends Error {
   constructor(message: string, readonly type: string) {
     super(message);
@@ -17,16 +16,29 @@ export const isPaywallError = (error: unknown) => error instanceof AiError && er
 type AiResult<T> = { data: T; error: null } | { data: null; error: Error };
 
 /**
- * Calls an AI edge function; `T` is the JSON it returns. Server-explained failures come back as
- * AiError. When the daily quota is used up it also shows the paywall (BIZ-1), so callers must
- * not add their own toast.
+ * Calls a server function in api/ as the signed-in user; `T` is the JSON it returns.
+ * Server-explained failures come back as AiError. When the daily quota is used up it also shows
+ * the paywall (BIZ-1), so callers must not add their own toast.
  */
 export async function invokeAi<T>(name: string, options?: { body?: unknown }): Promise<AiResult<T>> {
-  const result = await supabase.functions.invoke<T>(name, options as { body?: Record<string, unknown> });
-  if (!(result.error instanceof FunctionsHttpError)) return result;
+  let res: Response;
+  try {
+    const { data: { session } } = await backend.auth.getSession();
+    res = await fetch(`/api/${name}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify(options?.body ?? {}),
+    });
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e : new Error(String(e)) };
+  }
 
-  const payload = await result.error.context.json().catch(() => null);
-  if (typeof payload?.error !== "string") return result;
+  const payload = await res.json().catch(() => null);
+  if (res.ok) return { data: payload as T, error: null };
+  if (typeof payload?.error !== "string") return { data: null, error: new Error(`${name} failed with ${res.status}`) };
 
   const error = new AiError(payload.error, payload.error_type ?? "unknown");
   if (isPaywallError(error)) {

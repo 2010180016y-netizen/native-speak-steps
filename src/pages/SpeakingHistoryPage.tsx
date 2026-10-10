@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import AppLayout from "@/components/AppLayout";
 import { motion } from "framer-motion";
 import { ArrowLeft, Phone, Clock, Star, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import type { Json } from "@/integrations/supabase/types";
+import type { Json } from "@/lib/database.types";
 
 // What SpeakingPage stores in lesson_completions.metadata.
 type SessionMetadata = { scenario_label?: string; persona_name?: string; persona_occupation?: string };
@@ -36,7 +36,7 @@ const SpeakingHistoryPage = () => {
     if (!user) return;
     const fetch = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await backend
         .from("lesson_completions")
         .select("*")
         .eq("user_id", user.id)

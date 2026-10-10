@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const insert = vi.fn().mockResolvedValue({ error: null });
 const getSession = vi.fn();
 
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { auth: { getSession }, from: () => ({ insert }) },
+vi.mock("@/lib/backend", () => ({
+  backend: { auth: { getSession }, from: () => ({ insert }) },
 }));
 
 describe("reportError", () => {

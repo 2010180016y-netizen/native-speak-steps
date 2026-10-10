@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Eye, EyeOff, Lock, CheckCircle } from "lucide-react";
@@ -11,25 +11,10 @@ const ResetPasswordPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check if we're in recovery mode from the URL hash
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get("type");
-    
-    if (type === "recovery") {
-      setIsRecoveryMode(true);
-    } else {
-      // Also check for access_token which indicates a valid recovery session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          setIsRecoveryMode(true);
-        }
-      });
-    }
-  }, []);
+  // The reset email links here with ?token=...; an expired link arrives with ?error=INVALID_TOKEN.
+  const [token] = useState(() => new URLSearchParams(window.location.search).get("token"));
+  const isRecoveryMode = Boolean(token);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,12 +31,11 @@ const ResetPasswordPage = () => {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      
-      if (error) throw error;
-      
-      toast.success("비밀번호가 성공적으로 변경되었습니다! 🎉");
-      navigate("/dashboard");
+      const { error } = await backend.auth.getBetterAuthInstance().resetPassword({ newPassword: password, token: token! });
+      if (error) throw new Error(error.message);
+
+      toast.success("비밀번호가 변경되었어요. 새 비밀번호로 로그인해 주세요 🎉");
+      navigate("/auth");
     } catch (err) {
       toast.error(errorMessage(err, "비밀번호 변경 중 오류가 발생했습니다"));
     } finally {

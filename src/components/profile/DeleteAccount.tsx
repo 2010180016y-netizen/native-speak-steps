@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
+import { invokeAi } from "@/lib/ai";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -13,14 +14,14 @@ const DeleteAccount = () => {
 
   const handleDelete = async () => {
     setDeleting(true);
-    const { error } = await supabase.functions.invoke("delete-account");
+    const { error } = await invokeAi("delete-account");
     if (error) {
       toast.error("계정 삭제에 실패했어요. 잠시 후 다시 시도해주세요.");
       setDeleting(false);
       return;
     }
     // The account no longer exists; only the local session needs clearing.
-    await supabase.auth.signOut({ scope: "local" });
+    await backend.auth.signOut({ scope: "local" });
     toast.success("계정과 모든 학습 데이터가 삭제되었어요.");
     navigate("/auth", { replace: true });
   };

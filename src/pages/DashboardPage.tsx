@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, Zap, BookOpen, MessageCircle, Upload, BarChart3, ChevronDown, Check, Sparkles } from "lucide-react";
@@ -71,8 +71,8 @@ const DashboardPage = () => {
     if (!user) return;
     const fetchStats = async () => {
       const [importsRes, cardsRes] = await Promise.all([
-        supabase.from("language_imports").select("analysis_result").eq("user_id", user.id),
-        supabase.from("srs_cards").select("native_text, interval_days, next_review_at").eq("user_id", user.id),
+        backend.from("language_imports").select("analysis_result").eq("user_id", user.id),
+        backend.from("srs_cards").select("native_text, interval_days, next_review_at").eq("user_id", user.id),
       ]);
 
       const cards = cardsRes.data || [];

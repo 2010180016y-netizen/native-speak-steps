@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { X, Mail, ArrowLeft, CheckCircle } from "lucide-react";
@@ -19,7 +19,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }: ForgotPasswordModalProps) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await backend.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;

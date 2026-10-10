@@ -6,7 +6,7 @@ import SpeakingFeedback from "@/components/speaking/SpeakingFeedback";
 import SpeakingSetup from "@/components/speaking/SpeakingSetup";
 import SpeakingIncoming from "@/components/speaking/SpeakingIncoming";
 import SpeakingCall from "@/components/speaking/SpeakingCall";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { invokeAi, toastAiError } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
@@ -70,7 +70,7 @@ const SpeakingPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("target_language, native_language, current_level").eq("user_id", user.id).single().then(({ data }) => {
+    backend.from("profiles").select("target_language, native_language, current_level").eq("user_id", user.id).single().then(({ data }) => {
       if (data) setProfile(data);
     });
   }, [user]);
@@ -89,7 +89,7 @@ const SpeakingPage = () => {
 
   const saveMessageToDB = useCallback(async (role: string, content: string) => {
     if (!user) return;
-    try { await supabase.from("chat_messages").insert({ user_id: user.id, role, content, session_id: speakingSessionId }); } catch { /* silent */ }
+    try { await backend.from("chat_messages").insert({ user_id: user.id, role, content, session_id: speakingSessionId }); } catch { /* silent */ }
   }, [user, speakingSessionId]);
 
   const saveCorrectionCards = useCallback(async (corrections: Correction[]) => {
@@ -99,7 +99,7 @@ const SpeakingPage = () => {
       context: `📞 스피킹 교정: ${c.explanation || ""}\n원문: ${c.wrong}`, source: "speaking",
       difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
     }));
-    const { error } = await supabase.from("srs_cards").upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
+    const { error } = await backend.from("srs_cards").upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
     if (!error) toast(`📝 교정 ${corrections.length}건이 복습 카드에 저장됨`, { icon: "✅" });
   }, [user]);
 
@@ -224,7 +224,7 @@ const SpeakingPage = () => {
           const score = data.feedback.overallScore || 50;
           const reward = await recordActivity("speaking_session", `speaking_session:${speakingSessionId}`, score);
 
-          await supabase.from("lesson_completions").insert({
+          await backend.from("lesson_completions").insert({
             user_id: user.id, lesson_type: "speaking", score, duration_seconds: callDuration,
             metadata: {
               session_id: speakingSessionId, scenario: scenario?.id, scenario_label: scenario?.label,
@@ -239,7 +239,7 @@ const SpeakingPage = () => {
               context: `📞 스피킹 피드백 교정: ${err.explanation || ""}`, source: "speaking",
               difficulty: 1, ease_factor: 2.5, interval_days: 1, review_count: 0, next_review_at: new Date().toISOString(),
             }));
-            await supabase.from("srs_cards").upsert(feedbackCards, { onConflict: "user_id,native_text", ignoreDuplicates: true });
+            await backend.from("srs_cards").upsert(feedbackCards, { onConflict: "user_id,native_text", ignoreDuplicates: true });
           }
           if (reward?.applied) toast.success(`🎉 스피킹 완료! +${reward.xp} XP`);
           track("speaking_completed");

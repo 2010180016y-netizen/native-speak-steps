@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { useAuth } from "@/hooks/useAuth";
 
 /**
@@ -14,7 +14,7 @@ export const useSessionTracker = (activityType: string = "general") => {
   const startSession = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
+      const { data, error } = await backend
         .from("user_sessions")
         .insert({
           user_id: user.id,
@@ -37,7 +37,7 @@ export const useSessionTracker = (activityType: string = "general") => {
     if (!sessionIdRef.current || !user) return;
     const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
     try {
-      await supabase
+      await backend
         .from("user_sessions")
         .update({
           ended_at: new Date().toISOString(),
@@ -65,11 +65,8 @@ export const useSessionTracker = (activityType: string = "general") => {
     const handleBeforeUnload = () => {
       if (sessionIdRef.current) {
         const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
-        // Use sendBeacon for reliable unload tracking
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/user_sessions?id=eq.${sessionIdRef.current}`;
-        navigator.sendBeacon?.(url); // Best-effort
-        // Also try regular update
-        supabase
+        // Best-effort: the page may unload before the request completes.
+        backend
           .from("user_sessions")
           .update({ ended_at: new Date().toISOString(), duration_seconds: duration })
           .eq("id", sessionIdRef.current);

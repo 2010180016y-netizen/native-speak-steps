@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { scheduleReview, type SrsState } from "@/lib/srs";
 import { track } from "@/lib/analytics";
@@ -15,11 +15,11 @@ export const useCardReview = () => {
   return useCallback(
     async (card: SrsState & { id: string }, quality: number) => {
       const next = scheduleReview(card, quality);
-      const { error } = await supabase.from("srs_cards").update(next).eq("id", card.id);
+      const { error } = await backend.from("srs_cards").update(next).eq("id", card.id);
       if (error) return false;
 
       // Keyed by the card's review count, so a retried review is logged once.
-      void supabase
+      void backend
         .from("card_reviews")
         .upsert(
           {

@@ -1,5 +1,5 @@
 // BIZ-1 plans. Display values only: create-order sets the real price and
-// supabase/functions/_shared/ai.ts (DAILY_LIMITS) enforces the real limits.
+// api/_lib/ai.ts (DAILY_LIMITS) enforces the real limits.
 export const PRO_PRICE_KRW = 4900;
 export const PRO_DAYS = 30;
 

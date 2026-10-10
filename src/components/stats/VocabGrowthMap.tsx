@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { motion } from "framer-motion";
 import { Map, RefreshCw, TrendingUp, Sprout } from "lucide-react";
 import { format, subDays, eachWeekOfInterval, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
@@ -98,7 +98,7 @@ const VocabGrowthMap = ({ userId }: Props) => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await backend
         .from("srs_cards")
         .select("target_text, native_text, context, interval_days, created_at")
         .eq("user_id", userId)

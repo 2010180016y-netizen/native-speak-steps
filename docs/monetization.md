@@ -6,7 +6,7 @@ Learners who hit the free daily AI limit value the product enough to pay a small
 more AI conversation. AI calls are the main variable cost, so the paid tier sells more of them.
 
 - **Free:** daily AI limits per feature (enforced by `DAILY_LIMITS.free` in
-  `supabase/functions/_shared/ai.ts`), e.g. 30 chat and 30 speaking turns, 3 imports analysed.
+  `api/_lib/ai.ts`), e.g. 30 chat and 30 speaking turns, 3 imports analysed.
 - **Pro:** ₩4,900 for 30 days of higher limits (`DAILY_LIMITS.pro`). One-off pass, no auto-renewal,
   so no subscription management, cancellation flow or billing keys are needed yet. Buying again
   while Pro adds 30 days.
@@ -36,7 +36,7 @@ hour (`429 too_many_orders`). Change the numbers in that function if real users 
 ## Setup
 
 1. Sign a merchant contract with Toss Payments and get the API keys (test keys work without one).
-2. Set `VITE_TOSS_CLIENT_KEY` for the frontend and `TOSS_SECRET_KEY` as an edge function secret.
+2. Set `VITE_TOSS_CLIENT_KEY` for the frontend and `TOSS_SECRET_KEY` as a Vercel environment variable.
 3. Apply the migration before deploying the functions: every AI function now reads
    `profiles.pro_until`.
 

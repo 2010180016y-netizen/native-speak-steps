@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Clock, CheckCircle, Activity, Flame, ChevronLeft, ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { format, subDays, eachDayOfInterval, startOfWeek, endOfWeek, addWeeks, subWeeks, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -40,7 +40,7 @@ const ActivityLogDashboard = ({ userId }: Props) => {
       setLoading(true);
       // Fetch last ~6 months of sessions to allow scrolling
       const startDate = subDays(new Date(), 180);
-      const { data: sessions } = await supabase
+      const { data: sessions } = await backend
         .from("user_sessions")
         .select("started_at, duration_seconds")
         .eq("user_id", userId)

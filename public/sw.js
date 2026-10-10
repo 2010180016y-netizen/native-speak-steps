@@ -6,7 +6,7 @@
 //   first. The files a page references are cached as soon as it loads, so the app also starts
 //   offline after a deploy. Route chunks are cached when first used: offline you get the screens
 //   you have opened (the app's data still needs a connection).
-// - Only same-origin GET requests are handled: Supabase, Toss and everything else pass through.
+// - Only same-origin GET requests are handled: the Neon APIs, Toss and everything else pass through.
 
 const SHELL_CACHE = "shell-v1";
 const ASSET_CACHE = "assets-v1";

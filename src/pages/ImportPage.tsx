@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRecordActivity } from "@/hooks/useRecordActivity";
 import { track } from "@/lib/analytics";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { invokeAi, toastAiError } from "@/lib/ai";
 import AppLayout from "@/components/AppLayout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,7 +47,7 @@ const ImportPage = () => {
     const loadPreviousAnalysis = async () => {
       setLoadingPrevious(true);
       try {
-        const { data } = await supabase
+        const { data } = await backend
           .from("language_imports")
           .select("*")
           .eq("user_id", user.id)
@@ -99,7 +99,7 @@ const ImportPage = () => {
       });
 
       // Save import with masked text for privacy
-      const { data: savedImport, error } = await supabase.from("language_imports").insert({
+      const { data: savedImport, error } = await backend.from("language_imports").insert({
         user_id: user.id,
         source_type: "text",
         word_count: analysis.wordCount,
@@ -137,7 +137,7 @@ const ImportPage = () => {
         ...analysis.stats,
       } as TextAnalysis;
       setDetailedAnalysis(merged);
-      supabase.from("language_imports")
+      backend.from("language_imports")
         .update({ analysis_result: merged })
         .eq("id", savedImport.id)
         .then(() => {});
@@ -227,7 +227,7 @@ const ImportPage = () => {
         context: card.context,
       }));
 
-      const { error } = await supabase
+      const { error } = await backend
         .from("srs_cards")
         .upsert(cardsToInsert, { onConflict: "user_id,native_text", ignoreDuplicates: true });
       if (error) throw error;
@@ -297,7 +297,7 @@ const ImportPage = () => {
           <div className="duo-card mt-4 text-sm">
             <p className="font-bold text-foreground mb-1">AI 분석 동의가 필요해요</p>
             <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-              입력한 텍스트는 분석을 위해 AI 처리업체(Google Gemini, Lovable AI 게이트웨이 경유 가능)로 전송되며 국외(미국 등)에서 처리될 수 있어요. 무료 등급으로 처리하면 Google이 이 내용을 서비스 개선에 사용하고 검토자가 읽을 수 있어요.
+              입력한 텍스트는 분석을 위해 AI 처리업체(Google Gemini)로 전송되며 국외(미국 등)에서 처리될 수 있어요. 무료 등급으로 처리하면 Google이 이 내용을 서비스 개선에 사용하고 검토자가 읽을 수 있어요.
               원문은 저장하지 않고 분석 결과만 저장해요. 다른 사람의 대화가 포함되어 있다면 그 사람의 동의를 받은 내용만 입력해 주세요.{" "}
               <Link to="/privacy" className="text-primary underline">개인정보처리방침</Link>
             </p>

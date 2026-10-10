@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { useAuth } from "@/hooks/useAuth";
 import { useCardReview } from "@/hooks/useCardReview";
 import { pickPracticeCards, type PracticeCard } from "@/lib/phrasePractice";
 
 async function fetchDueCards(userId: string | undefined): Promise<PracticeCard[]> {
   if (!userId) return [];
-  const { data } = await supabase
+  const { data } = await backend
     .from("srs_cards")
     .select("id, target_text, ease_factor, interval_days, review_count")
     .eq("user_id", userId)

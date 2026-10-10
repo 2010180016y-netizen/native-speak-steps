@@ -29,8 +29,8 @@ const DOCS: Record<"privacy" | "terms", { title: string; sections: Section[] }> 
       {
         title: "3. 처리 위탁 및 국외 이전",
         body: [
-          "Supabase Inc.: 데이터베이스, 인증, 파일 저장소 호스팅.",
-          "Lovable: 앱 호스팅 및 AI 게이트웨이 운영.",
+          "Neon (Databricks, Inc.): 데이터베이스와 로그인(인증) 호스팅.",
+          "Vercel Inc.: 앱과 서버 기능 호스팅.",
           "(주)토스페이먼츠: Pro 이용권 결제 처리.",
           "브라우저 푸시 서비스(Google, Apple, Mozilla 등): 학습 알림을 켠 경우 알림 전달.",
           "브라우저 음성 인식 서비스(Chrome은 Google, Safari는 Apple 등): 말하기 기능에서 마이크를 쓰면 브라우저가 음성을 텍스트로 바꾸며, 이때 음성이 브라우저 제공사의 서버로 전송될 수 있습니다. LangSync는 음성을 받거나 저장하지 않습니다.",

@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
 
@@ -22,7 +22,7 @@ export async function enablePush(): Promise<boolean> {
   });
   const { endpoint, keys } = subscription.toJSON();
   if (!endpoint || !keys?.p256dh || !keys?.auth) return false;
-  const { error } = await supabase
+  const { error } = await backend
     .from("push_subscriptions")
     .upsert({ endpoint, p256dh: keys.p256dh, auth: keys.auth }, { onConflict: "endpoint" });
   return !error;
@@ -34,6 +34,6 @@ export async function disablePush() {
   const registration = await navigator.serviceWorker.getRegistration("/sw.js");
   const subscription = await registration?.pushManager.getSubscription();
   if (!subscription) return;
-  await supabase.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint);
+  await backend.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint);
   await subscription.unsubscribe();
 }

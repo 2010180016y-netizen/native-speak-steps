@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { invokeAi, toastAiError } from "@/lib/ai";
 import { useAuth } from "@/hooks/useAuth";
 import { nativeLanguageForAi, targetLanguageForAi } from "@/lib/constants";
@@ -71,7 +71,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
       setFeedback(data);
 
       // Save feedback to DB
-      await supabase.from("chat_feedback_results").insert({
+      await backend.from("chat_feedback_results").insert({
         user_id: user.id,
         session_id: crypto.randomUUID(),
         overall_score: data.overallScore || 0,
@@ -111,7 +111,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
       }
 
       if (cardsToCreate.length > 0) {
-        const { data: existing } = await supabase
+        const { data: existing } = await backend
           .from("srs_cards")
           .select("target_text")
           .eq("user_id", user.id);
@@ -119,7 +119,7 @@ const ChatFeedback = ({ messages, persona, scenario, onBack }: Props) => {
         const newCards = cardsToCreate.filter((c) => !existingSet.has(c.target_text.toLowerCase()));
 
         if (newCards.length > 0) {
-          await supabase.from("srs_cards").upsert(
+          await backend.from("srs_cards").upsert(
             newCards.map((c) => ({
               user_id: user.id,
               target_text: c.target_text,

@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Type, AlignLeft, Check, X, RotateCcw, ChevronRight, Award, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { useAuth } from "@/hooks/useAuth";
 import { useCardReview } from "@/hooks/useCardReview";
 
@@ -176,7 +176,7 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     
-    const { data } = await supabase
+    const { data } = await backend
       .from("srs_cards")
       .select("*")
       .eq("user_id", user.id)
@@ -205,7 +205,7 @@ const ImportLearningFlow = ({ wordFrequency, sentenceStructures, onComplete, onU
     if (!currentItem) return;
     
     // Update SRS card
-    const { data: card } = await supabase
+    const { data: card } = await backend
       .from("srs_cards")
       .select("*")
       .eq("id", currentItem.id)

@@ -1,119 +1,88 @@
-# 운영 배포 절차 (무료 구성)
+# 운영 배포 절차 (Neon + Vercel)
 
-운영은 Lovable **무료 플랜**의 Lovable Cloud를 그대로 씁니다. 구독 없이도 아래가 무료입니다.
+Lovable과 Supabase는 쓰지 않습니다. 모두 무료 등급으로 돌아갑니다.
 
 | 역할 | 서비스 | 무료 한도 |
 | --- | --- | --- |
-| DB, 로그인, 엣지 함수 | Lovable Cloud (Supabase `wdkqzqcmqblzqglwjyqv`) | Cloud 사용량 월 $25 |
-| 웹 호스팅 | `native-speak-steps.lovable.app` | 게시는 무료 플랜에서도 됩니다 |
-| AI | Lovable AI 게이트웨이 | 월 $1 |
-| AI (선택) | Gemini API 무료 등급 | 모델별 하루 요청 수 제한 |
-| 코드 수정 요청 | Lovable 에이전트 | 하루 5크레딧 (월 30) |
+| DB, 로그인, Data API | Neon Free | 월 100 CU-시간, 로그인 월 6만 명. 저장 용량 한도는 콘솔 Usage에서 확인 |
+| 웹 호스팅, 서버 함수(`api/`) | Vercel Hobby | 비상업용만 허용. 유료 결제를 열면 Pro 플랜이 필요합니다 |
+| AI | Gemini API 무료 등급 | 모델별 하루 요청 수 제한 |
+| 학습 알림 예약 | GitHub Actions (`reminders.yml`) | 공개/비공개 저장소 무료 분량 안 |
 
-AI 무료 사용량 월 $1을 다 쓰면 AI 기능이 "AI 크레딧이 부족합니다"로 멈춥니다. 그때는 **나중에**의 Gemini 항목을 진행합니다.
+구성:
 
-순서는 반드시 **마이그레이션 → 엣지 함수 → 프런트엔드**입니다.
+- 브라우저는 `@neondatabase/neon-js`로 Neon Auth(로그인)와 Data API(테이블 읽기·쓰기)를 직접 부릅니다. 행 단위 보안(RLS)이 사용자별로 막습니다.
+- AI, 결제, 계정 삭제, 알림 발송은 Vercel 함수(`api/*.ts`)가 처리합니다. 로그인 토큰(JWT)을 Neon Auth의 JWKS로 확인하고, `DATABASE_URL`(소유자 권한)로 DB에 접속합니다.
+- DB 구조는 `db/migrations/0001_init.sql` 한 파일입니다. 로컬 검사: `npm run test:db`.
 
-- 새 엣지 함수는 새 테이블과 함수(`consume_ai_quota`, `profiles.pro_until`)를 읽습니다.
-- 새 프런트엔드는 새 DB 함수(`record_activity` 등)를 부릅니다.
-- 마이그레이션부터 게시까지는 옛 화면이 새 DB와 만납니다. 그동안 가져오기와 XP 저장이 실패할 수 있으니 한 번에 이어서 진행합니다.
+## 1. Neon 프로젝트
 
-## 1. 마이그레이션 (Claude가 Lovable MCP로 진행)
+1. Neon 콘솔에서 프로젝트를 만듭니다. 지역은 사용자와 가까운 곳(예: AWS Asia Pacific)을 고릅니다.
+2. **Auth**를 켭니다. `neon_auth` 스키마와 `neon_auth."user"` 테이블이 생깁니다.
+3. **Data API**를 켜고 인증 공급자로 Neon Auth를 고릅니다.
+4. SQL Editor에서 `db/migrations/0001_init.sql` 전체를 실행합니다.
+5. 아래 **확인 SQL**을 실행합니다.
+6. 아래 값을 적어 둡니다.
+   - Auth URL → `VITE_NEON_AUTH_URL`
+   - Data API URL → `VITE_NEON_DATA_API_URL`
+   - JWKS URL(Auth 설정 화면) → `NEON_AUTH_JWKS_URL`
+   - 연결 문자열(Connection string, 풀러 사용) → `DATABASE_URL`
 
-`query_database`로 `20260928160000_…`부터 `20260929220000_…`까지 13개 파일을 파일명 순서대로 적용합니다. 이 도구는 크레딧을 쓰지 않습니다.
+Auth 설정에서 함께 확인합니다.
 
-각 파일은 아래 틀에 넣어 한 문장으로 보냅니다.
+- **이메일 인증:** 가입 후 인증 메일을 보내도록 켭니다. 가입 화면이 "인증 메일을 보냈어요"를 보여 줍니다.
+- **비밀번호 재설정:** 메일의 링크가 `/reset-password?token=…`으로 돌아옵니다. 앱 주소를 허용 도메인(Trusted origins)에 넣습니다.
+- **Google 로그인(선택):** Google 공급자를 켠 뒤 `VITE_GOOGLE_AUTH=true`를 넣습니다.
 
-```sql
-do $wrap$
-declare sql text := $mig$<파일 내용 그대로>$mig$;
-begin
-  execute sql;
-  insert into supabase_migrations.schema_migrations (version, name, statements)
-  values ('<버전>', '<이름>', array[sql]);
-end $wrap$;
-```
+## 2. Vercel 프로젝트
 
-- 한 블록이라 전부 적용되거나 전부 취소됩니다.
-- 응답이 499나 시간 초과로 끊겨도 적용됐을 수 있습니다. 아래 쿼리로 확인하고, 없는 버전만 다시 보냅니다.
-- `md5`는 로컬 파일의 `md5sum`과 같아야 합니다. 보낸 내용이 파일과 한 글자도 다르지 않다는 확인입니다.
+1. GitHub 저장소를 Vercel에 연결합니다. 프레임워크는 Vite, 빌드 명령은 `npm run build`, 출력은 `dist`입니다. `vercel.json`이 `/api/` 밖의 모든 경로를 `index.html`로 보냅니다.
+2. 환경 변수를 넣습니다. 비밀 값은 Vercel 대시보드에만 넣고, 채팅이나 저장소에 붙여 넣지 않습니다.
 
-```sql
-select version, md5(statements[1]) from supabase_migrations.schema_migrations
-where version >= '20260928' order by version;
-```
+| 이름 | 예시/출처 | 비밀 |
+| --- | --- | --- |
+| `VITE_NEON_AUTH_URL` | Neon Auth URL | 아니요 |
+| `VITE_NEON_DATA_API_URL` | Neon Data API URL | 아니요 |
+| `NEON_AUTH_JWKS_URL` | Neon Auth JWKS URL | 아니요 |
+| `DATABASE_URL` | Neon 연결 문자열 | **예** |
+| `GEMINI_API_KEY` | aistudio.google.com/apikey (결제 정보 없이) | **예** |
+| `VITE_SUPPORT_EMAIL` | 문의 이메일. 비면 "(문의 이메일 미설정)" | 아니요 |
+| `VITE_GOOGLE_AUTH` | `true`면 Google 로그인 버튼 표시 | 아니요 |
+| `VITE_VAPID_PUBLIC_KEY`, `VAPID_*`, `REMINDER_CRON_SECRET` | docs/reminders.md | 개인 키·비밀은 **예** |
+| `VITE_TOSS_CLIENT_KEY`, `TOSS_SECRET_KEY` | docs/monetization.md | 비밀 키는 **예** |
 
-적용 전에 아래 **사전 점검 SQL**을, 적용 후에 **확인 SQL**을 실행합니다.
+3. `main`에 머지하면 Vercel이 배포합니다. PR마다 미리보기 배포가 생깁니다.
 
-## 2. 엣지 함수와 프런트엔드
+`VITE_`로 시작하는 값은 빌드 때 화면 코드에 들어가므로, 바꾼 뒤에는 다시 배포해야 합니다.
 
-1. PR을 머지합니다. Lovable이 GitHub `main`을 가져옵니다.
-2. Lovable 채팅에 아래를 보냅니다. 무료 일일 크레딧을 씁니다.
+## 3. 학습 알림 예약
 
-   ```text
-   코드는 수정하지 마. supabase/functions의 엣지 함수 11개(analyze-text, chat, chat-feedback,
-   confirm-payment, create-order, delete-account, generate-cards, send-reminders, speaking,
-   speaking-feedback, split-dialogue)를 지금 코드 그대로 배포하고, 폴더가 없어진 함수
-   (generate-examples, generate-pet-image, personalized-recommendations, pet-diary,
-   sync-gap-analysis, weekly-report)는 삭제해줘.
-   ```
-
-3. Claude가 Lovable MCP `deploy_project`로 게시합니다. 또는 Lovable에서 **Publish → Update**를 누릅니다.
-4. 휴대폰에서 확인합니다.
-   1. 로그인해서 대시보드가 뜨는지 봅니다.
-   2. 카드를 하나 복습합니다.
-   3. 채팅을 한 번 보냅니다.
-   4. 프로필에 "무료 플랜"이 보이는지 봅니다.
-   5. `/upgrade`에서 요금제 표가 보이는지 봅니다.
-
-## 사전 점검 SQL (읽기 전용)
-
-```sql
-select (select count(*) from supabase_migrations.schema_migrations) as applied_migrations, -- 12
-  to_regclass('public.activity_events') as activity_events,                               -- null
-  to_regclass('public.payments') as payments,                                             -- null
-  to_regclass('backup.srs_cards_removed_prd1') as card_backup,                            -- null
-  (select count(*) filter (where context in ('빈도 기반 단어 학습', '문장 구조 학습')
-     and target_text in ('[' || native_text || ']', native_text)) from public.srs_cards) as placeholder_cards,
-  (select count(*) - count(distinct (user_id, native_text)) from public.srs_cards) as duplicate_cards,
-  (select count(*) from public.language_imports where content is not null) as imports_with_raw_text,
-  (select count(*) from pg_stat_activity where state = 'active' and pid <> pg_backend_pid()) as active_sessions;
-```
+docs/reminders.md 절차대로 GitHub 저장소에 `APP_URL` 변수와 `REMINDER_CRON_SECRET` 비밀을 넣습니다. 넣기 전에는 워크플로가 건너뜁니다.
 
 ## 확인 SQL
 
 ```sql
--- 새 테이블 7개가 있어야 합니다.
-select count(*) as new_tables from pg_tables where schemaname = 'public' and tablename in
-  ('activity_events', 'ai_usage_daily', 'ai_usage_log', 'client_errors', 'analytics_events', 'push_subscriptions', 'payments');
-
--- 서버 함수 6개가 있어야 합니다.
-select string_agg(proname, ', ' order by proname) as functions from pg_proc
-where pronamespace = 'public'::regnamespace
-  and proname in ('record_activity', 'consume_ai_quota', 'complete_payment', 'create_order', 'claim_due_reminders', 'is_valid_timezone');
-
 -- 행 단위 보안이 꺼진 public 테이블. 0행이어야 합니다.
 select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity;
 
--- 옮겨 둔 카드 수. 사전 점검의 placeholder_cards와 duplicate_cards를 더한 값과 같아야 합니다.
-select count(*) as backed_up_cards from backup.srs_cards_removed_prd1;
+-- 로그인 사용자가 부를 수 있는 함수. current_user_id, ensure_profile, is_valid_timezone, record_activity 넷이어야 합니다.
+select string_agg(p.proname, ', ' order by p.proname) from pg_proc p
+where p.pronamespace = 'public'::regnamespace and has_function_privilege('authenticated', p.oid, 'execute');
 
--- 알림 예약. pg_cron이 있으면 1행이 나옵니다.
-select jobname, schedule from cron.job where jobname = 'send-reminders';
+-- 로그인 사용자 id의 타입. uuid여야 합니다.
+select data_type from information_schema.columns
+where table_schema = 'neon_auth' and table_name = 'user' and column_name = 'id';
 ```
 
-## 나중에 (필요할 때)
+## 배포 후 점검
 
-- **Gemini 무료 등급으로 AI 옮기기:** aistudio.google.com/apikey 에서 키를 만듭니다. 결제 정보는 넣지 않습니다. Lovable 프로젝트의 Cloud → Secrets에 `GEMINI_API_KEY`로 넣습니다. 그러면 엣지 함수가 게이트웨이 대신 Google을 직접 부릅니다. 무료 등급에서는 Google이 입력 내용을 서비스 개선에 쓸 수 있으며, 개인정보처리방침에 적어 두었습니다.
-- **문의 이메일:** `VITE_SUPPORT_EMAIL`을 `.env`에 넣고 다시 게시합니다. 비어 있으면 개인정보처리방침과 약관에 "(문의 이메일 미설정)"으로 나옵니다.
-- **학습 알림:** docs/reminders.md 절차대로 설정합니다.
-- **결제:** docs/monetization.md 절차대로 설정합니다.
-- **카드 백업 정리:** 2026-10-29 이후에도 카드를 되돌려 달라는 요청이 없으면 `drop schema backup cascade;`를 실행합니다.
+1. 가입 → 인증 메일 → 로그인 → 온보딩이 끝까지 됩니다.
+2. 대화 연습 한 번이 응답합니다(`/api/chat`). 실패하면 Vercel 함수 로그를 봅니다.
+3. 카드 복습 후 통계에 반영됩니다.
+4. 비밀번호 재설정 메일의 링크로 비밀번호를 바꿀 수 있습니다.
+5. 프로필 → 계정 삭제 후 같은 이메일로 로그인되지 않습니다.
 
 ## 문제가 생기면
 
-- **프런트엔드:** Lovable의 버전 기록에서 이전 버전을 다시 게시합니다.
-- **엣지 함수:** main의 이전 커밋에서 해당 함수를 다시 배포합니다.
-- **마이그레이션:** 자동으로 되돌리는 스크립트는 없습니다.
-  - 삭제된 카드는 `backup.srs_cards_removed_prd1`에서 `insert into public.srs_cards select * from backup.srs_cards_removed_prd1 where …`로 되살립니다.
-  - 가져오기 원문(`language_imports.content`)은 개인정보 보호 목적으로 지운 것이라 복구하지 않습니다.
+- **화면이나 서버 함수:** Vercel의 Deployments에서 이전 배포를 Promote(Instant Rollback)합니다.
+- **DB:** Neon의 Restore로 이전 시점으로 되돌립니다. 무료 플랜은 되돌릴 수 있는 기간이 짧습니다. 되돌리기 전에 현재 상태를 브랜치로 남겨 둡니다.

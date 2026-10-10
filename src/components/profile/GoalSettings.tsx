@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { useAuth } from "@/hooks/useAuth";
 import { Target, Plus, Trash2, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -29,7 +29,7 @@ const GoalSettings = () => {
 
   const fetchGoals = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data } = await backend
       .from("learning_goals")
       .select("*")
       .eq("user_id", user.id)
@@ -47,7 +47,7 @@ const GoalSettings = () => {
       toast.error("이미 설정된 목표입니다");
       return;
     }
-    const { error } = await supabase.from("learning_goals").insert({
+    const { error } = await backend.from("learning_goals").insert({
       user_id: user.id,
       goal_type: goalType,
       target_value: targetValue,
@@ -60,18 +60,18 @@ const GoalSettings = () => {
   };
 
   const toggleGoal = async (id: string, isActive: boolean) => {
-    await supabase.from("learning_goals").update({ is_active: isActive }).eq("id", id);
+    await backend.from("learning_goals").update({ is_active: isActive }).eq("id", id);
     fetchGoals();
   };
 
   const deleteGoal = async (id: string) => {
-    await supabase.from("learning_goals").delete().eq("id", id);
+    await backend.from("learning_goals").delete().eq("id", id);
     toast.success("목표가 삭제되었습니다");
     fetchGoals();
   };
 
   const updateTarget = async (id: string, value: number) => {
-    await supabase.from("learning_goals").update({ target_value: value }).eq("id", id);
+    await backend.from("learning_goals").update({ target_value: value }).eq("id", id);
     toast.success("목표가 수정되었습니다");
     fetchGoals();
   };

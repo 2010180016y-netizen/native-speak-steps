@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { motion } from "framer-motion";
 import { Heart, ShieldCheck, AlertTriangle, BookOpen, Clock, TrendingDown, Brain } from "lucide-react";
 import { AreaChart, Columns, DonutChart } from "@/components/Charts";
 import { format, addDays, differenceInDays, isPast } from "date-fns";
 import { ko } from "date-fns/locale";
 import { isMastered } from "@/lib/srs";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/database.types";
 
 interface Props {
   userId: string;
@@ -68,8 +68,8 @@ const SrsHealthDashboard = ({ userId }: Props) => {
       setLoading(true);
 
       const [cardsRes, todayStatsRes] = await Promise.all([
-        supabase.from("srs_cards").select("*").eq("user_id", userId),
-        supabase.from("learning_stats")
+        backend.from("srs_cards").select("*").eq("user_id", userId),
+        backend.from("learning_stats")
           .select("cards_reviewed")
           .eq("user_id", userId)
           .eq("date", format(new Date(), "yyyy-MM-dd"))

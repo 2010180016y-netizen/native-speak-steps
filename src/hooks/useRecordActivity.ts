@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { useAuth } from "@/hooks/useAuth";
 import { MILESTONE_LIST } from "@/lib/milestones";
 import { browserTimeZone } from "@/lib/streak";
@@ -20,7 +20,7 @@ export type ActivityResult = {
   xp: number;
   total_xp: number;
   streak_days: number;
-  milestone: { days: number; points: number } | null;
+  milestone: { days: number } | null;
 };
 
 /**
@@ -32,7 +32,7 @@ export const useRecordActivity = () => {
 
   return useCallback(
     async (kind: ActivityKind, idempotencyKey: string, units = 1): Promise<ActivityResult | null> => {
-      const { data, error } = await supabase.rpc("record_activity", {
+      const { data, error } = await backend.rpc("record_activity", {
         p_kind: kind,
         p_idempotency_key: idempotencyKey,
         p_units: units,

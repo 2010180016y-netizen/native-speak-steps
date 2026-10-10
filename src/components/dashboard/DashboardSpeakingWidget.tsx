@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { Phone, TrendingUp } from "lucide-react";
@@ -12,7 +12,7 @@ const DashboardSpeakingWidget = () => {
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
-      const { data: sessions } = await supabase
+      const { data: sessions } = await backend
         .from("lesson_completions")
         .select("score, completed_at")
         .eq("user_id", user.id)

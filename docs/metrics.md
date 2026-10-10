@@ -26,7 +26,7 @@ Events are stored in `analytics_events` (one row per user, event and UTC day) by
 
 ## Reading the numbers
 
-Run in the Supabase SQL editor (the view is not exposed to app users):
+Run in the Neon SQL editor (the view is not exposed to app users):
 
 ```sql
 select * from analytics_cohorts;

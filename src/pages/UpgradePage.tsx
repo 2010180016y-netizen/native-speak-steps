@@ -4,7 +4,6 @@ import { Check, Crown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { track } from "@/lib/analytics";
 import { AiError, invokeAi } from "@/lib/ai";
 import { isPro, PLAN_LIMITS, PRO_DAYS, PRO_PRICE_KRW } from "@/lib/plan";
@@ -48,7 +47,7 @@ const UpgradePage = ({ result }: { result?: "success" | "fail" }) => {
   const confirmPayment = useCallback(async () => {
     setBusy(true);
     setConfirmError(null);
-    const { error } = await supabase.functions.invoke("confirm-payment", {
+    const { error } = await invokeAi("confirm-payment", {
       body: { paymentKey: params.get("paymentKey"), orderId: params.get("orderId"), amount: params.get("amount") },
     });
     if (error) {

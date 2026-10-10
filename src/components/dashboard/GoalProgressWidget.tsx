@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { Target, ChevronRight } from "lucide-react";
@@ -39,7 +39,7 @@ const GoalProgressWidget = () => {
 
     const fetchGoalsAndProgress = async () => {
       // Fetch active goals
-      const { data: goals } = await supabase
+      const { data: goals } = await backend
         .from("learning_goals")
         .select("*")
         .eq("user_id", user.id)
@@ -56,12 +56,12 @@ const GoalProgressWidget = () => {
 
       // Fetch today's stats and sessions
       const [statsRes, sessionsRes] = await Promise.all([
-        supabase.from("learning_stats").select("*").eq("user_id", user.id).eq("date", today).single(),
-        supabase.from("user_sessions").select("duration_seconds").eq("user_id", user.id).gte("started_at", new Date(today).toISOString()),
+        backend.from("learning_stats").select("*").eq("user_id", user.id).eq("date", today).single(),
+        backend.from("user_sessions").select("duration_seconds").eq("user_id", user.id).gte("started_at", new Date(today).toISOString()),
       ]);
 
       // Weekly words for weekly goal
-      const weeklyStatsRes = await supabase
+      const weeklyStatsRes = await backend
         .from("learning_stats")
         .select("target_words_learned")
         .eq("user_id", user.id)

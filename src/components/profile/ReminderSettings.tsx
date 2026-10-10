@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { backend } from "@/lib/backend";
 import { Bell, BellOff, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ const ReminderSettings = () => {
     if (!user) return;
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await backend
         .from("profiles")
         .update({ reminder_enabled: enabled })
         .eq("user_id", user.id);
@@ -48,7 +48,7 @@ const ReminderSettings = () => {
     if (!user) return;
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await backend
         .from("profiles")
         .update({ reminder_time: time })
         .eq("user_id", user.id);

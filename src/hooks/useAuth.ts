@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
-import type { User, Session } from "@supabase/supabase-js";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Session, User } from "@/lib/backend";
+import type { Tables } from "@/lib/database.types";
 
 type Profile = Tables<"profiles">;
 
